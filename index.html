@@ -580,13 +580,7 @@ function renderResultados(){
       ${pd?`<button onclick="removePDF('${zone}',${idx})" style="font-size:11px;padding:3px 8px;border-radius:12px;border:1px solid #e0e6e2;background:#fff;color:var(--tx3);cursor:pointer;">✕</button>`:`<label style="font-size:11px;padding:3px 8px;border-radius:12px;border:1px solid #e0e6e2;color:var(--tx3);cursor:pointer;white-space:nowrap;" title="Reemplazar archivo">⬆<input type="file" accept="application/pdf" onchange="uploadPDF(event,'${zone}',${idx})" style="display:none;"/></label>`}
     </div>`;}).join('');})()}`;
   };
-  const btn=(label,active,onclick)=>`<button onclick="${onclick}" style="padding:5px 16px;font-size:12px;font-family:inherit;border-radius:20px;cursor:pointer;font-weight:700;border:1px solid ${active?'var(--grn)':'var(--brd)'};background:${active?'var(--grn)':'#fff'};color:${active?'#fff':'var(--tx2)'};">${label}</button>`;
-  return`<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
-    <span style="font-size:11px;font-weight:700;color:var(--tx2);">Ciclo:</span>
-    ${btn('2025',resYear===2025,"setResYear(2025)")}
-    ${btn('2026',resYear===2026,"setResYear(2026)")}
-  </div>
-  <div class="card">${renderZoneBody(CZ)}</div>`;}
+  return`<div class="card">${renderZoneBody(CZ)}</div>`;}
 function saveResultados(){}
 function uploadPDF(event,zone,idx){const file=event.target.files[0];if(!file)return;if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]={name:file.name,url:URL.createObjectURL(file)};renderDocView('resultados');}
 function removePDF(zone,idx){if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]=null;renderDocView('resultados');}
