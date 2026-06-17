@@ -246,7 +246,8 @@ const members=[];
 const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
 const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:{MTY:[null,null,null,null],CDMX:[null,null,null,null]}};
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
-const appUsers=[];let activeUserId=null,usuarioFiltro='',editingUserId=null;
+const appUsers=JSON.parse(localStorage.getItem('appUsers')||'[]');let activeUserId=null,usuarioFiltro='',editingUserId=null;
+function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));}
 function initArea(id){if(!SD[id])SD[id]={};[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(!YZD[y][z][id])YZD[y][z][id]={};}));}
 function gzd(){return YZD[CY][CZ][CA]||{};}
 function gp(id){const s=SD[id]||{};const z=(YZD[CY]||{})[CZ]||{};const zd=z[id]||{};return['doc','kpi','action'].filter(t=>(t==='kpi'||t==='action')?zd[t]&&zd[t].saved:s[t]&&s[t].saved).length;}
@@ -464,18 +465,18 @@ function saveUser(){
     if(dup!==-1&&dup!==editingUserId){toast('Ese usuario ya existe');return;}
     appUsers[editingUserId]={...appUsers[editingUserId],nombre:nom,puesto:v('u_pue'),usuario:usr,zona};
     if(pwd)appUsers[editingUserId].password=pwd;
-    editingUserId=null;toast('Usuario actualizado: '+nom);
+    editingUserId=null;saveUsersLS();toast('Usuario actualizado: '+nom);
   }else{
     const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}
     if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}
     appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona});
-    toast('Usuario registrado: '+nom);
+    saveUsersLS();toast('Usuario registrado: '+nom);
   }
   renderDocView('usuarios');
 }
 function editUser(i){editingUserId=i;renderDocView('usuarios');document.getElementById('u_nom')&&document.getElementById('u_nom').scrollIntoView({behavior:'smooth'});}
 function cancelEditUser(){editingUserId=null;renderDocView('usuarios');}
-function delUser(i){if(activeUserId===i)deactivateUser();else if(activeUserId!==null&&activeUserId>i)activeUserId--;if(editingUserId===i)editingUserId=null;else if(editingUserId!==null&&editingUserId>i)editingUserId--;appUsers.splice(i,1);renderDocView('usuarios');}
+function delUser(i){if(activeUserId===i)deactivateUser();else if(activeUserId!==null&&activeUserId>i)activeUserId--;if(editingUserId===i)editingUserId=null;else if(editingUserId!==null&&editingUserId>i)editingUserId--;appUsers.splice(i,1);saveUsersLS();renderDocView('usuarios');}
 let loginTargetId=null;
 function activateUser(i){loginTargetId=i;const u=appUsers[i];document.getElementById('login-modal').style.display='flex';document.getElementById('login-user-label').textContent=u.nombre;document.getElementById('login-usr').value='';document.getElementById('login-pwd').value='';document.getElementById('login-err').textContent='';setTimeout(()=>document.getElementById('login-usr').focus(),50);}
 function confirmLogin(){const u=appUsers[loginTargetId];const usr=document.getElementById('login-usr').value.trim();const pwd=document.getElementById('login-pwd').value;if(usr!==u.usuario||pwd!==u.password){document.getElementById('login-err').textContent='Usuario o contraseña incorrectos';return;}closeLoginModal();activeUserId=loginTargetId;if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}updateZonaLock();renderDocView('usuarios');toast('Sesión iniciada: '+u.nombre);}
