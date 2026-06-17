@@ -391,6 +391,7 @@ function renderUsuarios(){
       <div class="m-info">
         <div class="m-name">${esc(u.nombre)}</div>
         <div class="m-area-txt">${esc(u.puesto||'—')}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px;">👤 ${esc(u.usuario)} &nbsp;·&nbsp; 🔑 ${'•'.repeat(u.password.length)}</div>
         <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
           <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;${zonaPill(u.zona)}">${u.zona==='Ambas'?'Todas las zonas':u.zona==='MTY'?'Monterrey':'Ciudad de México'}</span>
           ${isA?'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;">● Sesión activa</span>':''}
@@ -412,6 +413,10 @@ function renderUsuarios(){
       <div class="fg"><label class="fl">Nombre completo</label><input class="fc" id="u_nom" placeholder="Nombre del usuario"/></div>
       <div class="fg"><label class="fl">Puesto</label><input class="fc" id="u_pue" placeholder="Gerente MTY, Analista CDMX..."/></div>
     </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Usuario</label><input class="fc" id="u_usr" placeholder="nombre.apellido"/></div>
+      <div class="fg"><label class="fl">Contraseña</label><input class="fc" type="password" id="u_pwd" placeholder="Contraseña"/></div>
+    </div>
     <div class="fg"><label class="fl">Zona que puede ver y editar</label>
       <select class="fc" id="u_zona">
         <option value="">Selecciona zona...</option>
@@ -423,7 +428,7 @@ function renderUsuarios(){
     <div class="btn-row"><button class="btn btn-p" onclick="saveUser()">Agregar usuario</button></div>
   </div>`;
 }
-function saveUser(){const nom=v('u_nom');if(!nom){toast('Ingresa el nombre');return;}const zona=v('u_zona');if(!zona){toast('Selecciona una zona');return;}appUsers.push({nombre:nom,puesto:v('u_pue'),zona});toast('Usuario registrado: '+nom);renderDocView('usuarios');}
+function saveUser(){const nom=v('u_nom');if(!nom){toast('Ingresa el nombre');return;}const usr=v('u_usr');if(!usr){toast('Ingresa el usuario');return;}const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}const zona=v('u_zona');if(!zona){toast('Selecciona una zona');return;}if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona});toast('Usuario registrado: '+nom);renderDocView('usuarios');}
 function delUser(i){if(activeUserId===i)deactivateUser();else if(activeUserId!==null&&activeUserId>i)activeUserId--;appUsers.splice(i,1);renderDocView('usuarios');}
 function activateUser(i){activeUserId=i;const u=appUsers[i];if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}updateZonaLock();renderDocView('usuarios');toast('Sesión iniciada: '+u.nombre);}
 function deactivateUser(){activeUserId=null;updateZonaLock();renderDocView('usuarios');toast('Sesión cerrada');}
