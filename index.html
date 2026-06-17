@@ -323,10 +323,12 @@ function renderDocView(sub){
     <button class="sub-tab ${sub==='madurez'?'on':''}" onclick="renderDocView('madurez')">📊 Nivel de Madurez</button>
     <button class="sub-tab ${sub==='resultados'?'on':''}" onclick="renderDocView('resultados')">📈 Resultados</button>
     <button class="sub-tab ${sub==='usuarios'?'on':''}" onclick="renderDocView('usuarios')">👤 Usuarios</button>
+    <button class="sub-tab ${sub==='a3list'?'on':''}" onclick="renderDocView('a3list')">📝 A3 Guardados</button>
   </div>`;
   if(sub==='madurez')h+=hasPerm('madurez')?renderMadurez():noAccessInline('Nivel de Madurez');
   else if(sub==='resultados')h+=hasPerm('resultados')?renderResultados():noAccessInline('Resultados');
   else if(sub==='usuarios')h+=hasPerm('usuarios')?renderUsuarios():noAccessInline('Gestión de Usuarios');
+  else if(sub==='a3list')h+=renderA3Guardados();
   mc.innerHTML=h;
 }
 function renderMadurez(){
@@ -828,6 +830,44 @@ function rAction(){
   ${a3step(6,'🎯','¿Qué resultado esperamos?',`<input class="fc" id="a_rmed" value="${esc(ac.resultadoMedido)}" placeholder="Ej: FTF sube a ≥ 85% en 60 días"/>`)}
   <div class="btn-row"><button class="btn btn-p" onclick="svAction()">Guardar A3</button></div>
   </div>`;}
+
+function renderA3Guardados(){
+  const estadoColor={Abierto:'#e53935','':{}, 'En proceso':'#f57c00','Cerrado':'#2e7d52'};
+  const estadoLbl={Abierto:'🔴 Abierto','En proceso':'🟡 En proceso',Cerrado:'🟢 Cerrado','':{label:'—'}};
+  let cards='';
+  [2025,2026].forEach(y=>{
+    ['MTY','CDMX'].forEach(z=>{
+      const zd=YZD[y]&&YZD[y][z]?YZD[y][z]:{};
+      areas.forEach(a=>{
+        const ac=zd[a.id]&&zd[a.id].action&&zd[a.id].action.saved?zd[a.id].action:null;
+        if(!ac)return;
+        const est=ac.estadoA3||'Abierto';
+        const estColor=est==='Cerrado'?'#2e7d52':est==='En proceso'?'#f57c00':'#e53935';
+        const acciones=(ac.rows||[]).filter(r=>r.accion).length;
+        const causas=(ac.causas||[]).filter(c=>c).length;
+        const zLabel=z==='MTY'?'Monterrey':'CDMX';
+        cards+=`<div class="card" style="margin-bottom:10px;cursor:pointer;" onclick="openAreaA3('${a.id}','${z}',${y})">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--tx);">${a.id} · ${a.name}</div>
+              <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${zLabel} · Ciclo ${y}${ac.responsable?` · ${ac.responsable}`:''}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:${estColor}1a;color:${estColor};white-space:nowrap;">${est||'Abierto'}</span>
+          </div>
+          ${ac.situacion?`<p style="font-size:12px;color:var(--tx2);margin:8px 0 6px;line-height:1.5;">${esc(ac.situacion.substring(0,120))}${ac.situacion.length>120?'…':''}</p>`:''}
+          <div style="display:flex;gap:12px;margin-top:6px;">
+            ${causas?`<span style="font-size:11px;color:var(--tx3);">⚠️ ${causas} causa${causas>1?'s':''}</span>`:''}
+            ${acciones?`<span style="font-size:11px;color:var(--tx3);">✅ ${acciones} acción${acciones>1?'es':''}</span>`:''}
+            ${ac.fechaFin?`<span style="font-size:11px;color:var(--tx3);">📅 Cierre: ${ac.fechaFin}</span>`:''}
+          </div>
+        </div>`;
+      });
+    });
+  });
+  if(!cards)return`<div class="card" style="text-align:center;padding:32px 16px;"><div style="font-size:36px;margin-bottom:10px;">📝</div><div style="font-size:14px;font-weight:700;color:var(--tx);margin-bottom:6px;">Sin A3 guardados</div><div style="font-size:12px;color:var(--tx3);">Entra a un KPI, llena el Plan A3 y guárdalo.</div></div>`;
+  return`<div class="card-title" style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:10px;">📝 Planes A3 guardados</div>${cards}`;
+}
+function openAreaA3(id,zona,year){CZ=zona;CY=year;openArea(id);renderMain('action');}
 
 function addKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.rows.push({name:'',meta:'',actual:'',estado:''});renderMain('kpi');}
 function addAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};if(!zd.action.rows)zd.action.rows=[];zd.action.rows.push({accion:'',resp:'',fecha:'',estado:''});renderMain('action');}
