@@ -287,7 +287,7 @@ function gp(id){const s=SD[id]||{};const z=(YZD[CY]||{})[CZ]||{};const zd=z[id]|
 function gs(id){const p=gp(id);return p===3?'ok':p>0?'prog':'no';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function v(id){const el=document.getElementById(id);return el?el.value:'';}
-function setYear(y){CY=y;renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
+function setYear(y){CY=y;resYear=y;renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
 function setZona(z){const u=activeUserId!==null?appUsers[activeUserId]:null;if(u&&u.zona!=='Ambas'&&u.zona!==z)return;CZ=z;document.getElementById('pMTY').className='zpill'+(z==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(z==='CDMX'?' on':'');document.getElementById('tbZ').textContent=z==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(z==='MTY'?'zbm':'zbc');renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
 function renderAcc(){
   const acc=document.getElementById('accordion');acc.innerHTML='';
