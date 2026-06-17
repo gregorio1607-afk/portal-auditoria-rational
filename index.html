@@ -510,11 +510,11 @@ function renderUsuarios(){
 }
 function saveUser(){
   const nom=v('u_nom');if(!nom){toast('Ingresa el nombre');return;}
-  const usr=v('u_usr');if(!usr){toast('Ingresa el usuario');return;}
+  const usr=v('u_usr').trim().toLowerCase();if(!usr){toast('Ingresa el usuario');return;}
   const zona=v('u_zona');if(!zona){toast('Selecciona una zona');return;}
   if(editingUserId!==null){
     const pwd=v('u_pwd');
-    const dup=appUsers.findIndex(u=>u.usuario===usr);
+    const dup=appUsers.findIndex(u=>u.usuario.trim().toLowerCase()===usr);
     if(dup!==-1&&dup!==editingUserId){toast('Ese usuario ya existe');return;}
     const permisos=getFormPermisos();
     appUsers[editingUserId]={...appUsers[editingUserId],nombre:nom,puesto:v('u_pue'),usuario:usr,zona,permisos};
@@ -522,7 +522,7 @@ function saveUser(){
     editingUserId=null;saveUsersLS();toast('Usuario actualizado: '+nom);
   }else{
     const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}
-    if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}
+    if(appUsers.find(u=>u.usuario.trim().toLowerCase()===usr)){toast('Ese usuario ya existe');return;}
     const permisos=getFormPermisos();
     appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona,permisos});
     saveUsersLS();toast('Usuario registrado: '+nom);
@@ -668,7 +668,7 @@ function portalLogin(){
   const usr=document.getElementById('pl-usr').value.trim();
   const pwd=document.getElementById('pl-pwd').value;
   if(usr==='admin'&&pwd==='admin'){document.getElementById('portal-login').style.display='none';renderAcc();toast('Bienvenido, Administrador');return;}
-  const idx=appUsers.findIndex(u=>u.usuario===usr&&u.password===pwd);
+  const idx=appUsers.findIndex(u=>u.usuario.trim().toLowerCase()===usr&&u.password===pwd);
   if(idx===-1){document.getElementById('pl-err').textContent='Usuario o contraseña incorrectos';return;}
   activeUserId=idx;
   const u=appUsers[idx];
