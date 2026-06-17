@@ -619,8 +619,8 @@ function svAction(){const zd=gzd();if(!zd.action)zd.action={};zd.action.saved=tr
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function checkPortalLogin(){
-  if(appUsers.length===0){renderAcc();return;}
   document.getElementById('portal-login').style.display='flex';
+  setTimeout(()=>document.getElementById('pl-usr').focus(),100);
 }
 function portalLogin(){
   const usr=document.getElementById('pl-usr').value.trim();
