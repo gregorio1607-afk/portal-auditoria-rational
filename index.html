@@ -277,6 +277,7 @@ function saveData(){localStorage.setItem('appSD',JSON.stringify(SD));localStorag
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
 const appUsers=JSON.parse(localStorage.getItem('appUsers')||'[]');let activeUserId=null,usuarioFiltro='',editingUserId=null;
 function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));}
+function toggleAllKpis(check){areas.forEach(a=>{const el=document.getElementById('up_kpi_'+a.id.replace('.','_'));if(el)el.checked=check;});}
 function getFormPermisos(){
   const mods=['a3','madurez','resultados','usuarios'].filter(k=>document.getElementById('up_'+k)?.checked);
   const kpis=areas.map(a=>a.id).filter(id=>document.getElementById('up_kpi_'+id.replace('.','_'))?.checked).map(id=>'kpi_'+id);
@@ -502,7 +503,7 @@ function renderUsuarios(){
         }).join('')}
       </div>
     </div>
-    <div class="fg" style="margin-top:8px;"><label class="fl">KPIs que puede ver y editar</label>
+    <div class="fg" style="margin-top:8px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><label class="fl" style="margin:0;">KPIs que puede ver y editar</label><div style="display:flex;gap:6px;"><button type="button" class="btn" style="font-size:11px;padding:3px 10px;background:#fff;border:1px solid var(--grn);color:var(--grn);" onclick="toggleAllKpis(true)">Seleccionar todos</button><button type="button" class="btn" style="font-size:11px;padding:3px 10px;background:#fff;border:1px solid var(--brd);color:var(--tx2);" onclick="toggleAllKpis(false)">Quitar todos</button></div></div>
       ${Object.entries(groups).map(([g,gr])=>`
         <div style="margin-top:8px;">
           <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${gr.label}</div>
