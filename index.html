@@ -480,7 +480,7 @@ function renderUsuarios(){
     <div class="card-title">${editingUserId!==null?'✏ Editar usuario':'➕ Nuevo usuario'}</div>
     <div class="fr">
       <div class="fg"><label class="fl">Nombre completo</label><input class="fc" id="u_nom" placeholder="Nombre del usuario" value="${editingUserId!==null?esc(appUsers[editingUserId].nombre):''}"/></div>
-      <div class="fg"><label class="fl">Puesto</label><input class="fc" id="u_pue" placeholder="Gerente MTY, Analista CDMX..." value="${editingUserId!==null?esc(appUsers[editingUserId].puesto||''):''}"/></div>
+      <div class="fg"><label class="fl">Puesto</label><select class="fc" id="u_pue">${['','Gerente de Servicio','Supervisor Técnico','Analista de Garantías','Técnico de Servicio','Analista de Productividad','Control de Activos','Formación y Desarrollo (IFCT)','Customer Care','RR.HH. / Talento Humano','Almacén CDS','Director General','Otro'].map(p=>`<option value="${p}" ${editingUserId!==null&&appUsers[editingUserId].puesto===p?'selected':''}>${p||'Selecciona puesto...'}</option>`).join('')}</select></div>
     </div>
     <div class="fr">
       <div class="fg"><label class="fl">Usuario</label><input class="fc" id="u_usr" placeholder="nombre.apellido" value="${editingUserId!==null?esc(appUsers[editingUserId].usuario):''}"/></div>
@@ -603,7 +603,7 @@ function renderIntegrantes(){
   return`<div class="card"><div class="card-title">👥 Integrantes del equipo auditor</div>${memberList}</div>
   <div class="card"><div class="card-title">${em?'✏️ Editar':'➕ Nuevo'} integrante</div>
   <div class="fr"><div class="fg"><label class="fl">Nombre completo</label><input class="fc" id="m_nom" value="${em?esc(em.nombre):''}" placeholder="Nombre completo"/></div>
-  <div class="fg"><label class="fl">Puesto</label><input class="fc" id="m_pue" value="${em?esc(em.puesto):''}" placeholder="Ej: Gerente de Servicio"/></div></div>
+  <div class="fg"><label class="fl">Puesto</label><select class="fc" id="m_pue">${['','Gerente de Servicio','Supervisor Técnico','Analista de Garantías','Técnico de Servicio','Analista de Productividad','Control de Activos','Formación y Desarrollo (IFCT)','Customer Care','RR.HH. / Talento Humano','Almacén CDS','Director General','Otro'].map(p=>`<option value="${p}" ${em&&em.puesto===p?'selected':''}>${p||'Selecciona puesto...'}</option>`).join('')}</select></div></div>
   <div class="fr"><div class="fg"><label class="fl">Área</label><select class="fc" id="m_area"><option value="">Selecciona área...</option>${areaOpts}</select></div>
   <div class="fg"><label class="fl">Correo</label><input class="fc" id="m_mail" value="${em?esc(em.correo):''}" placeholder="correo@servindustrial.mx"/></div></div>
   <div class="fg"><label class="fl">Indicadores que puede ver y capturar</label>
