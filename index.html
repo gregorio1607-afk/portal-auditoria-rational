@@ -611,7 +611,8 @@ function cancelEdit(){editingMember=null;renderDocView('integrantes');}
 function openArea(id){if(!hasPerm('kpi_'+id)){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess(id+' · '+(CAO?.name||'KPI'));return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
 function renderMain(tab){
   CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
-  let h=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi'?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
+  let h=`<div style="margin-bottom:10px;"><span style="font-size:13px;font-weight:700;color:var(--tx);">${a.id} · ${a.name}</span>${a.proc_obj?`<p style="font-size:12px;color:var(--tx2);margin:4px 0 0;line-height:1.6;">${esc(a.proc_obj)}</p>`:''}</div>`;
+  h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi'?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
   if(tab==='doc')h+=rDoc();else if(tab==='kpi')h+=rKPI();else if(tab==='action')h+=hasPerm('a3')?rAction():noAccessInline('A3');
   document.getElementById('mc').innerHTML=h;
 }
@@ -682,7 +683,7 @@ function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   <div class="btn-row"><button class="btn btn-p" onclick="svDoc()">Guardar cambios</button></div></div>`;}
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  return`<div class="card">${CAO&&CAO.proc_obj?`<div style="font-size:12px;color:var(--tx2);line-height:1.6;padding:10px 12px;background:#f5f9f6;border-radius:8px;border-left:3px solid var(--grn);margin-bottom:12px;">${CAO.proc_obj}</div>`:''}<div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
+  return`<div class="card"><div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
   <div class="th"><span>Indicador</span><span>Meta</span><span>Actual</span><span>Estado</span></div>${rows}
   <button class="add-btn" onclick="addKPI()">＋ Agregar indicador</button><div class="hr"></div>
   <div class="fr"><div class="fg"><label class="fl">Fuente de datos</label><input class="fc" id="ks" value="${esc(zd.kpi.source)}" placeholder="Kepler, Drive..."/></div>
