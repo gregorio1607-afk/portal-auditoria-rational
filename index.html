@@ -199,6 +199,19 @@ textarea.fc{resize:vertical;line-height:1.5;}
 </div>
 </div>
 <div class="toast" id="tst"></div>
+<div id="portal-login" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1B3A2D 0%,#2E7D52 100%);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:18px;padding:36px 32px 28px;width:340px;box-shadow:0 12px 48px rgba(0,0,0,.3);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:36px;margin-bottom:6px;">📋</div>
+      <div style="font-size:16px;font-weight:700;color:var(--tx);">Portal de Auditoría</div>
+      <div style="font-size:12px;color:var(--tx3);margin-top:2px;">RATIONAL · Servindustrial</div>
+    </div>
+    <div class="fg" style="margin-bottom:10px;"><label class="fl">Usuario</label><input class="fc" id="pl-usr" placeholder="nombre.apellido" onkeydown="if(event.key==='Enter')document.getElementById('pl-pwd').focus()"/></div>
+    <div class="fg" style="margin-bottom:6px;"><label class="fl">Contraseña</label><input class="fc" type="password" id="pl-pwd" placeholder="Contraseña" onkeydown="if(event.key==='Enter')portalLogin()"/></div>
+    <div id="pl-err" style="font-size:11px;color:#c62828;min-height:16px;margin-bottom:12px;"></div>
+    <button onclick="portalLogin()" style="width:100%;padding:10px;border-radius:22px;border:none;background:var(--grn);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Ingresar</button>
+  </div>
+</div>
 <div id="login-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;padding:28px 28px 22px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18);">
     <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px;">🔐 Iniciar sesión</div>
@@ -609,7 +622,24 @@ function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};zd.action.saved=true;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');renderAcc();toast('A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-renderAcc();
+function checkPortalLogin(){
+  if(appUsers.length===0){renderAcc();return;}
+  document.getElementById('portal-login').style.display='flex';
+}
+function portalLogin(){
+  const usr=document.getElementById('pl-usr').value.trim();
+  const pwd=document.getElementById('pl-pwd').value;
+  const idx=appUsers.findIndex(u=>u.usuario===usr&&u.password===pwd);
+  if(idx===-1){document.getElementById('pl-err').textContent='Usuario o contraseña incorrectos';return;}
+  activeUserId=idx;
+  const u=appUsers[idx];
+  if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}
+  updateZonaLock();
+  document.getElementById('portal-login').style.display='none';
+  renderAcc();
+  toast('Bienvenido, '+u.nombre);
+}
+checkPortalLogin();
 </script>
 </body>
 </html>
