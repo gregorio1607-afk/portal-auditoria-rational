@@ -246,7 +246,7 @@ const members=[];
 const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
 const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:{MTY:[null,null,null,null],CDMX:[null,null,null,null]}};
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
-const appUsers=[];let activeUserId=null,usuarioFiltro='';
+const appUsers=[];let activeUserId=null,usuarioFiltro='',editingUserId=null;
 function initArea(id){if(!SD[id])SD[id]={};[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(!YZD[y][z][id])YZD[y][z][id]={};}));}
 function gzd(){return YZD[CY][CZ][CA]||{};}
 function gp(id){const s=SD[id]||{};const z=(YZD[CY]||{})[CZ]||{};const zd=z[id]||{};return['doc','kpi','action'].filter(t=>(t==='kpi'||t==='action')?zd[t]&&zd[t].saved:s[t]&&s[t].saved).length;}
@@ -420,6 +420,7 @@ function renderUsuarios(){
       </div>
       <div class="m-actions">
         ${!isA?`<button class="m-btn" onclick="activateUser(${i})">Activar</button>`:`<button class="m-btn" style="border-color:var(--grn);color:var(--grn);" onclick="deactivateUser()">Cerrar</button>`}
+        <button class="m-btn" onclick="editUser(${i})">✏</button>
         <button class="m-btn del" onclick="delUser(${i})">✕</button>
       </div>
     </div>`;}).join('');
@@ -430,28 +431,51 @@ function renderUsuarios(){
     ${userList}
   </div>
   <div class="card">
-    <div class="card-title">➕ Nuevo usuario</div>
+    <div class="card-title">${editingUserId!==null?'✏ Editar usuario':'➕ Nuevo usuario'}</div>
     <div class="fr">
-      <div class="fg"><label class="fl">Nombre completo</label><input class="fc" id="u_nom" placeholder="Nombre del usuario"/></div>
-      <div class="fg"><label class="fl">Puesto</label><input class="fc" id="u_pue" placeholder="Gerente MTY, Analista CDMX..."/></div>
+      <div class="fg"><label class="fl">Nombre completo</label><input class="fc" id="u_nom" placeholder="Nombre del usuario" value="${editingUserId!==null?esc(appUsers[editingUserId].nombre):''}"/></div>
+      <div class="fg"><label class="fl">Puesto</label><input class="fc" id="u_pue" placeholder="Gerente MTY, Analista CDMX..." value="${editingUserId!==null?esc(appUsers[editingUserId].puesto||''):''}"/></div>
     </div>
     <div class="fr">
-      <div class="fg"><label class="fl">Usuario</label><input class="fc" id="u_usr" placeholder="nombre.apellido"/></div>
-      <div class="fg"><label class="fl">Contraseña</label><input class="fc" type="password" id="u_pwd" placeholder="Contraseña"/></div>
+      <div class="fg"><label class="fl">Usuario</label><input class="fc" id="u_usr" placeholder="nombre.apellido" value="${editingUserId!==null?esc(appUsers[editingUserId].usuario):''}"/></div>
+      <div class="fg"><label class="fl">Contraseña</label><input class="fc" type="password" id="u_pwd" placeholder="${editingUserId!==null?'Dejar vacío para no cambiar':'Contraseña'}"/></div>
     </div>
     <div class="fg"><label class="fl">Zona que puede ver y editar</label>
       <select class="fc" id="u_zona">
         <option value="">Selecciona zona...</option>
-        <option value="MTY">Monterrey</option>
-        <option value="CDMX">Ciudad de México</option>
-        <option value="Ambas">Ambas zonas (Admin)</option>
+        <option value="MTY" ${editingUserId!==null&&appUsers[editingUserId].zona==='MTY'?'selected':''}>Monterrey</option>
+        <option value="CDMX" ${editingUserId!==null&&appUsers[editingUserId].zona==='CDMX'?'selected':''}>Ciudad de México</option>
+        <option value="Ambas" ${editingUserId!==null&&appUsers[editingUserId].zona==='Ambas'?'selected':''}>Ambas zonas (Admin)</option>
       </select>
     </div>
-    <div class="btn-row"><button class="btn btn-p" onclick="saveUser()">Agregar usuario</button></div>
+    <div class="btn-row" style="gap:8px;">
+      <button class="btn btn-p" onclick="saveUser()">${editingUserId!==null?'Guardar cambios':'Agregar usuario'}</button>
+      ${editingUserId!==null?`<button class="btn" onclick="cancelEditUser()" style="background:#fff;border:1px solid var(--brd);color:var(--tx2);">Cancelar</button>`:''}
+    </div>
   </div>`;
 }
-function saveUser(){const nom=v('u_nom');if(!nom){toast('Ingresa el nombre');return;}const usr=v('u_usr');if(!usr){toast('Ingresa el usuario');return;}const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}const zona=v('u_zona');if(!zona){toast('Selecciona una zona');return;}if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona});toast('Usuario registrado: '+nom);renderDocView('usuarios');}
-function delUser(i){if(activeUserId===i)deactivateUser();else if(activeUserId!==null&&activeUserId>i)activeUserId--;appUsers.splice(i,1);renderDocView('usuarios');}
+function saveUser(){
+  const nom=v('u_nom');if(!nom){toast('Ingresa el nombre');return;}
+  const usr=v('u_usr');if(!usr){toast('Ingresa el usuario');return;}
+  const zona=v('u_zona');if(!zona){toast('Selecciona una zona');return;}
+  if(editingUserId!==null){
+    const pwd=v('u_pwd');
+    const dup=appUsers.findIndex(u=>u.usuario===usr);
+    if(dup!==-1&&dup!==editingUserId){toast('Ese usuario ya existe');return;}
+    appUsers[editingUserId]={...appUsers[editingUserId],nombre:nom,puesto:v('u_pue'),usuario:usr,zona};
+    if(pwd)appUsers[editingUserId].password=pwd;
+    editingUserId=null;toast('Usuario actualizado: '+nom);
+  }else{
+    const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}
+    if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}
+    appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona});
+    toast('Usuario registrado: '+nom);
+  }
+  renderDocView('usuarios');
+}
+function editUser(i){editingUserId=i;renderDocView('usuarios');document.getElementById('u_nom')&&document.getElementById('u_nom').scrollIntoView({behavior:'smooth'});}
+function cancelEditUser(){editingUserId=null;renderDocView('usuarios');}
+function delUser(i){if(activeUserId===i)deactivateUser();else if(activeUserId!==null&&activeUserId>i)activeUserId--;if(editingUserId===i)editingUserId=null;else if(editingUserId!==null&&editingUserId>i)editingUserId--;appUsers.splice(i,1);renderDocView('usuarios');}
 let loginTargetId=null;
 function activateUser(i){loginTargetId=i;const u=appUsers[i];document.getElementById('login-modal').style.display='flex';document.getElementById('login-user-label').textContent=u.nombre;document.getElementById('login-usr').value='';document.getElementById('login-pwd').value='';document.getElementById('login-err').textContent='';setTimeout(()=>document.getElementById('login-usr').focus(),50);}
 function confirmLogin(){const u=appUsers[loginTargetId];const usr=document.getElementById('login-usr').value.trim();const pwd=document.getElementById('login-pwd').value;if(usr!==u.usuario||pwd!==u.password){document.getElementById('login-err').textContent='Usuario o contraseña incorrectos';return;}closeLoginModal();activeUserId=loginTargetId;if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}updateZonaLock();renderDocView('usuarios');toast('Sesión iniciada: '+u.nombre);}
