@@ -629,7 +629,50 @@ function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:
   <div class="fr"><div class="fg"><label class="fl">Fuente de datos</label><input class="fc" id="ks" value="${esc(zd.kpi.source)}" placeholder="Kepler, Drive..."/></div>
   <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="kf">${['','Diaria','Semanal','Mensual','Trimestral'].map(f=>`<option ${zd.kpi.freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
   <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="2">${esc(zd.kpi.notes)}</textarea></div>
-  <div class="btn-row"><button class="btn btn-p" onclick="svKPI()">Guardar</button></div></div>`;}
+  <div class="btn-row"><button class="btn btn-p" onclick="svKPI()">Guardar</button></div></div>
+  ${CA==='3.1'?renderEncuestas31():''}`;
+}
+const enc31={
+  MTY:[
+    {label:'Cinépolis Sendero',            file:'encuestas/enc-cinepolis-sendero-mty.pdf'},
+    {label:'Delifoods',                    file:'encuestas/enc-delifoods-mty.pdf'},
+    {label:'OS-291293',                    file:'encuestas/enc-os291293-mty.pdf'},
+    {label:'Cinépolis · OS-291356',        file:'encuestas/enc-cinepolis-jrz4-mty.pdf'},
+    {label:'Cabaña · OS-291467',           file:'encuestas/enc-cabanna-mty.pdf'},
+    {label:'Los Arcos · OS-291478',        file:'encuestas/enc-los-arcos-mty.pdf'},
+    {label:'Cinépolis · OS-289869',        file:'encuestas/enc-cinepolis-jrz8-mty.pdf'},
+    {label:'Reporte Cinépolis · OS-289869',file:'encuestas/rep-cinepolis-jrz8-mty.pdf'},
+    {label:'Cinépolis · OS-290386',        file:'encuestas/enc-cinepolis-jrz9-mty.pdf'},
+    {label:'Reporte Cinépolis · OS-290386',file:'encuestas/rep-cinepolis-jrz9-mty.pdf'},
+  ],
+  CDMX:[
+    {label:'Encuestas CDMX · Lote 1',      file:'encuestas/enc-cdmx-lote1.pdf'},
+    {label:'Encuestas CDMX1 2025',         file:'encuestas/enc-cdmx1-2025.pdf'},
+    {label:'Encuestas CDMX · Lote 2',      file:'encuestas/enc-cdmx-lote2.pdf'},
+    {label:'Encuestas CDMX · Lote 3',      file:'encuestas/enc-cdmx-lote3.pdf'},
+    {label:'Encuestas CDMX2 2025',         file:'encuestas/enc-cdmx2-2025.pdf'},
+    {label:'Forum Buenavista · OS-289167', file:'encuestas/enc-forum-buenavista-cdmx.pdf'},
+    {label:'Esperanza del Valle · OS-288317',file:'encuestas/enc-esperanza-valle-cdmx.pdf'},
+    {label:'Cinépolis Vallejo · OS-289121',file:'encuestas/enc-cinepolis-vallejo-cdmx.pdf'},
+    {label:'Cinépolis Tradicional · Tijuana',file:'encuestas/enc-cinepolis-tij1.pdf'},
+    {label:'Cinépolis VIP · Tijuana',      file:'encuestas/enc-cinepolis-vip-tij2.pdf'},
+    {label:'Esperanza del Valle · Tijuana',file:'encuestas/enc-esperanza-tij3.pdf'},
+  ]
+};
+function renderEncuestas31(){
+  const docs=enc31[CZ]||[];
+  const pill=CZ==='MTY'?'background:#e3f0ff;color:#1565c0;':'background:#f3e8ff;color:#6a1b9a;';
+  const zoneName=CZ==='MTY'?'Monterrey':'Ciudad de México (+ Tijuana)';
+  return`<div class="card">
+    <div class="card-title">📎 Encuestas de satisfacción · 3.1</div>
+    <div style="margin-bottom:10px;"><span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;${pill}">${zoneName} · 2025</span></div>
+    ${docs.map(d=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f0f4f1;">
+      <span style="font-size:20px;">📄</span>
+      <span style="font-size:12px;color:var(--tx);flex:1;">${d.label}</span>
+      <a href="${d.file}" target="_blank" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:12px;background:var(--grn);color:#fff;text-decoration:none;white-space:nowrap;">Ver PDF</a>
+    </div>`).join('')}
+  </div>`;
+}
 function rAction(){
   const zd=gzd();
   if(!zd.action)zd.action={rows:[{accion:'',resp:'',fecha:'',estado:''}],causas:['']};
