@@ -246,7 +246,7 @@ const members=[];
 const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
 const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:{MTY:[null,null,null,null],CDMX:[null,null,null,null]}};
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
-const appUsers=[];let activeUserId=null;
+const appUsers=[];let activeUserId=null,usuarioFiltro='';
 function initArea(id){if(!SD[id])SD[id]={};[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(!YZD[y][z][id])YZD[y][z][id]={};}));}
 function gzd(){return YZD[CY][CZ][CA]||{};}
 function gp(id){const s=SD[id]||{};const z=(YZD[CY]||{})[CZ]||{};const zd=z[id]||{};return['doc','kpi','action'].filter(t=>(t==='kpi'||t==='action')?zd[t]&&zd[t].saved:s[t]&&s[t].saved).length;}
@@ -394,12 +394,20 @@ const assessmentData={
   },
   2026:{MTY:null,CDMX:null}
 };
+function setUsuarioFiltro(f){usuarioFiltro=f;renderDocView('usuarios');}
 function renderUsuarios(){
   const zonaPill=(z)=>z==='MTY'?'background:#e3f0ff;color:#1565c0;':z==='CDMX'?'background:#f3e8ff;color:#6a1b9a;':'background:#e8f5ee;color:#2e7d52;';
   const aC=['#2E7D52','#1565c0','#b8690a','#6a1b9a','#c62828','#00796b'];
+  const puestos=[...new Set(appUsers.map(u=>u.puesto).filter(Boolean))];
+  const filtroBar=puestos.length>0?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+    <button onclick="setUsuarioFiltro('')" style="padding:4px 12px;font-size:11px;font-weight:700;border-radius:20px;cursor:pointer;border:1px solid ${usuarioFiltro===''?'var(--grn)':'var(--brd)'};background:${usuarioFiltro===''?'var(--grn)':'#fff'};color:${usuarioFiltro===''?'#fff':'var(--tx2)'};">Todos</button>
+    ${puestos.map(p=>`<button onclick="setUsuarioFiltro('${p.replace(/'/g,"\\'")}')" style="padding:4px 12px;font-size:11px;font-weight:700;border-radius:20px;cursor:pointer;border:1px solid ${usuarioFiltro===p?'var(--grn)':'var(--brd)'};background:${usuarioFiltro===p?'var(--grn)':'#fff'};color:${usuarioFiltro===p?'#fff':'var(--tx2)'};">${esc(p)}</button>`).join('')}
+  </div>`:'';
+  const filtered=usuarioFiltro?appUsers.map((u,i)=>({u,i})).filter(({u})=>u.puesto===usuarioFiltro):appUsers.map((u,i)=>({u,i}));
   const userList=appUsers.length===0
     ?'<p style="font-size:12px;color:var(--tx3);padding:8px 0;">No hay usuarios registrados.</p>'
-    :appUsers.map((u,i)=>{const isA=activeUserId===i;return`<div class="member-card" style="${isA?'border-color:var(--grn);background:#f0f7f3;border-width:2px;':''}">
+    :filtered.length===0?'<p style="font-size:12px;color:var(--tx3);padding:8px 0;">Sin usuarios con ese puesto.</p>'
+    :filtered.map(({u,i})=>{const isA=activeUserId===i;return`<div class="member-card" style="${isA?'border-color:var(--grn);background:#f0f7f3;border-width:2px;':''}">
       <div class="m-ava" style="background:${aC[i%aC.length]};">${u.nombre.charAt(0).toUpperCase()}</div>
       <div class="m-info">
         <div class="m-name">${esc(u.nombre)}</div>
@@ -418,6 +426,7 @@ function renderUsuarios(){
   return`<div class="card">
     <div class="card-title">👤 Usuarios registrados</div>
     ${activeUserId!==null?`<div class="notice notice-g" style="margin-bottom:10px;">🔒 Sesión: <strong>${appUsers[activeUserId].nombre}</strong> — zona ${appUsers[activeUserId].zona==='Ambas'?'todas':appUsers[activeUserId].zona}. <button onclick="deactivateUser()" class="btn btn-g" style="padding:2px 10px;font-size:11px;margin-left:8px;">Cerrar sesión</button></div>`:''}
+    ${filtroBar}
     ${userList}
   </div>
   <div class="card">
