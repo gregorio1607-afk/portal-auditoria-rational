@@ -286,7 +286,7 @@ function renderAcc(){
       const item=document.createElement('div');
       item.className='sb-item'+(id===CA&&VM==='area'?' on':'');
       item.onclick=()=>openArea(id);
-      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}</span><span class="sb-dot ${st==='ok'?'dok':st==='prog'?'dpr':'dno'}"></span>`;
+      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}<span style="display:block;font-size:10px;font-weight:400;color:var(--tx3);line-height:1.4;margin-top:2px;white-space:normal;">${a.proc_obj||''}</span></span><span class="sb-dot ${st==='ok'?'dok':st==='prog'?'dpr':'dno'}"></span>`;
       body.appendChild(item);
     });
     div.appendChild(head);div.appendChild(body);acc.appendChild(div);
