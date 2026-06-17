@@ -680,7 +680,82 @@ function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   <div class="fr"><div class="fg"><label class="fl">Alcance</label><input class="fc" id="psc" value="${esc(d.proc_scope)}"/></div>
   <div class="fg"><label class="fl">Responsabilidades</label><input class="fc" id="pr" value="${esc(d.proc_resp)}"/></div></div>
   <div class="fg"><label class="fl">Desarrollo del proceso</label><textarea class="fc" id="pb" rows="5">${esc(d.proc_body)}</textarea></div>
-  <div class="btn-row"><button class="btn btn-p" onclick="svDoc()">Guardar cambios</button></div></div>`;}
+  <div class="btn-row" style="gap:8px;"><button class="btn btn-p" onclick="svDoc()">Guardar cambios</button><button class="btn" onclick="printDoc()" style="background:#fff;border:1px solid var(--grn);color:var(--grn);">🖨 Imprimir proceso</button></div></div>`;}
+function printDoc(){
+  const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
+  const stepsHtml=d.flow_steps?d.flow_steps.split('\n').map(l=>l.trim()).filter(l=>l).map(l=>{
+    const dec=l.match(/^(\d+)\.\s+(¿.+)/);
+    const step=l.match(/^(\d+)\.\s+(.+)/);
+    const branch=l.match(/^[-*]\s*(SÍ|Sí|NO|no|sí|si)[:：]\s*(.+)/i);
+    if(dec)return`<tr><td style="text-align:center;padding:6px 8px;border:1px solid #ccc;background:#fffbeb;font-weight:700;">◇</td><td style="padding:6px 8px;border:1px solid #ccc;background:#fffbeb;font-weight:600;">${l.replace(/^\d+\.\s+/,'')}</td></tr>`;
+    if(step)return`<tr><td style="text-align:center;padding:6px 8px;border:1px solid #ccc;background:#f0f7f3;font-weight:700;">${step[1]}</td><td style="padding:6px 8px;border:1px solid #ccc;">${step[2]}</td></tr>`;
+    if(branch){const yes=branch[1].toUpperCase()==='SÍ'||branch[1].toUpperCase()==='SI';return`<tr><td style="text-align:center;padding:5px 8px;border:1px solid #ccc;background:${yes?'#dcfce7':'#fee2e2'};font-size:11px;font-weight:700;">${branch[1].toUpperCase()}</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">↳ ${branch[2]}</td></tr>`;}
+    return`<tr><td colspan="2" style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">${l}</td></tr>`;
+  }).join(''):'<tr><td colspan="2" style="padding:8px;color:#999;">Sin pasos definidos</td></tr>';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${a.id} · ${a.name}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;padding:20px;}
+    .page{max-width:210mm;margin:0 auto;}
+    .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #2E7D52;padding-bottom:10px;margin-bottom:14px;}
+    .header-left{display:flex;align-items:center;gap:12px;}
+    .brand{font-size:18px;font-weight:800;color:#2E7D52;}
+    .sub-brand{font-size:11px;color:#555;}
+    .doc-code{font-size:10px;color:#666;text-align:right;line-height:1.6;}
+    .title-bar{background:#2E7D52;color:#fff;padding:8px 14px;border-radius:6px;margin-bottom:12px;}
+    .title-bar h1{font-size:14px;font-weight:700;}
+    .title-bar p{font-size:11px;margin-top:3px;opacity:.9;}
+    .obj-box{background:#f0f7f3;border-left:4px solid #2E7D52;padding:8px 12px;font-size:11px;line-height:1.6;margin-bottom:12px;color:#333;}
+    .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#2E7D52;margin:14px 0 6px;border-bottom:1px solid #cce5d4;padding-bottom:3px;}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+    .meta-item{border:1px solid #ddd;border-radius:4px;padding:6px 10px;}
+    .meta-label{font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.4px;}
+    .meta-val{font-size:12px;font-weight:600;color:#1a1a1a;margin-top:2px;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    .proc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+    .proc-item{border:1px solid #ddd;border-radius:4px;padding:6px 10px;}
+    .body-box{border:1px solid #ddd;border-radius:4px;padding:8px 12px;font-size:11px;line-height:1.8;white-space:pre-line;color:#333;}
+    .footer{margin-top:20px;border-top:1px solid #ccc;padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#999;}
+    @media print{body{padding:0;}@page{size:A4;margin:15mm;}}
+  </style></head><body><div class="page">
+    <div class="header">
+      <div class="header-left">
+        <div>
+          <div class="brand">RATIONAL</div>
+          <div class="sub-brand">Servindustrial SA de CV</div>
+        </div>
+      </div>
+      <div class="doc-code">
+        <div>Código: <strong>${d.proc_code||'—'}</strong></div>
+        <div>Versión: <strong>${d.proc_ver||'—'}</strong></div>
+        <div>Archivo: <strong>${d.flow_file||'—'}</strong></div>
+      </div>
+    </div>
+    <div class="title-bar">
+      <h1>${a.id} · ${a.name}</h1>
+      <p>${a.area||''}</p>
+    </div>
+    <div class="obj-box"><strong>Objetivo:</strong> ${d.proc_obj||'—'}</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="meta-label">Responsable del proceso</div><div class="meta-val">${d.flow_owner||'—'}</div></div>
+      <div class="meta-item"><div class="meta-label">Frecuencia</div><div class="meta-val">${d.flow_freq||'—'}</div></div>
+      <div class="meta-item"><div class="meta-label">Sistemas / Herramientas</div><div class="meta-val">${d.flow_tools||'—'}</div></div>
+      <div class="meta-item"><div class="meta-label">Alcance</div><div class="meta-val">${d.proc_scope||'—'}</div></div>
+    </div>
+    <div class="section-title">Diagrama de flujo</div>
+    <table><thead><tr><th style="padding:6px 8px;border:1px solid #ccc;background:#2E7D52;color:#fff;width:40px;">Paso</th><th style="padding:6px 8px;border:1px solid #ccc;background:#2E7D52;color:#fff;">Descripción</th></tr></thead><tbody>${stepsHtml}</tbody></table>
+    <div class="section-title">Procedimiento · ${d.proc_code||''}</div>
+    <div class="proc-grid">
+      <div class="proc-item"><div class="meta-label">Aprobado por</div><div class="meta-val" style="font-size:11px;">${d.proc_approver||'—'}</div></div>
+      <div class="proc-item"><div class="meta-label">Responsabilidades</div><div class="meta-val" style="font-size:11px;">${d.proc_resp||'—'}</div></div>
+      <div class="proc-item"><div class="meta-label">Alcance</div><div class="meta-val" style="font-size:11px;">${d.proc_scope||'—'}</div></div>
+    </div>
+    <div class="body-box">${(d.proc_body||'—').replace(/</g,'&lt;')}</div>
+    <div class="footer"><span>Portal de Auditoría RATIONAL · Servindustrial</span><span>Impreso: ${new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})}</span></div>
+  </div><script>window.onload=()=>window.print();</script></body></html>`);
+  w.document.close();
+}
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
   return`<div class="card"><div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
