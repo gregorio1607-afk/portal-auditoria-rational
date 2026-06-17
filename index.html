@@ -185,7 +185,6 @@ textarea.fc{resize:vertical;line-height:1.5;}
       <div class="tb-sub" id="tbS">Selecciona una sección en el panel izquierdo</div>
     </div>
     <div class="tb-right">
-      <span class="tb-badge yb25" id="tbY">Ciclo 2025</span>
       <span class="tb-badge zbm" id="tbZ">Monterrey</span>
       <button class="tb-btn" onclick="exportData()">⬇ Exportar</button>
     </div>
@@ -232,15 +231,17 @@ const SD={};const YZD={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
 const madData={2025:{},2026:{}};
 const members=[];
 const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
+const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:{MTY:[null,null,null,null],CDMX:[null,null,null,null]}};
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
+const appUsers=[];let activeUserId=null;
 function initArea(id){if(!SD[id])SD[id]={};[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(!YZD[y][z][id])YZD[y][z][id]={};}));}
 function gzd(){return YZD[CY][CZ][CA]||{};}
 function gp(id){const s=SD[id]||{};const z=(YZD[CY]||{})[CZ]||{};const zd=z[id]||{};return['doc','kpi','action'].filter(t=>(t==='kpi'||t==='action')?zd[t]&&zd[t].saved:s[t]&&s[t].saved).length;}
 function gs(id){const p=gp(id);return p===3?'ok':p>0?'prog':'no';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function v(id){const el=document.getElementById(id);return el?el.value:'';}
-function setYear(y){CY=y;const is25=y===2025;document.getElementById('tbY').textContent='Ciclo '+y;document.getElementById('tbY').className='tb-badge '+(is25?'yb25':'yb26');renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
-function setZona(z){CZ=z;document.getElementById('pMTY').className='zpill'+(z==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(z==='CDMX'?' on':'');document.getElementById('tbZ').textContent=z==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(z==='MTY'?'zbm':'zbc');renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
+function setYear(y){CY=y;renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
+function setZona(z){const u=activeUserId!==null?appUsers[activeUserId]:null;if(u&&u.zona!=='Ambas'&&u.zona!==z)return;CZ=z;document.getElementById('pMTY').className='zpill'+(z==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(z==='CDMX'?' on':'');document.getElementById('tbZ').textContent=z==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(z==='MTY'?'zbm':'zbc');renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
 function renderAcc(){
   const acc=document.getElementById('accordion');acc.innerHTML='';
   document.getElementById('nav-doc').className='sb-nav-item'+(VM==='doc'?' on':'');
@@ -264,29 +265,67 @@ function renderAcc(){
     div.appendChild(head);div.appendChild(body);acc.appendChild(div);
   });
 }
-function openDoc(){VM='doc';CA='';CAO=null;document.getElementById('tbT').textContent='Documentación';document.getElementById('tbS').textContent='Nivel de madurez · Resultados · Integrantes';renderAcc();renderDocView(docSub);}
+let resYear=2025,resZone='MTY';
+function setResYear(y){resYear=y;renderDocView('resultados');}
+function setResZone(z){resZone=z;renderDocView('resultados');}
+function openDoc(){VM='doc';CA='';CAO=null;document.getElementById('tbT').textContent='Documentación';document.getElementById('tbS').textContent='Nivel de madurez · Resultados · Usuarios';renderAcc();renderDocView(docSub);}
 function renderDocView(sub){
   docSub=sub;const mc=document.getElementById('mc');
-  let h=`<div class="doc-header"><div class="dh-t">📁 Documentación</div><div class="dh-s">Gestión centralizada del nivel de madurez, resultados por zona e integrantes del equipo auditor.</div><div class="dh-b"><span class="dh-badge">Ciclo ${CY}</span><span class="dh-badge">${CZ==='MTY'?'Monterrey':'Ciudad de México'}</span></div></div>
+  let h=`<div class="doc-header"><div class="dh-t">📁 Documentación</div><div class="dh-s">Gestión centralizada del nivel de madurez y resultados por zona.</div><div class="dh-b"><span class="dh-badge">Ciclo ${CY}</span></div></div>
   <div class="sub-tabs">
     <button class="sub-tab ${sub==='madurez'?'on':''}" onclick="renderDocView('madurez')">📊 Nivel de Madurez</button>
     <button class="sub-tab ${sub==='resultados'?'on':''}" onclick="renderDocView('resultados')">📈 Resultados</button>
-    <button class="sub-tab ${sub==='integrantes'?'on':''}" onclick="renderDocView('integrantes')">👥 Integrantes</button>
+    <button class="sub-tab ${sub==='usuarios'?'on':''}" onclick="renderDocView('usuarios')">👤 Usuarios</button>
   </div>`;
   if(sub==='madurez')h+=renderMadurez();
   else if(sub==='resultados')h+=renderResultados();
-  else if(sub==='integrantes')h+=renderIntegrantes();
+  else if(sub==='usuarios')h+=renderUsuarios();
   mc.innerHTML=h;
 }
 function renderMadurez(){
-  const entries=Object.values(madData[CY]);const avg=entries.length>0?Math.round(entries.reduce((s,e)=>s+(parseInt(e.nivel)||0),0)/entries.length):0;
-  const byArea={};areas.forEach(a=>{if(!byArea[a.area])byArea[a.area]={a,items:[],tot:0,cnt:0};const m=madData[CY][a.id];if(m&&m.nivel){byArea[a.area].tot+=parseInt(m.nivel);byArea[a.area].cnt++;}byArea[a.area].items.push(a.id);});
-  const madGrid=madC.map(m=>{const cnt=Object.values(madData[CY]).filter(x=>parseInt(x.nivel)===m.n).length;return`<div class="mc ${m.c}"><div class="mlv">N${m.n}·${m.l}</div><div class="msc">${m.s}</div>${m.qs.map(q=>`<div class="mq">${q}</div>`).join('')}${cnt>0?`<div style="margin-top:4px;font-size:10px;font-weight:700;opacity:.7;">${cnt} punto${cnt>1?'s':''}</div>`:''}</div>`;}).join('');
-  const areaCards=Object.values(byArea).map(b=>{const an=b.cnt>0?Math.round(b.tot/b.cnt):0;return`<div class="asc"><div class="as-ava" style="background:${b.a.aC};color:${b.a.aT};">${b.a.aL}</div><div><div class="as-nm">${b.a.area}</div><div class="as-pt">${b.items.length} punto${b.items.length>1?'s':''}</div><span class="as-lv" style="background:${lvBg[an]||'#f5f5f5'};color:${lvTx[an]||'#999'};">${lvL[an]||'Sin datos'}</span></div></div>`;}).join('');
-  const itemRows=areas.map(a=>{const m=madData[CY][a.id]||{};const niv=parseInt(m.nivel)||0;return`<div class="itr"><span style="font-weight:700;color:var(--grn);font-size:11px;">${a.id}</span><span>${a.name}</span><span class="lv-b" style="background:${lvBg[niv]||'#f5f5f5'};color:${lvTx[niv]||'#999'};">${lvL[niv]||'—'}</span><button onclick="openItemMadurez('${a.id}')" style="font-size:11px;padding:3px 9px;border:1px solid var(--brd);border-radius:5px;background:#fff;color:var(--grn);cursor:pointer;font-family:inherit;font-weight:700;">${niv>0?'Editar':'Capturar'}</button></div>`;}).join('');
-  return`<div class="card"><div class="card-title">📈 Escala de madurez RATIONAL</div><div class="mad-grid">${madGrid}</div>${avg>0?`<p style="font-size:12px;color:var(--tx2);margin-top:4px;">Promedio actual: <strong>N${avg} · ${lvL[avg]}</strong> · ${entries.length}/19 capturados</p>`:''}</div>
-  <div class="card"><div class="card-title">🏢 Por área responsable</div><div class="area-scores">${areaCards}</div></div>
-  <div class="card"><div class="card-title">📋 Nivel por punto — Ciclo ${CY}</div><div class="ith"><span>#</span><span>Punto</span><span>Nivel</span><span></span></div>${itemRows}</div>`;
+  const lbl=`background:#e8f5ee;color:var(--grn);font-weight:700;text-align:center;padding:9px 10px;border:1px solid var(--brd);font-size:11px;`;
+  const niv=`background:#f5f9f6;text-align:center;padding:9px 8px;border:1px solid var(--brd);font-size:11px;`;
+  const def=`background:#fff;vertical-align:top;padding:9px 10px;border:1px solid var(--brd);font-size:11px;line-height:1.6;color:var(--tx2);`;
+  const res=`background:#f5f9f6;text-align:center;padding:9px 8px;border:1px solid var(--brd);font-size:11px;color:var(--tx2);`;
+  const qst=`background:#fff;vertical-align:top;padding:9px 10px;border:1px solid var(--brd);font-size:11px;color:var(--tx2);line-height:1.7;`;
+  return`<div class="card" style="overflow-x:auto;">
+  <div class="card-title" style="margin-bottom:10px;">📈 Escala de madurez RATIONAL</div>
+  <table style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="${lbl} width:13%;">Nivel</td>
+      <td style="${niv}"><div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">20 pts</div><strong style="color:var(--tx);font-size:12px;">1 · Inicial</strong><div style="color:var(--tx3);font-size:10px;margin-top:2px;">Sin proceso definido</div></td>
+      <td style="${niv}"><div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">40 pts</div><strong style="color:var(--tx);font-size:12px;">2 · Orientación</strong><div style="color:var(--tx3);font-size:10px;margin-top:2px;">Proceso conocido</div></td>
+      <td style="${niv}"><div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">60 pts</div><strong style="color:var(--tx);font-size:12px;">3 · Definido</strong><div style="color:var(--tx3);font-size:10px;margin-top:2px;">Un proceso documentado</div></td>
+      <td style="${niv}"><div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">80 pts</div><strong style="color:var(--tx);font-size:12px;">4 · Gestionado</strong><div style="color:var(--tx3);font-size:10px;margin-top:2px;">Proceso verificado y controlado</div></td>
+      <td style="${niv}"><div style="font-size:10px;color:var(--tx3);margin-bottom:2px;">100 pts</div><strong style="color:var(--grn);font-size:12px;">5 · Optimización</strong><div style="color:var(--tx3);font-size:10px;margin-top:2px;">Proceso de mejora continua</div></td>
+    </tr>
+    <tr>
+      <td style="${lbl}">Definición</td>
+      <td style="${def}">La organización puede hacerlo, pero no está definido ni se sabe comúnmente cómo hacerlo. Se hace de forma individual, dependiendo de qué persona lo haga.</td>
+      <td style="${def}">Las personas interesadas saben cómo hacerlo, pero no hay documentación disponible. Las personas que gestionan hacen de la misma manera.</td>
+      <td style="${def}">El proceso está claramente documentado, las personas interesadas conocen la documentación y el contenido y trabajan en consecuencia.</td>
+      <td style="${def}">El resultado del proceso se mide respecto a un objetivo. La documentación del proceso describe cómo se verificará el proceso.</td>
+      <td style="${def}">Este proceso está sujeto a un proceso de mejora continua. El proceso se verifica de forma sistemática y periódica para detectar posibles mejoras. Se establecen los KPI.</td>
+    </tr>
+    <tr>
+      <td style="${lbl}">Resultado de calidad</td>
+      <td style="${res}">Impredecible</td>
+      <td style="${res}">Puede ser estimado pero inestable</td>
+      <td style="${res}">Puede medirse, pero aún no es estable</td>
+      <td style="${res}">Se monitoriza respecto a objetivos</td>
+      <td style="${res}">Se mejora continuamente</td>
+    </tr>
+    <tr>
+      <td style="${lbl}">¿Nivel alcanzado?</td>
+      <td style="${qst}"><span style="color:var(--grn);font-weight:700;">Sí</span></td>
+      <td style="${qst}">¿El personal implicado conoce el proceso?<br/>¿Comparten la comprensión del proceso, qué es el proceso?</td>
+      <td style="${qst}">¿Existe documentación acerca del proceso?<br/>¿La documentación está actualizada?<br/>¿El personal implicado conoce la documentación?</td>
+      <td style="${qst}">¿Los resultados del proceso se miden en base a objetivos?<br/>¿Se verifica el proceso según lo descrito en la documentación?<br/>¿Hay algún historial de las verificaciones hechas?</td>
+      <td style="${qst}">¿Existen KPIs para supervisar el resultado del proceso en términos de cantidad y calidad?<br/>¿Hay un proceso sistemático de revisión de objetivos, desviaciones y medidas correctivas?<br/>¿Hay historial de revisiones periódicas y acciones?</td>
+    </tr>
+  </table>
+  <p style="font-size:10px;color:var(--tx3);margin-top:8px;font-style:italic;">* Preguntas clave que deben responderse completamente con "sí" para alcanzar el nivel de madurez correspondiente</p>
+  </div>`;
 }
 function openItemMadurez(id){
   const a=areas.find(x=>x.id===id);const m=madData[CY][id]||{};const cur=parseInt(m.nivel||0);
@@ -296,28 +335,133 @@ function openItemMadurez(id){
   <div class="card"><div class="card-title">📊 ${a.id} · ${a.name}</div>
   <div class="mad-grid">${cols}</div><div class="hr"></div>
   <div class="fr"><div class="fg"><label class="fl">Nivel alcanzado</label>
-    <select class="fc" id="mn"><option value="">Selecciona...</option>${[1,2,3,4,5].map(n=>`<option value="${n}" ${cur===n?'selected':''}>${n} · ${lvL[n]} (${[0,2,4,6,8,10][n]} pts)</option>`).join('')}</select>
+    <select class="fc" id="mn"><option value="">Selecciona...</option>${[1,2,3,4,5].map(n=>`<option value="${n}" ${cur===n?'selected':''}>${n} · ${lvL[n]} (${[0,20,40,60,80,100][n]} pts)</option>`).join('')}</select>
   </div><div class="fg"><label class="fl">Evidencias</label><input class="fc" id="me" value="${esc(m.evidence)}" placeholder="Manual, registros, KPIs..."/></div></div>
   <div class="fg"><label class="fl">Brechas para subir de nivel</label><textarea class="fc" id="mg" rows="2">${esc(m.gaps)}</textarea></div>
   <div class="btn-row"><button class="btn btn-p" onclick="saveMad('${id}')">Guardar nivel</button></div></div>`;
 }
 function saveMad(id){madData[CY][id]={nivel:v('mn'),evidence:v('me'),gaps:v('mg'),saved:true};toast('Nivel guardado — '+id);renderDocView('madurez');}
-function renderResultados(){
-  const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';const nc=CZ==='MTY'?'notice-mty':'notice-cdmx';const r=resultados[CY][CZ]||{};
+const assessmentData={
+  2025:{
+    MTY:{fecha:'15/Jul/2025',total:1440,maxPts:1900,clasificacion:'RSP',ultEval:1625,ultNivel:'Nivel superior',
+      areas:[
+        {id:1,nombre:'Recursos',result:270,max:300,ultima:265},
+        {id:2,nombre:'Cualificaciones',result:90,max:100,ultima:155},
+        {id:3,nombre:'Calidad de Servicio',result:295,max:400,ultima:365},
+        {id:4,nombre:'Gestión & Administración',result:315,max:400,ultima:380},
+        {id:5,nombre:'Negocio de Servicio',result:60,max:100,ultima:60},
+        {id:6,nombre:'Organización',result:410,max:600,ultima:400}
+      ],
+      acuerdos:[
+        {area:'1.2',elem:'Oficina y Planificación',act:'Redefinir proceso incluyendo FTF, encuestas, tiempo de resolución y subida al portal',fecha:'16/Oct/25',resp:'Gaspar / Enrique',nivel:'Nivel superior'},
+        {area:'1.3',elem:'Gestión de recambios',act:'Complementar con manejo de refacciones dañadas en garantía: destrucción con foto y correo a RATIONAL',fecha:'16/Oct/25',resp:'Gaspar / Enrique',nivel:'Nivel superior'},
+        {area:'3.1',elem:'Satisfacción Online',act:'Rediseñar encuestas; casilla en reportes si se levantó la encuesta y razón si no',fecha:'16/Oct/25',resp:'Gaspar / Enrique',nivel:'Nivel estándar'},
+        {area:'3.3',elem:'First Time Fix',act:'Usar "estado del equipo" y "cómo se deja" para marcar FTF; incluir puntos clave en el proceso: stock, técnicos capacitados',fecha:'16/Oct/25',resp:'Gaspar / Enrique',nivel:'Nivel estándar'},
+        {area:'6.2',elem:'Gestión de reclamaciones',act:'Bitácora de quejas y soluciones; KPI: tiempo de solución ≤ 3 días',fecha:'16/Oct/25',resp:'Gaspar / Enrique',nivel:'Nivel estándar'},
+        {area:'6.6',elem:'Subcontratistas',act:'Desarrollar proceso para garantizar la misma calidad que la UN (Opcional)',fecha:'16/Oct/25',resp:'Gaspar / Enrique',nivel:'Nivel introducción'}
+      ]
+    },
+    CDMX:{fecha:'3/Jul/2025',total:1345,maxPts:1900,clasificacion:'RSP',ultEval:1600,ultNivel:'Nivel superior',
+      areas:[
+        {id:1,nombre:'Recursos',result:270,max:300,ultima:265},
+        {id:2,nombre:'Cualificaciones',result:80,max:100,ultima:155},
+        {id:3,nombre:'Calidad de Servicio',result:295,max:400,ultima:360},
+        {id:4,nombre:'Gestión & Administración',result:320,max:400,ultima:370},
+        {id:5,nombre:'Negocio de Servicio',result:60,max:100,ultima:60},
+        {id:6,nombre:'Organización',result:320,max:600,ultima:390}
+      ],
+      acuerdos:[
+        {area:'3.1',elem:'Satisfacción Online',act:'Rediseñar encuestas; casilla en reportes si se levantó la encuesta y razón si no',fecha:'—',resp:'—',nivel:'Nivel estándar'},
+        {area:'3.3',elem:'First Time Fix',act:'Usar "estado del equipo" y "cómo se deja" para FTF; puntos clave: stock, técnicos capacitados',fecha:'—',resp:'—',nivel:'Nivel estándar'},
+        {area:'4.2',elem:'Apoyo a RATIONAL',act:'Realizar directorio de RATIONAL',fecha:'—',resp:'—',nivel:'Nivel estándar'},
+        {area:'6.2',elem:'Gestión de reclamaciones',act:'Retomar proceso de gestión de quejas; llevar bitácora',fecha:'—',resp:'—',nivel:'Nivel introducción'},
+        {area:'6.5',elem:'Digitalización',act:'Implementar reporte digital',fecha:'—',resp:'—',nivel:'Nivel estándar'}
+      ]
+    }
+  },
+  2026:{MTY:null,CDMX:null}
+};
+function renderUsuarios(){
+  const zonaPill=(z)=>z==='MTY'?'background:#e3f0ff;color:#1565c0;':z==='CDMX'?'background:#f3e8ff;color:#6a1b9a;':'background:#e8f5ee;color:#2e7d52;';
+  const aC=['#2E7D52','#1565c0','#b8690a','#6a1b9a','#c62828','#00796b'];
+  const userList=appUsers.length===0
+    ?'<p style="font-size:12px;color:var(--tx3);padding:8px 0;">No hay usuarios registrados.</p>'
+    :appUsers.map((u,i)=>{const isA=activeUserId===i;return`<div class="member-card" style="${isA?'border-color:var(--grn);background:#f0f7f3;border-width:2px;':''}">
+      <div class="m-ava" style="background:${aC[i%aC.length]};">${u.nombre.charAt(0).toUpperCase()}</div>
+      <div class="m-info">
+        <div class="m-name">${esc(u.nombre)}</div>
+        <div class="m-area-txt">${esc(u.puesto||'—')}</div>
+        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;${zonaPill(u.zona)}">${u.zona==='Ambas'?'Todas las zonas':u.zona==='MTY'?'Monterrey':'Ciudad de México'}</span>
+          ${isA?'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;">● Sesión activa</span>':''}
+        </div>
+      </div>
+      <div class="m-actions">
+        ${!isA?`<button class="m-btn" onclick="activateUser(${i})">Activar</button>`:`<button class="m-btn" style="border-color:var(--grn);color:var(--grn);" onclick="deactivateUser()">Cerrar</button>`}
+        <button class="m-btn del" onclick="delUser(${i})">✕</button>
+      </div>
+    </div>`;}).join('');
   return`<div class="card">
-    <div class="notice ${nc}">📍 ${zl} · Ciclo ${CY} — Resultados exclusivos de esta zona</div>
-    <div class="card-title">📊 Resultados de auditoría</div>
-    <div class="fr"><div class="fg"><label class="fl">Puntaje total obtenido</label><input class="fc" id="r_pts" value="${esc(r.pts)}" placeholder="Ej: 78 / 100 pts"/></div>
-    <div class="fg"><label class="fl">Fecha de auditoría</label><input class="fc" id="r_fecha" type="date" value="${r.fecha||''}"/></div></div>
-    <div class="fr"><div class="fg"><label class="fl">Auditor RATIONAL</label><input class="fc" id="r_aud" value="${esc(r.auditor)}" placeholder="Nombre del auditor"/></div>
-    <div class="fg"><label class="fl">Calificación global</label><select class="fc" id="r_cal"><option value="">Selecciona...</option>${['Excelente (90–100)','Muy bien (80–89)','Bien (70–79)','Satisfactorio (60–69)','En desarrollo (<60)'].map(x=>`<option ${r.cal===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
-    <div class="fg"><label class="fl">Fortalezas identificadas</label><textarea class="fc" id="r_fort" rows="3" placeholder="Áreas que destacaron positivamente...">${esc(r.fort)}</textarea></div>
-    <div class="fg"><label class="fl">Áreas de oportunidad</label><textarea class="fc" id="r_opp" rows="3" placeholder="Puntos con mayor brecha...">${esc(r.opp)}</textarea></div>
-    <div class="fg"><label class="fl">Compromisos / Próximos pasos</label><textarea class="fc" id="r_comp" rows="3" placeholder="Acciones comprometidas con el auditor...">${esc(r.comp)}</textarea></div>
-    <div class="fg"><label class="fl">Observaciones adicionales</label><textarea class="fc" id="r_obs" rows="2" placeholder="Notas o comentarios internos...">${esc(r.obs)}</textarea></div>
-    <div class="btn-row"><button class="btn btn-p" onclick="saveResultados()">Guardar resultados</button></div>
-  </div>`;}
-function saveResultados(){resultados[CY][CZ]={pts:v('r_pts'),fecha:v('r_fecha'),auditor:v('r_aud'),cal:v('r_cal'),fort:v('r_fort'),opp:v('r_opp'),comp:v('r_comp'),obs:v('r_obs')};toast('Resultados guardados — '+(CZ==='MTY'?'Monterrey':'CDMX'));renderDocView('resultados');}
+    <div class="card-title">👤 Usuarios registrados</div>
+    ${activeUserId!==null?`<div class="notice notice-g" style="margin-bottom:10px;">🔒 Sesión: <strong>${appUsers[activeUserId].nombre}</strong> — zona ${appUsers[activeUserId].zona==='Ambas'?'todas':appUsers[activeUserId].zona}. <button onclick="deactivateUser()" class="btn btn-g" style="padding:2px 10px;font-size:11px;margin-left:8px;">Cerrar sesión</button></div>`:''}
+    ${userList}
+  </div>
+  <div class="card">
+    <div class="card-title">➕ Nuevo usuario</div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Nombre completo</label><input class="fc" id="u_nom" placeholder="Nombre del usuario"/></div>
+      <div class="fg"><label class="fl">Puesto</label><input class="fc" id="u_pue" placeholder="Gerente MTY, Analista CDMX..."/></div>
+    </div>
+    <div class="fg"><label class="fl">Zona que puede ver y editar</label>
+      <select class="fc" id="u_zona">
+        <option value="">Selecciona zona...</option>
+        <option value="MTY">Monterrey</option>
+        <option value="CDMX">Ciudad de México</option>
+        <option value="Ambas">Ambas zonas (Admin)</option>
+      </select>
+    </div>
+    <div class="btn-row"><button class="btn btn-p" onclick="saveUser()">Agregar usuario</button></div>
+  </div>`;
+}
+function saveUser(){const nom=v('u_nom');if(!nom){toast('Ingresa el nombre');return;}const zona=v('u_zona');if(!zona){toast('Selecciona una zona');return;}appUsers.push({nombre:nom,puesto:v('u_pue'),zona});toast('Usuario registrado: '+nom);renderDocView('usuarios');}
+function delUser(i){if(activeUserId===i)deactivateUser();else if(activeUserId!==null&&activeUserId>i)activeUserId--;appUsers.splice(i,1);renderDocView('usuarios');}
+function activateUser(i){activeUserId=i;const u=appUsers[i];if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}updateZonaLock();renderDocView('usuarios');toast('Sesión iniciada: '+u.nombre);}
+function deactivateUser(){activeUserId=null;updateZonaLock();renderDocView('usuarios');toast('Sesión cerrada');}
+function updateZonaLock(){const u=activeUserId!==null?appUsers[activeUserId]:null;const locked=u&&u.zona!=='Ambas';['MTY','CDMX'].forEach(z=>{const btn=document.getElementById('p'+z);if(!btn)return;btn.disabled=!!(locked&&u.zona!==z);btn.style.opacity=(locked&&u.zona!==z)?'0.35':'1';btn.style.cursor=(locked&&u.zona!==z)?'not-allowed':'pointer';});}
+function renderResultados(){
+  const nivelColor=(n)=>n==='Nivel superior'?'background:#e8f5ee;color:#2e7d52;':n==='Nivel estándar'?'background:#e3f0ff;color:#1565c0;':'background:#fff3e0;color:#b8690a;';
+  const renderZoneBody=(zone)=>{
+    const d=assessmentData[resYear]&&assessmentData[resYear][zone];
+    const zname=zone==='MTY'?'Monterrey':'Ciudad de México';
+    const pill=zone==='MTY'?'background:#e3f0ff;color:#1565c0;':'background:#f3e8ff;color:#6a1b9a;';
+    if(!d)return`<p style="font-size:12px;color:var(--tx3);padding:12px 0;">Sin datos de evaluación para el ciclo ${resYear}.</p>`;
+    const pct=Math.round(d.total/d.maxPts*100);
+    const areaRows=d.areas.map(a=>{const diff=a.result-a.ultima;const diffHtml=diff>0?`<span style="color:#2e7d52;font-weight:700;">▲${diff}</span>`:diff<0?`<span style="color:var(--red);font-weight:700;">▼${Math.abs(diff)}</span>`:`<span style="color:var(--tx3);">—</span>`;return`<div style="display:grid;grid-template-columns:18px 1fr 70px 60px 40px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #f0f4f1;font-size:12px;"><span style="font-weight:700;color:var(--tx3);">${a.id}</span><span>${a.nombre}</span><span style="font-weight:700;color:var(--grn);">${a.result}/${a.max}</span><span style="color:var(--tx3);">${a.ultima}</span>${diffHtml}</div>`;}).join('');
+    const acuerdoRows=d.acuerdos.map(ac=>`<div style="display:grid;grid-template-columns:36px 1fr 110px;gap:8px;align-items:start;padding:7px 0;border-bottom:1px solid #f0f4f1;"><span style="font-size:11px;font-weight:700;color:var(--grn);">${ac.area}</span><div><div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:2px;">${ac.elem}</div><div style="font-size:11px;color:var(--tx2);line-height:1.4;">${ac.act}</div>${ac.fecha!=='—'?`<div style="font-size:10px;color:var(--tx3);margin-top:3px;">📅 ${ac.fecha} · ${ac.resp}</div>`:''}</div><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;text-align:center;${nivelColor(ac.nivel)}">${ac.nivel}</span></div>`).join('');
+    return`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;"><span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;${pill}">${zname} · ${d.fecha}</span><div><span style="font-size:20px;font-weight:700;color:var(--grn);">${d.total}</span><span style="font-size:11px;color:var(--tx3);"> / ${d.maxPts} pts · ${pct}%</span> <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;">${d.clasificacion}</span></div></div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">Última evaluación: <strong>${d.ultEval} pts · ${d.ultNivel}</strong></div>
+    <div class="card-title" style="margin-bottom:4px;">📊 Resultados por área</div>
+    <div style="display:grid;grid-template-columns:18px 1fr 70px 60px 40px;gap:6px;padding:3px 0;border-bottom:1px solid var(--brd);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;"><span>#</span><span>Área</span><span>Resultado</span><span>Última</span><span>Δ</span></div>
+    ${areaRows}
+    <div class="hr"></div>
+    <div class="card-title" style="margin-bottom:6px;">📋 Acuerdos de la evaluación</div>
+    <div style="display:grid;grid-template-columns:36px 1fr 110px;gap:8px;padding:3px 0;border-bottom:1px solid var(--brd);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;"><span>ID</span><span>Elemento clave · Acuerdo</span><span>Nivel</span></div>
+    ${acuerdoRows}`;
+  };
+  const btn=(label,active,onclick)=>`<button onclick="${onclick}" style="padding:5px 16px;font-size:12px;font-family:inherit;border-radius:20px;cursor:pointer;font-weight:700;border:1px solid ${active?'var(--grn)':'var(--brd)'};background:${active?'var(--grn)':'#fff'};color:${active?'#fff':'var(--tx2)'};">${label}</button>`;
+  return`<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:11px;font-weight:700;color:var(--tx2);">Ciclo:</span>
+    ${btn('2025',resYear===2025,"setResYear(2025)")}
+    ${btn('2026',resYear===2026,"setResYear(2026)")}
+    <span style="width:1px;height:20px;background:var(--brd);margin:0 4px;display:inline-block;"></span>
+    <span style="font-size:11px;font-weight:700;color:var(--tx2);">Sucursal:</span>
+    ${btn('Monterrey',resZone==='MTY',"setResZone('MTY')")}
+    ${btn('CDMX',resZone==='CDMX',"setResZone('CDMX')")}
+  </div>
+  <div class="card">${renderZoneBody(resZone)}</div>`;}
+function saveResultados(){}
+function uploadPDF(event,zone,idx){const file=event.target.files[0];if(!file)return;if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]={name:file.name,url:URL.createObjectURL(file)};renderDocView('resultados');}
+function removePDF(zone,idx){if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]=null;renderDocView('resultados');}
 function renderIntegrantes(){
   const uniqueAreas=[...new Set(areas.map(a=>a.area))];
   const areaOpts=uniqueAreas.map(a=>`<option>${a}</option>`).join('');
@@ -372,21 +516,34 @@ function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:
   <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="kf">${['','Diaria','Semanal','Mensual','Trimestral'].map(f=>`<option ${zd.kpi.freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
   <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="2">${esc(zd.kpi.notes)}</textarea></div>
   <div class="btn-row"><button class="btn btn-p" onclick="svKPI()">Guardar</button></div></div>`;}
-function rAction(){const zd=gzd();if(!zd.action)zd.action={rows:[{accion:'',resp:'',fecha:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
-  const rows=zd.action.rows.map((r,i)=>`<div class="tra"><input class="fc" style="font-size:12px;" placeholder="Descripción" value="${esc(r.accion)}" oninput="gzd().action.rows[${i}].accion=this.value"/><input class="fc" style="font-size:12px;" placeholder="Responsable" value="${esc(r.resp)}" oninput="gzd().action.rows[${i}].resp=this.value"/><input class="fc" style="font-size:12px;" type="date" value="${r.fecha||''}" oninput="gzd().action.rows[${i}].fecha=this.value"/><select class="ssel" onchange="gzd().action.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='open'?'selected':''} value="open">Abierto</option><option ${r.estado==='wip'?'selected':''} value="wip">En curso</option><option ${r.estado==='done'?'selected':''} value="done">Cerrado</option></select></div>`).join('');
-  return`<div class="card"><div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Plan exclusivo de esta zona</div>
-  <div class="fg"><label class="fl">Problema / brecha</label><textarea class="fc" id="ap" rows="2">${esc(zd.action.problem)}</textarea></div>
-  <div class="fg"><label class="fl">Causa raíz</label><textarea class="fc" id="ar" rows="3">${esc(zd.action.root)}</textarea></div>
-  <div class="fg"><label class="fl">Situación actual</label><textarea class="fc" id="ac" rows="2">${esc(zd.action.current)}</textarea></div>
-  <div class="tha"><span>Acción</span><span>Responsable</span><span>Fecha límite</span><span>Estado</span></div>${rows}
-  <button class="add-btn" onclick="addAction()">＋ Agregar acción</button>
-  <div class="fg" style="margin-top:8px;"><label class="fl">Resultado esperado</label><input class="fc" id="ag" value="${esc(zd.action.goal)}" placeholder="Ej: FTF > 85% en 90 días"/></div>
-  <div class="btn-row"><button class="btn btn-p" onclick="svAction()">Guardar</button></div></div>`;}
+function rAction(){
+  const zd=gzd();
+  if(!zd.action)zd.action={rows:[{accion:'',resp:'',fecha:'',estado:''}],causas:['']};
+  const ac=zd.action;
+  const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
+  const estadoOpts=['Abierto','En proceso','Cerrado'];
+  const causasRows=(ac.causas||['']).map((c,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><span style="font-size:11px;font-weight:700;color:var(--tx3);min-width:16px;">${i+1}.</span><input class="fc" style="font-size:12px;" placeholder="Describe la causa..." value="${esc(c)}" oninput="gzd().action.causas[${i}]=this.value"/></div>`).join('');
+  const rows=(ac.rows||[]).map((r,i)=>`<div class="tra"><input class="fc" style="font-size:12px;" placeholder="Acción a tomar" value="${esc(r.accion)}" oninput="gzd().action.rows[${i}].accion=this.value"/><input class="fc" style="font-size:12px;" placeholder="Responsable" value="${esc(r.resp)}" oninput="gzd().action.rows[${i}].resp=this.value"/><input class="fc" style="font-size:12px;" type="date" value="${r.fecha||''}" oninput="gzd().action.rows[${i}].fecha=this.value"/><select class="ssel" onchange="gzd().action.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='open'?'selected':''} value="open">Abierto</option><option ${r.estado==='wip'?'selected':''} value="wip">En curso</option><option ${r.estado==='done'?'selected':''} value="done">Cerrado</option></select></div>`).join('');
+  const a3step=(n,icon,title,body)=>`<div style="display:flex;gap:10px;margin-bottom:12px;"><div style="width:26px;height:26px;border-radius:50%;background:var(--grn);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${n}</div><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:6px;">${icon} ${title}</div>${body}</div></div>`;
+  return`<div class="card">
+  <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Hoja A3 · llenar en orden</div>
+  ${a3step(1,'👤','Responsable y fechas',`<div class="fr3"><div class="fg" style="margin:0;"><label class="fl">Responsable del A3</label><input class="fc" id="a_rsp" value="${esc(ac.responsable)}" placeholder="Gerente de Operaciones"/></div><div class="fg" style="margin:0;"><label class="fl">Fecha inicio</label><input class="fc" id="a_fi" type="date" value="${ac.fechaInicio||''}"/></div><div class="fg" style="margin:0;"><label class="fl">Fecha compromiso</label><input class="fc" id="a_ff" type="date" value="${ac.fechaFin||''}"/></div></div>`)}
+  ${a3step(2,'📉','¿Cuál es la oportunidad de mejora? (KPI)',`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><div class="fg" style="margin:0;"><label class="fl">Actual (%)</label><input class="fc" id="a_act" value="${esc(ac.actual)}" placeholder="Ej: 72"/></div><div class="fg" style="margin:0;"><label class="fl">Meta (%)</label><input class="fc" id="a_met" value="${esc(ac.meta||'85')}" placeholder="85"/></div><div class="fg" style="margin:0;"><label class="fl">Estado</label><select class="fc" id="a_est">${estadoOpts.map(o=>`<option ${(ac.estadoA3||'Abierto')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>`)}
+  ${a3step(3,'🔍','¿Cómo está la situación?',`<textarea class="fc" id="a_sit" rows="3" placeholder="Describe brevemente qué está fallando y con qué evidencia lo sabes...">${esc(ac.situacion)}</textarea>`)}
+  ${a3step(4,'⚠️','¿Por qué está fallando? (causas)',`${causasRows}<button class="add-btn" onclick="addCausa()">＋ Agregar causa</button>`)}
+  ${a3step(5,'✅','¿Qué vamos a hacer? (acciones)',`<div class="tha"><span>Acción</span><span>Responsable</span><span>Fecha límite</span><span>Estado</span></div>${rows}<button class="add-btn" onclick="addAction()">＋ Agregar acción</button>`)}
+  ${a3step(6,'🎯','¿Qué resultado esperamos?',`<input class="fc" id="a_rmed" value="${esc(ac.resultadoMedido)}" placeholder="Ej: FTF sube a ≥ 85% en 60 días"/>`)}
+  <div class="btn-row"><button class="btn btn-p" onclick="svAction()">Guardar A3</button></div>
+  </div>`;}
+
 function addKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.rows.push({name:'',meta:'',actual:'',estado:''});renderMain('kpi');}
-function addAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};zd.action.rows.push({accion:'',resp:'',fecha:'',estado:''});renderMain('action');}
+function addAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};if(!zd.action.rows)zd.action.rows=[];zd.action.rows.push({accion:'',resp:'',fecha:'',estado:''});renderMain('action');}
+function addCausa(){const zd=gzd();if(!zd.action)zd.action={causas:[]};if(!zd.action.causas)zd.action.causas=[];zd.action.causas.push({desc:'',cat:''});renderMain('action');}
+function addBeneficio(){const zd=gzd();if(!zd.action.beneficios)zd.action.beneficios=[];zd.action.beneficios.push('');renderMain('action');}
+function addEquipo(){const zd=gzd();if(!zd.action.equipo)zd.action.equipo=[];zd.action.equipo.push('');renderMain('action');}
 function svDoc(){if(!SD[CA])SD[CA]={};SD[CA].doc={saved:true,flow_owner:v('fo'),flow_freq:v('ff'),flow_steps:v('fst'),flow_tools:v('ftl'),flow_file:v('ff2'),proc_code:v('pc'),proc_ver:v('pv'),proc_approver:v('pa'),proc_obj:v('po'),proc_scope:v('psc'),proc_resp:v('pr'),proc_body:v('pb')};renderAcc();toast('Documentación guardada');}
 function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd.kpi.source=v('ks');zd.kpi.freq=v('kf');zd.kpi.notes=v('kn');renderAcc();toast('KPI guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
-function svAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};zd.action.saved=true;zd.action.problem=v('ap');zd.action.root=v('ar');zd.action.current=v('ac');zd.action.goal=v('ag');renderAcc();toast('Plan A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
+function svAction(){const zd=gzd();if(!zd.action)zd.action={};zd.action.saved=true;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');renderAcc();toast('A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 renderAcc();
