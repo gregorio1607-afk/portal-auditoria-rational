@@ -261,6 +261,11 @@ const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
 const appUsers=JSON.parse(localStorage.getItem('appUsers')||'[]');let activeUserId=null,usuarioFiltro='',editingUserId=null;
 function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));}
+function getFormPermisos(){
+  const mods=['a3','madurez','resultados','usuarios'].filter(k=>document.getElementById('up_'+k)?.checked);
+  const kpis=areas.map(a=>a.id).filter(id=>document.getElementById('up_kpi_'+id.replace('.','_'))?.checked).map(id=>'kpi_'+id);
+  return [...mods,...kpis];
+}
 function hasPerm(p){const u=activeUserId!==null?appUsers[activeUserId]:null;if(!u)return true;return(u.permisos||[]).includes(p);}
 function noAccess(mod){document.getElementById('mc').innerHTML=noAccessInline(mod);}
 function noAccessInline(mod){return`<div class="card" style="text-align:center;padding:32px 16px;"><div style="font-size:36px;margin-bottom:10px;">🔒</div><div style="font-size:14px;font-weight:700;color:var(--tx);margin-bottom:6px;">Acceso restringido</div><div style="font-size:12px;color:var(--tx3);">No tienes permiso para ver <strong>${mod}</strong>.<br>Contacta al administrador.</div></div>`;}
@@ -434,7 +439,7 @@ function renderUsuarios(){
           <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;${zonaPill(u.zona)}">${u.zona==='Ambas'?'Todas las zonas':u.zona==='MTY'?'Monterrey':'Ciudad de México'}</span>
           ${isA?'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;">● Sesión activa</span>':''}
         </div>
-        ${(u.permisos||[]).length>0?`<div style="margin-top:4px;display:flex;gap:3px;flex-wrap:wrap;">${(u.permisos).map(p=>({kpis:'📊 KPIs',a3:'📝 A3',madurez:'📈 Madurez',resultados:'📋 Resultados',usuarios:'👤 Usuarios'}[p]||p)).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#f0f4f1;color:var(--tx2);">${l}</span>`).join('')}</div>`:'<div style="margin-top:3px;font-size:9px;color:#e57373;">Sin permisos asignados</div>'}
+        ${(()=>{const ps=u.permisos||[];if(!ps.length)return'<div style="margin-top:3px;font-size:9px;color:#e57373;">Sin permisos asignados</div>';const modMap={a3:'📝 A3',madurez:'📈 Madurez',resultados:'📋 Resultados',usuarios:'👤 Usuarios'};const mods=ps.filter(p=>!p.startsWith('kpi_')).map(p=>modMap[p]||p);const kpis=ps.filter(p=>p.startsWith('kpi_')).map(p=>p.replace('kpi_',''));const all=[...mods.map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#e3f0ff;color:#1565c0;">${l}</span>`),...(kpis.length?[`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#e8f5ee;color:#2e7d52;">📊 KPIs: ${kpis.join(', ')}</span>`]:[])];return`<div style="margin-top:4px;display:flex;gap:3px;flex-wrap:wrap;">${all.join('')}</div>`;})()}
       </div>
       <div class="m-actions">
         ${!isA?`<button class="m-btn" onclick="activateUser(${i})">Activar</button>`:`<button class="m-btn" style="border-color:var(--grn);color:var(--grn);" onclick="deactivateUser()">Cerrar</button>`}
@@ -466,14 +471,13 @@ function renderUsuarios(){
         <option value="Ambas" ${editingUserId!==null&&appUsers[editingUserId].zona==='Ambas'?'selected':''}>Ambas zonas (Admin)</option>
       </select>
     </div>
-    <div class="fg"><label class="fl">Permisos de acceso</label>
+    <div class="fg"><label class="fl">Permisos de acceso — Módulos</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;">
         ${[
-          {k:'kpis',   label:'📊 Ver KPIs'},
-          {k:'a3',     label:'📝 Editar A3'},
-          {k:'madurez',label:'📈 Nivel de Madurez'},
+          {k:'a3',        label:'📝 Editar A3'},
+          {k:'madurez',   label:'📈 Nivel de Madurez'},
           {k:'resultados',label:'📋 Resultados'},
-          {k:'usuarios', label:'👤 Gestión Usuarios'}
+          {k:'usuarios',  label:'👤 Gestión Usuarios'}
         ].map(p=>{
           const checked=editingUserId!==null&&(appUsers[editingUserId].permisos||[]).includes(p.k);
           return`<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx);cursor:pointer;padding:6px 8px;border:1px solid var(--brd);border-radius:8px;background:${checked?'#e8f5ee':'#fff'};">
@@ -481,6 +485,22 @@ function renderUsuarios(){
           </label>`;
         }).join('')}
       </div>
+    </div>
+    <div class="fg" style="margin-top:8px;"><label class="fl">KPIs que puede ver y editar</label>
+      ${Object.entries(groups).map(([g,gr])=>`
+        <div style="margin-top:8px;">
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${gr.label}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            ${gr.ids.map(id=>{
+              const a=areas.find(x=>x.id===id);
+              const checked=editingUserId!==null&&(appUsers[editingUserId].permisos||[]).includes('kpi_'+id);
+              return`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx);cursor:pointer;padding:5px 8px;border:1px solid var(--brd);border-radius:8px;background:${checked?'#e8f5ee':'#fff'};">
+                <input type="checkbox" id="up_kpi_${id.replace('.','_')}" value="kpi_${id}" ${checked?'checked':''} style="accent-color:var(--grn);width:13px;height:13px;flex-shrink:0;"/>
+                <span><strong>${id}</strong> · ${a.name}</span>
+              </label>`;
+            }).join('')}
+          </div>
+        </div>`).join('')}
     </div>
     <div class="btn-row" style="gap:8px;">
       <button class="btn btn-p" onclick="saveUser()">${editingUserId!==null?'Guardar cambios':'Agregar usuario'}</button>
@@ -496,14 +516,14 @@ function saveUser(){
     const pwd=v('u_pwd');
     const dup=appUsers.findIndex(u=>u.usuario===usr);
     if(dup!==-1&&dup!==editingUserId){toast('Ese usuario ya existe');return;}
-    const permisos=['kpis','a3','madurez','resultados','usuarios'].filter(k=>document.getElementById('up_'+k)?.checked);
+    const permisos=getFormPermisos();
     appUsers[editingUserId]={...appUsers[editingUserId],nombre:nom,puesto:v('u_pue'),usuario:usr,zona,permisos};
     if(pwd)appUsers[editingUserId].password=pwd;
     editingUserId=null;saveUsersLS();toast('Usuario actualizado: '+nom);
   }else{
     const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}
     if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}
-    const permisos=['kpis','a3','madurez','resultados','usuarios'].filter(k=>document.getElementById('up_'+k)?.checked);
+    const permisos=getFormPermisos();
     appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona,permisos});
     saveUsersLS();toast('Usuario registrado: '+nom);
   }
@@ -576,7 +596,7 @@ function saveMember(){const nom=v('m_nom');if(!nom){toast('Ingresa el nombre');r
 function editMember(i){editingMember=i;renderDocView('integrantes');}
 function delMember(i){if(confirm('¿Eliminar a '+members[i].nombre+'?')){members.splice(i,1);editingMember=null;}renderDocView('integrantes');}
 function cancelEdit(){editingMember=null;renderDocView('integrantes');}
-function openArea(id){if(!hasPerm('kpis')){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess('KPIs');return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
+function openArea(id){if(!hasPerm('kpi_'+id)){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess(id+' · '+(CAO?.name||'KPI'));return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
 function renderMain(tab){
   CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   let h=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi'?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
