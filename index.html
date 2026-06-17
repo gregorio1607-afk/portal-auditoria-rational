@@ -446,7 +446,21 @@ function renderResultados(){
     <div class="hr"></div>
     <div class="card-title" style="margin-bottom:6px;">📋 Acuerdos de la evaluación</div>
     <div style="display:grid;grid-template-columns:36px 1fr 110px;gap:8px;padding:3px 0;border-bottom:1px solid var(--brd);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;"><span>ID</span><span>Elemento clave · Acuerdo</span><span>Nivel</span></div>
-    ${acuerdoRows}`;
+    ${acuerdoRows}
+    <div class="hr"></div>
+    <div class="card-title" style="margin-bottom:8px;">📎 Documentos originales de la auditoría</div>
+    ${['Resultados','Acuerdos'].map((label,idx)=>{const pd=pdfDocs[resYear]&&pdfDocs[resYear][zone]&&pdfDocs[resYear][zone][idx];return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f0f4f1;">
+      <span style="font-size:11px;font-weight:700;color:var(--tx2);width:80px;flex-shrink:0;">📄 ${label}</span>
+      ${pd
+        ?`<span style="font-size:11px;color:var(--tx3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${pd.name}">${pd.name}</span>
+          <a href="${pd.url}" target="_blank" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;background:var(--grn);color:#fff;text-decoration:none;white-space:nowrap;">Ver PDF</a>
+          <button onclick="removePDF('${zone}',${idx})" style="font-size:11px;padding:3px 8px;border-radius:12px;border:1px solid #e0e6e2;background:#fff;color:var(--tx3);cursor:pointer;">✕</button>`
+        :`<span style="font-size:11px;color:var(--tx3);flex:1;">Sin archivo adjunto</span>
+          <label style="font-size:11px;font-weight:700;padding:3px 12px;border-radius:12px;border:1px solid var(--grn);color:var(--grn);cursor:pointer;white-space:nowrap;">
+            ⬆ Adjuntar<input type="file" accept="application/pdf" onchange="uploadPDF(event,'${zone}',${idx})" style="display:none;"/>
+          </label>`
+      }
+    </div>`;}).join('')}`;
   };
   const btn=(label,active,onclick)=>`<button onclick="${onclick}" style="padding:5px 16px;font-size:12px;font-family:inherit;border-radius:20px;cursor:pointer;font-weight:700;border:1px solid ${active?'var(--grn)':'var(--brd)'};background:${active?'var(--grn)':'#fff'};color:${active?'#fff':'var(--tx2)'};">${label}</button>`;
   return`<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
