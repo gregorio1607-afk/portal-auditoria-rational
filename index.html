@@ -261,6 +261,9 @@ const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
 const appUsers=JSON.parse(localStorage.getItem('appUsers')||'[]');let activeUserId=null,usuarioFiltro='',editingUserId=null;
 function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));}
+function hasPerm(p){const u=activeUserId!==null?appUsers[activeUserId]:null;if(!u)return true;return(u.permisos||[]).includes(p);}
+function noAccess(mod){document.getElementById('mc').innerHTML=noAccessInline(mod);}
+function noAccessInline(mod){return`<div class="card" style="text-align:center;padding:32px 16px;"><div style="font-size:36px;margin-bottom:10px;">🔒</div><div style="font-size:14px;font-weight:700;color:var(--tx);margin-bottom:6px;">Acceso restringido</div><div style="font-size:12px;color:var(--tx3);">No tienes permiso para ver <strong>${mod}</strong>.<br>Contacta al administrador.</div></div>`;}
 function initArea(id){if(!SD[id])SD[id]={};[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(!YZD[y][z][id])YZD[y][z][id]={};}));}
 function gzd(){return YZD[CY][CZ][CA]||{};}
 function gp(id){const s=SD[id]||{};const z=(YZD[CY]||{})[CZ]||{};const zd=z[id]||{};return['doc','kpi','action'].filter(t=>(t==='kpi'||t==='action')?zd[t]&&zd[t].saved:s[t]&&s[t].saved).length;}
@@ -304,9 +307,9 @@ function renderDocView(sub){
     <button class="sub-tab ${sub==='resultados'?'on':''}" onclick="renderDocView('resultados')">📈 Resultados</button>
     <button class="sub-tab ${sub==='usuarios'?'on':''}" onclick="renderDocView('usuarios')">👤 Usuarios</button>
   </div>`;
-  if(sub==='madurez')h+=renderMadurez();
-  else if(sub==='resultados')h+=renderResultados();
-  else if(sub==='usuarios')h+=renderUsuarios();
+  if(sub==='madurez')h+=hasPerm('madurez')?renderMadurez():noAccessInline('Nivel de Madurez');
+  else if(sub==='resultados')h+=hasPerm('resultados')?renderResultados():noAccessInline('Resultados');
+  else if(sub==='usuarios')h+=hasPerm('usuarios')?renderUsuarios():noAccessInline('Gestión de Usuarios');
   mc.innerHTML=h;
 }
 function renderMadurez(){
@@ -431,6 +434,7 @@ function renderUsuarios(){
           <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;${zonaPill(u.zona)}">${u.zona==='Ambas'?'Todas las zonas':u.zona==='MTY'?'Monterrey':'Ciudad de México'}</span>
           ${isA?'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;">● Sesión activa</span>':''}
         </div>
+        ${(u.permisos||[]).length>0?`<div style="margin-top:4px;display:flex;gap:3px;flex-wrap:wrap;">${(u.permisos).map(p=>({kpis:'📊 KPIs',a3:'📝 A3',madurez:'📈 Madurez',resultados:'📋 Resultados',usuarios:'👤 Usuarios'}[p]||p)).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#f0f4f1;color:var(--tx2);">${l}</span>`).join('')}</div>`:'<div style="margin-top:3px;font-size:9px;color:#e57373;">Sin permisos asignados</div>'}
       </div>
       <div class="m-actions">
         ${!isA?`<button class="m-btn" onclick="activateUser(${i})">Activar</button>`:`<button class="m-btn" style="border-color:var(--grn);color:var(--grn);" onclick="deactivateUser()">Cerrar</button>`}
@@ -462,6 +466,22 @@ function renderUsuarios(){
         <option value="Ambas" ${editingUserId!==null&&appUsers[editingUserId].zona==='Ambas'?'selected':''}>Ambas zonas (Admin)</option>
       </select>
     </div>
+    <div class="fg"><label class="fl">Permisos de acceso</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;">
+        ${[
+          {k:'kpis',   label:'📊 Ver KPIs'},
+          {k:'a3',     label:'📝 Editar A3'},
+          {k:'madurez',label:'📈 Nivel de Madurez'},
+          {k:'resultados',label:'📋 Resultados'},
+          {k:'usuarios', label:'👤 Gestión Usuarios'}
+        ].map(p=>{
+          const checked=editingUserId!==null&&(appUsers[editingUserId].permisos||[]).includes(p.k);
+          return`<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx);cursor:pointer;padding:6px 8px;border:1px solid var(--brd);border-radius:8px;background:${checked?'#e8f5ee':'#fff'};">
+            <input type="checkbox" id="up_${p.k}" value="${p.k}" ${checked?'checked':''} style="accent-color:var(--grn);width:14px;height:14px;"/> ${p.label}
+          </label>`;
+        }).join('')}
+      </div>
+    </div>
     <div class="btn-row" style="gap:8px;">
       <button class="btn btn-p" onclick="saveUser()">${editingUserId!==null?'Guardar cambios':'Agregar usuario'}</button>
       ${editingUserId!==null?`<button class="btn" onclick="cancelEditUser()" style="background:#fff;border:1px solid var(--brd);color:var(--tx2);">Cancelar</button>`:''}
@@ -476,13 +496,15 @@ function saveUser(){
     const pwd=v('u_pwd');
     const dup=appUsers.findIndex(u=>u.usuario===usr);
     if(dup!==-1&&dup!==editingUserId){toast('Ese usuario ya existe');return;}
-    appUsers[editingUserId]={...appUsers[editingUserId],nombre:nom,puesto:v('u_pue'),usuario:usr,zona};
+    const permisos=['kpis','a3','madurez','resultados','usuarios'].filter(k=>document.getElementById('up_'+k)?.checked);
+    appUsers[editingUserId]={...appUsers[editingUserId],nombre:nom,puesto:v('u_pue'),usuario:usr,zona,permisos};
     if(pwd)appUsers[editingUserId].password=pwd;
     editingUserId=null;saveUsersLS();toast('Usuario actualizado: '+nom);
   }else{
     const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}
     if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}
-    appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona});
+    const permisos=['kpis','a3','madurez','resultados','usuarios'].filter(k=>document.getElementById('up_'+k)?.checked);
+    appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona,permisos});
     saveUsersLS();toast('Usuario registrado: '+nom);
   }
   renderDocView('usuarios');
@@ -554,11 +576,11 @@ function saveMember(){const nom=v('m_nom');if(!nom){toast('Ingresa el nombre');r
 function editMember(i){editingMember=i;renderDocView('integrantes');}
 function delMember(i){if(confirm('¿Eliminar a '+members[i].nombre+'?')){members.splice(i,1);editingMember=null;}renderDocView('integrantes');}
 function cancelEdit(){editingMember=null;renderDocView('integrantes');}
-function openArea(id){VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
+function openArea(id){if(!hasPerm('kpis')){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess('KPIs');return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
 function renderMain(tab){
   CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   let h=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi'?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
-  if(tab==='doc')h+=rDoc();else if(tab==='kpi')h+=rKPI();else if(tab==='action')h+=rAction();
+  if(tab==='doc')h+=rDoc();else if(tab==='kpi')h+=rKPI();else if(tab==='action')h+=hasPerm('a3')?rAction():noAccessInline('A3');
   document.getElementById('mc').innerHTML=h;
 }
 function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
