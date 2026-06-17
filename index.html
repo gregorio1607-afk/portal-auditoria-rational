@@ -294,7 +294,7 @@ function renderAcc(){
       const item=document.createElement('div');
       item.className='sb-item'+(id===CA&&VM==='area'?' on':'');
       item.onclick=()=>openArea(id);
-      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}<span style="display:block;font-size:10px;font-weight:400;color:var(--tx3);line-height:1.4;margin-top:2px;white-space:normal;">${a.proc_obj||''}</span></span><span class="sb-dot ${st==='ok'?'dok':st==='prog'?'dpr':'dno'}"></span>`;
+      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}</span><span class="sb-dot ${st==='ok'?'dok':st==='prog'?'dpr':'dno'}"></span>`;
       body.appendChild(item);
     });
     div.appendChild(head);div.appendChild(body);acc.appendChild(div);
@@ -623,7 +623,7 @@ function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   <div class="btn-row"><button class="btn btn-p" onclick="svDoc()">Guardar cambios</button></div></div>`;}
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  return`<div class="card"><div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
+  return`<div class="card">${CAO&&CAO.proc_obj?`<div style="font-size:12px;color:var(--tx2);line-height:1.6;padding:10px 12px;background:#f5f9f6;border-radius:8px;border-left:3px solid var(--grn);margin-bottom:12px;">${CAO.proc_obj}</div>`:''}<div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
   <div class="th"><span>Indicador</span><span>Meta</span><span>Actual</span><span>Estado</span></div>${rows}
   <button class="add-btn" onclick="addKPI()">＋ Agregar indicador</button><div class="hr"></div>
   <div class="fr"><div class="fg"><label class="fl">Fuente de datos</label><input class="fc" id="ks" value="${esc(zd.kpi.source)}" placeholder="Kepler, Drive..."/></div>
