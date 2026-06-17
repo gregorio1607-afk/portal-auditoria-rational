@@ -753,8 +753,9 @@ function printDoc(){
     </div>
     <div class="body-box">${(d.proc_body||'—').replace(/</g,'&lt;')}</div>
     <div class="footer"><span>Portal de Auditoría RATIONAL · Servindustrial</span><span>Impreso: ${new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})}</span></div>
-  </div><scr`+'ipt>window.onload=()=>window.print();</scr'+'ipt></body></html>`);
+  </div></body></html>`);
   w.document.close();
+  setTimeout(()=>w.print(),400);
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
