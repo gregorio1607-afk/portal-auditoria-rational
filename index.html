@@ -189,6 +189,12 @@ textarea.fc{resize:vertical;line-height:1.5;}
     <div class="sb-section">Puntos de auditoría</div>
     <div id="accordion"></div>
   </div>
+  <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,.1);margin-top:auto;">
+    <div id="sb-user-info" style="font-size:11px;color:var(--sbt);opacity:.7;margin-bottom:6px;padding:0 2px;"></div>
+    <button onclick="portalLogout()" style="width:100%;padding:7px 12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--sbt);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">
+      <span>🚪</span><span>Cerrar sesión</span>
+    </button>
+  </div>
 </div>
 <div class="main">
   <div class="topbar">
@@ -931,6 +937,7 @@ function applySession(idx,isAdmin){
     updateZonaLock();
   }
   document.getElementById('portal-login').style.display='none';
+  updateSbUser();
   renderAcc();
 }
 function checkPortalLogin(){
@@ -957,6 +964,8 @@ function portalLogin(){
   toast('Bienvenido, '+appUsers[idx].nombre);
 }
 function deactivateUser(){activeUserId=null;sessionStorage.removeItem('portalSession');updateZonaLock();renderDocView('usuarios');toast('Sesión cerrada');}
+function portalLogout(){sessionStorage.removeItem('portalSession');location.reload();}
+function updateSbUser(){const el=document.getElementById('sb-user-info');if(!el)return;if(activeUserId===null){el.textContent='👤 Administrador';}else if(activeUserId!==null&&appUsers[activeUserId]){el.textContent='👤 '+appUsers[activeUserId].nombre;}else{el.textContent='';} }
 checkPortalLogin();
 </script>
 </body>
