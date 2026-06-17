@@ -529,12 +529,8 @@ function renderResultados(){
     <span style="font-size:11px;font-weight:700;color:var(--tx2);">Ciclo:</span>
     ${btn('2025',resYear===2025,"setResYear(2025)")}
     ${btn('2026',resYear===2026,"setResYear(2026)")}
-    <span style="width:1px;height:20px;background:var(--brd);margin:0 4px;display:inline-block;"></span>
-    <span style="font-size:11px;font-weight:700;color:var(--tx2);">Sucursal:</span>
-    ${btn('Monterrey',resZone==='MTY',"setResZone('MTY')")}
-    ${btn('CDMX',resZone==='CDMX',"setResZone('CDMX')")}
   </div>
-  <div class="card">${renderZoneBody(resZone)}</div>`;}
+  <div class="card">${renderZoneBody(CZ)}</div>`;}
 function saveResultados(){}
 function uploadPDF(event,zone,idx){const file=event.target.files[0];if(!file)return;if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]={name:file.name,url:URL.createObjectURL(file)};renderDocView('resultados');}
 function removePDF(zone,idx){if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]=null;renderDocView('resultados');}
