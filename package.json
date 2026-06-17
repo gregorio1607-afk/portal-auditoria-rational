@@ -1,0 +1,14 @@
+{
+  "name": "portal-auditoria-rational",
+  "version": "1.0.0",
+  "description": "Portal de Auditoría RATIONAL - Servindustrial",
+  "scripts": {
+    "start": "serve . -l $PORT"
+  },
+  "dependencies": {
+    "serve": "^14.2.6"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

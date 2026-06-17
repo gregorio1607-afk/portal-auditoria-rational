@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Portal de Auditoría RATIONAL · Servindustrial</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif;}
+:root{
+  --sb:#1B3A2D;--sb-h:#243f30;--sb-a:#2d5c3f;--sbt:#b8d4c0;--acc:#4CAF7D;
+  --bg:#f0f2f0;--card:#fff;--brd:#e0e6e2;
+  --grn:#2E7D52;--red:#c0392b;--amb:#b8690a;
+  --tx:#1a2e20;--tx2:#4a6358;--tx3:#7a9a88;
+}
+html,body{height:100%;overflow:hidden;}
+.portal{display:flex;height:100vh;}
+.sb{width:230px;background:var(--sb);display:flex;flex-direction:column;flex-shrink:0;}
+.sb-logo{padding:12px 14px 10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-logo-row{display:flex;align-items:center;gap:8px;}
+.sb-mark{width:26px;height:26px;background:var(--acc);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.sb-name{font-size:13px;font-weight:700;color:#fff;}
+.sb-sub{font-size:10px;color:var(--sbt);margin-top:5px;opacity:.8;}
+.sb-ctrl{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-sel{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#fff;font-size:11px;padding:5px 8px;cursor:pointer;font-family:inherit;}
+.sb-sel option{background:var(--sb);}
+.zona-row{display:flex;gap:5px;margin-top:6px;}
+.zpill{flex:1;text-align:center;padding:4px 0;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.2);color:var(--sbt);background:transparent;font-family:inherit;}
+.zpill.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+.sb-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;}
+.sb-scroll::-webkit-scrollbar{width:3px;}
+.sb-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);}
+.sb-nav{padding:8px 0 4px;}
+.sb-nav-item{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .1s;}
+.sb-nav-item:hover{background:var(--sb-h);}
+.sb-nav-item.on{background:var(--sb-a);border-left-color:var(--acc);}
+.sb-nav-icon{font-size:15px;flex-shrink:0;}
+.sb-nav-label{font-size:12px;color:var(--sbt);font-weight:600;}
+.sb-nav-item.on .sb-nav-label{color:#fff;}
+.sb-divider{height:1px;background:rgba(255,255,255,.08);margin:4px 0;}
+.sb-section{padding:5px 14px 3px;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.6px;text-transform:uppercase;}
+.acc-group{border-bottom:1px solid rgba(255,255,255,.07);}
+.acc-head{display:flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer;transition:background .1s;}
+.acc-head:hover{background:var(--sb-h);}
+.acc-head.open{background:rgba(255,255,255,.05);}
+.acc-arrow{font-size:10px;color:var(--acc);margin-left:auto;transition:transform .2s;}
+.acc-head.open .acc-arrow{transform:rotate(90deg);}
+.acc-gname{font-size:11px;font-weight:700;color:var(--sbt);}
+.acc-head.open .acc-gname{color:#fff;}
+.acc-num{font-size:10px;background:rgba(255,255,255,.1);color:var(--sbt);border-radius:10px;padding:1px 6px;}
+.acc-body{display:none;}
+.acc-head.open + .acc-body{display:block;}
+.sb-item{display:flex;align-items:center;gap:6px;padding:6px 14px 6px 22px;cursor:pointer;border-left:3px solid transparent;}
+.sb-item:hover{background:var(--sb-h);}
+.sb-item.on{background:var(--sb-a);border-left-color:var(--acc);}
+.sb-id{font-size:10px;font-weight:700;color:var(--acc);min-width:22px;}
+.sb-iname{font-size:11px;color:var(--sbt);flex:1;line-height:1.3;}
+.sb-item.on .sb-iname{color:#fff;}
+.sb-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dok{background:#4CAF7D;}.dpr{background:#FFA726;}.dno{background:#ef5350;}
+.opt-c{font-size:9px;padding:1px 4px;border-radius:6px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:#fff;border-bottom:1px solid var(--brd);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.tb-title{font-size:14px;font-weight:700;color:var(--tx);}
+.tb-sub{font-size:11px;color:var(--tx2);margin-top:1px;}
+.tb-right{display:flex;align-items:center;gap:7px;}
+.tb-badge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;}
+.yb25{background:#e3f0ff;color:#1565c0;}.yb26{background:#e8f5ee;color:#2E7D52;}
+.zbm{background:#e3f0ff;color:#1565c0;}.zbc{background:#f3e8ff;color:#6a1b9a;}
+.tb-btn{padding:5px 12px;font-size:12px;border:1px solid var(--brd);border-radius:6px;background:#fff;color:var(--tx);cursor:pointer;font-family:inherit;font-weight:600;}
+.content{flex:1;overflow-y:auto;padding:14px;}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:14px 16px;margin-bottom:10px;}
+.card-title{font-size:12px;font-weight:700;color:var(--grn);margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+.mod-tabs{display:flex;background:var(--card);border:1px solid var(--brd);border-radius:8px;overflow:hidden;margin-bottom:10px;}
+.mod-tab{flex:1;padding:9px 6px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;color:var(--tx2);border:none;background:none;font-family:inherit;border-bottom:3px solid transparent;}
+.mod-tab:hover{background:#f5f9f6;}
+.mod-tab.on{color:var(--grn);border-bottom-color:var(--grn);background:#f5f9f6;font-weight:700;}
+.sub-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.sub-tab{padding:5px 14px;font-size:12px;border:1px solid var(--brd);border-radius:20px;cursor:pointer;background:var(--card);color:var(--tx2);font-family:inherit;font-weight:600;}
+.sub-tab.on{background:var(--grn);color:#fff;border-color:var(--grn);}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:10px;}
+.fl{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;}
+.fc{width:100%;font-family:inherit;font-size:12px;color:var(--tx);background:#fafbfa;border:1px solid var(--brd);border-radius:6px;padding:6px 9px;transition:border-color .15s;}
+.fc:focus{outline:none;border-color:var(--acc);}
+textarea.fc{resize:vertical;line-height:1.5;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.btn-row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+.btn{padding:6px 14px;font-size:12px;font-family:inherit;border-radius:6px;cursor:pointer;font-weight:600;}
+.btn-g{border:1px solid var(--brd);background:#fff;color:var(--tx);}
+.btn-g:hover{background:#f5f5f5;}
+.btn-p{border:none;background:var(--grn);color:#fff;}
+.btn-p:hover{background:#245e3c;}
+.btn-r{border:none;background:var(--red);color:#fff;}
+.hr{border:none;border-top:1px solid var(--brd);margin:12px 0;}
+.notice{display:flex;align-items:center;gap:7px;font-size:11px;border-radius:6px;padding:7px 10px;margin-bottom:10px;}
+.notice-g{background:#f0f7f3;border:1px solid #c8e6c9;color:var(--tx2);}
+.notice-mty{background:#e3f0ff;border:1px solid #bbdefb;color:#1565c0;font-weight:600;}
+.notice-cdmx{background:#f3e8ff;border:1px solid #e1bee7;color:#6a1b9a;font-weight:600;}
+.th,.tr-kpi{display:grid;grid-template-columns:2.2fr .9fr .9fr 90px;gap:7px;padding:6px 0;border-bottom:1px solid #f0f4f1;align-items:center;font-size:12px;}
+.th{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--brd);}
+.tr-kpi:last-child{border-bottom:none;}
+.tha,.tra{display:grid;grid-template-columns:1.8fr 1fr 1fr 80px;gap:7px;padding:6px 0;border-bottom:1px solid #f0f4f1;align-items:center;font-size:12px;}
+.tha{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--brd);}
+.tra:last-child{border-bottom:none;}
+.ssel{font-size:11px;padding:3px 5px;border-radius:5px;border:1px solid var(--brd);background:#fafbfa;font-family:inherit;color:var(--tx);width:100%;}
+.add-btn{font-size:11px;color:var(--grn);cursor:pointer;border:none;background:none;font-family:inherit;padding:6px 0;font-weight:700;}
+.mad-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px;}
+.mc{border-radius:7px;padding:9px 7px;}
+.m1{background:#f5f5f5;}.m2{background:#e3f0ff;}.m3{background:#e8f5ee;}.m4{background:#fff3e0;}.m5{background:#e0f7ef;}
+.mlv{font-size:10px;font-weight:700;margin-bottom:2px;}
+.m1 .mlv{color:#616161;}.m2 .mlv{color:#1565c0;}.m3 .mlv{color:#2e7d52;}.m4 .mlv{color:#b8690a;}.m5 .mlv{color:#00695c;}
+.msc{font-size:16px;font-weight:700;margin-bottom:4px;}
+.m1 .msc{color:#757575;}.m2 .msc{color:#1565c0;}.m3 .msc{color:#2e7d52;}.m4 .msc{color:#b8690a;}.m5 .msc{color:#00695c;}
+.mq{font-size:10px;color:#4a6358;line-height:1.5;margin-bottom:1px;display:flex;gap:3px;}
+.mq::before{content:'›';flex-shrink:0;font-weight:700;}
+.m-on{outline:2px solid var(--grn);outline-offset:1px;}
+.itr,.ith{display:grid;grid-template-columns:44px 1fr 95px 75px;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f4f1;font-size:12px;}
+.ith{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--brd);}
+.itr:last-child{border-bottom:none;}
+.lv-b{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;text-align:center;}
+.area-scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px;margin-bottom:10px;}
+.asc{background:var(--card);border:1px solid var(--brd);border-radius:7px;padding:9px 11px;display:flex;align-items:center;gap:9px;}
+.as-ava{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.as-nm{font-size:11px;font-weight:600;color:var(--tx);}
+.as-pt{font-size:10px;color:var(--tx3);}
+.as-lv{font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;display:inline-block;margin-top:2px;}
+.member-card{background:#fafbfa;border:1px solid var(--brd);border-radius:7px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.m-ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+.m-info{flex:1;}
+.m-name{font-size:13px;font-weight:600;color:var(--tx);}
+.m-area-txt{font-size:11px;color:var(--tx2);}
+.m-perms{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+.m-perm{font-size:10px;padding:1px 7px;border-radius:10px;background:#e8f5ee;color:#2e7d52;font-weight:600;}
+.m-actions{display:flex;gap:5px;}
+.m-btn{font-size:11px;padding:3px 9px;border-radius:5px;cursor:pointer;border:1px solid var(--brd);background:#fff;color:var(--tx);font-family:inherit;font-weight:600;}
+.m-btn.del{border-color:#fca5a5;color:var(--red);}
+.doc-header{background:linear-gradient(135deg,#1B3A2D,#2d5c3f);border-radius:8px;padding:14px 16px;margin-bottom:10px;color:#fff;}
+.dh-t{font-size:15px;font-weight:700;}
+.dh-s{font-size:11px;color:#b8d4c0;margin-top:4px;line-height:1.5;}
+.dh-b{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.dh-badge{font-size:11px;padding:2px 9px;border-radius:20px;background:rgba(255,255,255,.12);color:#fff;font-weight:600;}
+.result-zone{background:#fafbfa;border:1px solid var(--brd);border-radius:7px;padding:12px 14px;margin-bottom:8px;}
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--tx3);}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--grn);color:#fff;padding:10px 18px;border-radius:7px;font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.15);}
+.toast.show{opacity:1;}
+@media(max-width:768px){.sb{width:190px;}.fr,.fr3{grid-template-columns:1fr;}.mad-grid{grid-template-columns:repeat(3,1fr);}}
+</style>
+</head>
+<body>
+<div class="portal">
+<div class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-row">
+      <div class="sb-mark">SI</div>
+      <div class="sb-name">SERV<span style="font-weight:400">INDUSTRIAL</span></div>
+    </div>
+    <div class="sb-sub">Portal de Auditoría RATIONAL</div>
+  </div>
+  <div class="sb-ctrl">
+    <select class="sb-sel" id="yrSel" onchange="setYear(parseInt(this.value))">
+      <option value="2025">📋 Ciclo 2025 · Auditado</option>
+      <option value="2026">🔄 Ciclo 2026 · En proceso</option>
+    </select>
+    <div class="zona-row">
+      <button class="zpill on" id="pMTY" onclick="setZona('MTY')">Monterrey</button>
+      <button class="zpill" id="pCDMX" onclick="setZona('CDMX')">CDMX</button>
+    </div>
+  </div>
+  <div class="sb-scroll">
+    <div class="sb-nav">
+      <div class="sb-nav-item" id="nav-doc" onclick="openDoc()">
+        <span class="sb-nav-icon">📁</span>
+        <span class="sb-nav-label">Documentación</span>
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">Puntos de auditoría</div>
+    <div id="accordion"></div>
+  </div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title" id="tbT">Portal de Auditoría RATIONAL</div>
+      <div class="tb-sub" id="tbS">Selecciona una sección en el panel izquierdo</div>
+    </div>
+    <div class="tb-right">
+      <span class="tb-badge yb25" id="tbY">Ciclo 2025</span>
+      <span class="tb-badge zbm" id="tbZ">Monterrey</span>
+      <button class="tb-btn" onclick="exportData()">⬇ Exportar</button>
+    </div>
+  </div>
+  <div class="content" id="mc">
+    <div class="welcome">
+      <div style="font-size:52px">📋</div>
+      <div style="font-size:14px;font-weight:600;color:var(--tx2)">Selecciona una sección en el panel izquierdo</div>
+      <div style="font-size:11px">Portal RATIONAL · Servindustrial · v2025–2026</div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="toast" id="tst"></div>
+<script>
+const areas=[
+  {id:'1.1',g:'1',name:'Herramientas de trabajo',area:'Control Activos',aC:'#B5D4F4',aT:'#0C447C',aL:'CA',opt:false,flow_owner:'Auditora Administrativa / Control de Activos',flow_freq:'Trimestral',flow_steps:'1. Para asignar herramienta a técnico\n2. Ingresa listado en app de control de activos\n3. Entrega herramienta al técnico\n4. Verifica la herramienta asignada\n5. ¿Detecta herramienta faltante?\n   - SÍ: Solicitud de herramienta en aplicación\n   - NO: Continúa\n6. Registra en tablero de control\n7. ¿KPI ≥ 9.5?\n   - SÍ: Mantiene método\n   - NO: Elabora hoja A3 → Ejecuta plan de acción',flow_tools:'App de control de activos, Data Studio (Drive)',flow_file:'DF-SERV-021',proc_code:'AUDRTN-UN-PR-1.1',proc_ver:'14/12/2023',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que los equipos de nuestros clientes son correctamente intervenidos y que se utilizan las herramientas de trabajo recomendadas.',proc_scope:'Todas las unidades de negocio.',proc_resp:'Control de Activos, Gerente UN, Analista de Productividad, Técnico',proc_body:'5.1 Control de Activos: Garantiza la asignación de herramienta conforme a formato y reglamento. Asegura el control de activos cada 3 meses.\n5.2 Gerente/Supervisor: Garantiza que el indicador esté dentro de la meta (≥ 9.5). Gestiona reposición en caso de faltante.\n5.3 Analista de Productividad: Sube información de auditorías técnicas a Data Studio.\n5.4 Técnico: Asegura que su herramienta esté completa y ordenada.'},
+  {id:'1.2',g:'1',name:'Oficina y planificación',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Gerente / Auditora Administrativa',flow_freq:'Trimestral',flow_steps:'1. Recopilación de KPIs: Tiempo de resolución, CSO, FTF\n2. Condensa información\n3. ¿KPI ≥ 85%?\n   - SÍ: Mantiene el mismo método\n   - NO: Elabora hoja A3 → Ejecuta plan de acción\n* Análisis cada 3 meses.',flow_tools:'Plataforma SI, Kepler, Drive',flow_file:'DF-SERV-017',proc_code:'AUDRTN-UN-PR-1.2',proc_ver:'20/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar la correcta planeación y coordinación de las operaciones y el apoyo desde la oficina con los equipos en campo.',proc_scope:'Nivel nacional.',proc_resp:'Gerente UN',proc_body:'5.1 Recopilación (Gerente): Se recopila Tiempo de Resolución, CSO y FTF.\n5.2 Condensa información: Analiza porcentajes para obtener resultado final.\n5.3 ¿KPI ≥ 85%?: Si NO: Elabora A3 y ejecuta plan de acción.'},
+  {id:'1.3',g:'1',name:'Gestión de recambios',area:'Cadena Suministro',aC:'#FFE082',aT:'#4E342E',aL:'CS',opt:false,flow_owner:'Gerente / Almacén CDS / Analista Garantías',flow_freq:'Por evento',flow_steps:'1. Define y actualiza lista del stock\n2. Mantiene almacén surtido (Almacén CDS)\n3. Almacén físico (Analista Garantías)\n4. Envío de refacciones según requerimiento\n5. ¿Refacción utilizada?\n   - SÍ: Caso de traslado/reposición\n   - NO: Se devuelve al almacén\n6. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Sistema Kepler, CDS',flow_file:'DF-SERV-020',proc_code:'AUDRTN-UN-PR-1.3',proc_ver:'25/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar el correcto seguimiento a la gestión de recambio de refacción.',proc_scope:'Nivel nacional.',proc_resp:'Gerente, Almacén CDS, Analista Garantías',proc_body:'5.1 Define y actualiza lista (Gerente): Actualiza refacciones según modelos nuevos.\n5.2 Mantiene almacén surtido (CDS): Realiza compra y envía según necesidades.\n5.3 Almacén físico (Analista): Mantiene stock completo y ordenado.'},
+  {id:'2.1',g:'2',name:'Plan de formación',area:'IFCT',aC:'#CE93D8',aT:'#4A148C',aL:'IF',opt:false,flow_owner:'Formación y Desarrollo (IFCT) / Gerente',flow_freq:'Por evento',flow_steps:'1. Asegurar info de técnicos RATIONAL (Drive)\n2. Genera calendario de certificaciones\n3. ¿Nuevo ingreso? → Capacitación inicial\n4. Asegura asistencia del técnico\n5. Revisa calificación (mín. 70%)\n6. ¿85% de técnicos aprueba?\n   - SÍ: Comparte calificación\n   - NO: e-learning\n7. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Drive certificaciones, Portal RATIONAL, e-learning',flow_file:'DF-SERV-018',proc_code:'AUDRTN-UN-PR-2.1',proc_ver:'25/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Establecer el lineamiento para asegurar que nuestro equipo de técnicos esté certificado en equipos RATIONAL.',proc_scope:'Nivel nacional.',proc_resp:'Formación y Desarrollo (IFCT), Supervisor Técnico, Gerente',proc_body:'5.1 IFCT: Identifica técnicos para certificación. Genera calendario.\n5.2 Supervisor: Asegura asistencia a certificaciones.\n5.3 Gerente: Meta: 85% aprueba con mínimo 70%.'},
+  {id:'3.1',g:'3',name:'Satisfacción del cliente',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Analista Garantías / Técnico / Gerente',flow_freq:'Trimestral',flow_steps:'1. Asegura formatos de encuestas\n2. Entrega encuestas al técnico\n3. Se realiza servicio\n4. Solicita llenado al cliente\n5. Carga en Drive y portal RATIONAL\n6. Actualiza datos\n7. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Drive encuestas, Portal RATIONAL, Kepler',flow_file:'DF-SERV-015',proc_code:'AUDRTN-UN-PR-3.1',proc_ver:'20/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar la calidad de servicio tomando como base las encuestas de satisfacción.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, Técnico, Gerente',proc_body:'5.1 Analista: Formatos listos y disponibles en Drive.\n5.2 Técnico: Solicita llenado al finalizar el servicio.\n5.3 Gerente: Análisis trimestral, KPI ≥ 85%.'},
+  {id:'3.2',g:'3',name:'Atención telefónica',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Analista Garantías',flow_freq:'Continua',flow_steps:'1. Recibe llamada\n2. Identifica necesidades\n3. Determina tipo de servicio\n4. ¿Requiere cotización?\n   - NO: Asesoría vía telefónica\n   - SÍ: Envía cotización → Programa\n5. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Teléfono, correo, Kepler',flow_file:'DF-SERV-022',proc_code:'AUDRTN-UN-PR-3.2',proc_ver:'26/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar la disponibilidad del servicio de atención telefónica para los clientes.',proc_scope:'Nivel nacional.',proc_resp:'Analista de Garantías',proc_body:'5.1 Recibe llamada y recaba información del equipo.\n5.2 Determina tipo de servicio.\n5.3 Si requiere cotización: envía y espera autorización.'},
+  {id:'3.3',g:'3',name:'First Time Fix',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Supervisor Técnico / Técnico / Gerente',flow_freq:'Continua',flow_steps:'1. Programa servicio\n2. Envía posibles piezas (stock)\n3. Realiza servicio (dentro de 24 hrs)\n4. ¿Se resolvió?\n   - SÍ: Registra en plataforma SI\n   - NO: Análisis de causa\n5. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Plataforma SI, Kepler, Kepler Link',flow_file:'DF-SERV-014',proc_code:'AUDRTN-UN-PR-3.3',proc_ver:'20/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Maximizar la solución de mantenimiento técnico al equipo en la primera visita.',proc_scope:'Nivel nacional.',proc_resp:'Supervisor Técnico, Técnico, Gerente',proc_body:'5.1 Supervisor: Asigna OS en Kepler al técnico adecuado.\n5.2 Técnico: Servicio dentro de 24 hrs.\n5.3 Gerente: Meta ≥ 85%.'},
+  {id:'3.4',g:'3',name:'Tiempo de resolución',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Analista Garantías / Técnico / Gerente',flow_freq:'Continua',flow_steps:'1. Asegura datos de solicitud\n2. Gestiona OS con supervisor\n3. Coordina con cliente\n4. Programa servicio\n5. Repara en misma vuelta\n6. Entrega: Check List RATIONAL, Reporte, Análisis de Gas\n7. Cierra OS\n8. Tiempo ≤ 10 días\n9. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Plataforma SI, Kepler, Check Lists',flow_file:'DF-SERV-016',proc_code:'AUDRTN-UN-PR-3.5',proc_ver:'20/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Brindar la mejor solución de servicio en tiempo y forma.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, Técnico, Gerente',proc_body:'5.1 Analista: Asegura datos y coordina servicio.\n5.2 Técnico: Equipo queda funcionando en misma vuelta. Entrega Check List RATIONAL, Reporte y Análisis de Gas.\n5.3 Gerente: Meta ≤ 10 días, KPI ≥ 85%.'},
+  {id:'4.1',g:'4',name:'Información técnica',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Gerente / Supervisor Técnico',flow_freq:'Continua',flow_steps:'1. Asigna equipo celular al técnico\n2. Asegura app RATIONAL instalada\n3. Boletines enviados por WhatsApp\n4. Pregunta sobre último boletín\n5. Confirma de enterado\n6. ¿KPI ≥ 85%? → A3 si no',flow_tools:'App RATIONAL, WhatsApp, Drive, celular corporativo',flow_file:'DF-SERV-024',proc_code:'AUDRTN-UN-PR-4.1',proc_ver:'28/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Mantener la actualización y distribución adecuada de la información a todo el personal técnico y administrativo.',proc_scope:'Nivel nacional.',proc_resp:'Gerente, Supervisor Técnico',proc_body:'5.1 Gerente: Gestiona asignación del equipo móvil.\n5.2 Supervisor: App RATIONAL activa con acceso habilitado.\n5.3 Distribución: Boletines por WhatsApp con verificación de comprensión.'},
+  {id:'4.2',g:'4',name:'Apoyo a RATIONAL',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Analista Garantías / Supervisor Técnico / Gerente',flow_freq:'Por evento',flow_steps:'1. Asegurar hoja de Estructura RATIONAL\n2. Supervisor cuenta con directorio\n3. Realizar cambios si es necesario\n4. Usar hoja de Estructura para asesoría\n5. ¿KPI = 100%? → A3 si no',flow_tools:'Directorio RATIONAL, pirámide de escalación',flow_file:'DF-SERV-025',proc_code:'AUDRTN-UN-PR-4.2',proc_ver:'25/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que el proceso de solicitud de apoyo a RATIONAL recibirá respuesta sin contratiempos.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, Supervisor Técnico, Gerente',proc_body:'5.1 Analista: Recaba información necesaria.\n5.2 Supervisor: Asigna técnico con mayor conocimiento.\n5.3 Gerente: Pirámide de escalación disponible. Meta: 100%.'},
+  {id:'4.3',g:'4',name:'Informes ServiceCall',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Analista Garantías / Gerente',flow_freq:'Continua',flow_steps:'1. Recibe información de servicio concluido\n2. Consolida información\n3. Sube al portal RATIONAL\n4. Solicita ID Service Call\n5. Valida información\n6. Todas las garantías con Web ID\n7. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Portal RATIONAL (Service Call), Kepler, Plataforma SI',flow_file:'DF-SERV-023',proc_code:'AUDRTN-UN-PR-4.3',proc_ver:'28/08/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que los servicios de garantías e instalaciones sean subidos correctamente al portal RATIONAL.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, Gerente',proc_body:'5.1 Analista: Consolida y sube info. Genera Web ID. Todas las garantías con Web ID.\n5.2 Gerente: Cumplimiento ≥ 85%.'},
+  {id:'4.4',g:'4',name:'Instalación y Comisionado',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Analista Garantías / Técnico / Gerente',flow_freq:'Por evento',flow_steps:'1. Recibe solicitud de instalación\n2. Valida equipo\n3. Ubica zona y envía OS\n4. Programa servicio\n5. Instala y arranca equipo\n6. ¿Falla de fábrica? → Formato DOA\n7. Todas las garantías con Web ID\n8. ¿KPI = 100%? → A3 si no',flow_tools:'Portal Service Call RATIONAL, Kepler, formato DOA',flow_file:'DF-SERV-026',proc_code:'AUDRTN-UN-PR-4.5',proc_ver:'03/09/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Brindar al cliente el mejor sistema de planeación para la instalación de sus equipos.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, Técnico, Gerente',proc_body:'5.1 Analista: Asegura equipo instalado y funcionando. Captura reporte.\n5.2 Técnico: Formato DOA si hay falla de fábrica.\n5.3 Gerente: Meta 100% con Web ID.'},
+  {id:'5.1',g:'5',name:'Necesidades de servicio',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:true,flow_owner:'Supervisor / Analista Garantías / Técnico / Gerente',flow_freq:'Continua',flow_steps:'1. Nueva orden\n2. Cotización al cliente\n3. Programa servicio\n4. Realiza servicio\n5. Entrega documentos\n6. OS terminada en ≤ 30 días\n7. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Kepler Link, Kepler ERP',flow_file:'DF-SERV-027',proc_code:'AUDRTN-UN-PC-5.1',proc_ver:'01/09/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que se ofrecen productos de servicio estándares RATIONAL.',proc_scope:'Nivel nacional.',proc_resp:'Supervisor, Analista Garantías, Técnico especializado, Gerente',proc_body:'5.1 Supervisor: Asigna técnico en Kepler Link.\n5.2 Analista: Genera OS y coordina.\n5.3 Técnico: Reporte de mantenimiento.\n5.4 Gerente: Meta OS ≤ 30 días, KPI ≥ 85%.'},
+  {id:'6.1',g:'6',name:'Imagen corporativa',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Supervisor Técnico / Gerente',flow_freq:'Trimestral',flow_steps:'1. Técnicos con uniforme y activos completos\n2. Vehículos completos\n3. Análisis cada 3 meses\n4. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Control de activos, registro fotográfico',flow_file:'DF-SERV-028',proc_code:'AUDRTN-UN-PR-6.1',proc_ver:'03/09/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que los clientes tengan una correcta apreciación de la organización.',proc_scope:'Nivel nacional.',proc_resp:'Supervisor Técnico, Gerente',proc_body:'5.1 Supervisor: Asegura uniforme y activos.\n5.2 Gerente: Mide cumplimiento cada 3 meses. Meta ≥ 85%.'},
+  {id:'6.2',g:'6',name:'Gestión de reclamaciones',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Customer Care / Analista Garantías / Gerente',flow_freq:'Por evento',flow_steps:'1. Llega queja (Customer Care)\n2. Se atiende y asigna queja\n3. Soluciona queja\n4. Envía correo a involucrados\n5. Tiempo ≤ 15 días\n6. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Drive encuestas, correo',flow_file:'DF-SERV-029',proc_code:'AUDRTN-UN-PR-6.2',proc_ver:'03/09/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar el correcto procedimiento de gestión de reclamación de clientes.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, Gerente, Customer Care',proc_body:'5.1 Customer Care: Recibe toda queja.\n5.2 Analista: Recaba información y llega a acuerdo con cliente.\n5.3 Gerente: Meta ≤ 15 días, KPI ≥ 85%.'},
+  {id:'6.3',g:'6',name:'Gestión medioambiental',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:true,flow_owner:'Colaboradores / RR.HH.',flow_freq:'Por evento',flow_steps:'1. Detectan artículos para reciclar\n2. Clasifican: PET, vidrio, orgánicos\n3. ¿Aplica asociación?\n   - SÍ: Entrega → Recibe reconocimiento ESR\n   - NO: Desecha adecuadamente\n4. ¿KPI = 100%? → A3 si no',flow_tools:'Programa ESR, convenios con asociaciones',flow_file:'DF-SERV-033',proc_code:'AUDRTN-UN-PR-6.3',proc_ver:'03/09/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar el proceso de gestión medioambiental, ahorro energético y recursos.',proc_scope:'Nivel nacional.',proc_resp:'Todos los colaboradores',proc_body:'5.1 Colaboradores: Clasifican materiales reciclables.\n5.2 Entrega a asociación si aplica. Meta: KPI = 100%.'},
+  {id:'6.4',g:'6',name:'Lealtad de empleados',area:'RR.HH.',aC:'#FFAB91',aT:'#BF360C',aL:'RH',opt:false,flow_owner:'RR.HH. (Talento Humano)',flow_freq:'Continua',flow_steps:'1. Entrada de personal nuevo\n2. Firma de confidencialidad y reglamento\n3. Prestaciones de planta\n4. Mantener clima laboral\n5. Eventos de antigüedad\n6. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Encuesta de bienestar laboral, Drive RR.HH.',flow_file:'DF-SERV-030',proc_code:'AUDRTN-UN-PR-6.4',proc_ver:'03/09/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que el personal se comporte con lealtad y la empresa sea atractiva para nuevos empleados.',proc_scope:'Nivel nacional.',proc_resp:'Talento Humano (RR.HH.)',proc_body:'5.1 RRHH: Realiza encuesta de bienestar. Asegura firma de confidencialidad.\n5.2 Eventos de antigüedad. Control de rotación. Meta: KPI ≥ 85%.'},
+  {id:'6.5',g:'6',name:'Digitalización',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Analista Garantías / Técnico / Supervisor / Gerente',flow_freq:'Continua',flow_steps:'1. Genera OS en Kepler ERP\n2. Asigna en Kepler o FIELD\n3. Gestiona OS en FIELD (Técnico)\n4. Concluye gestión en FIELD\n5. Cierra OS en Kepler ERP\n6. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Kepler ERP, FIELD (app móvil), Plataforma SI',flow_file:'DF-SERV-031',proc_code:'AUDRTN-UN-PR-6.5',proc_ver:'02/09/2025',proc_approver:'Gregorio González – Dir. General',proc_obj:'Agilizar los procesos de operación digitalmente.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, Técnico, Supervisor, Gerente',proc_body:'5.1 Analista: Genera y cierra OS en Kepler.\n5.2 Técnico: Cierra OS desde FIELD en campo.\n5.3 Supervisor: Asignación correcta en Kepler/FIELD.\n5.4 Gerente: Meta ≥ 85%.'},
+  {id:'6.6',g:'6',name:'Subcontratistas',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:true,flow_owner:'Analista Garantías',flow_freq:'Por evento',flow_steps:'1. Asegura formatos de encuestas\n2. Ejecución del servicio\n3. Solicita llenado al cliente\n4. Análisis de cumplimiento\n5. ¿KPI ≥ 85%? → A3 si no',flow_tools:'Formatos de encuestas, Drive',flow_file:'DF-SERV-032',proc_code:'AUDRTN-UN-PR-6.6',proc_ver:'02/09/2025 v002',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que el servicio de los subcontratistas garantice el nivel de calidad correcto.',proc_scope:'Nivel nacional.',proc_resp:'Analista Garantías, todos los colaboradores',proc_body:'5.1 Analista: Formatos listos para técnico.\n5.2 Análisis del mínimo de encuestas requeridas. Meta: KPI ≥ 85%.'},
+];
+const groups={'1':{label:'1 · Recursos',ids:['1.1','1.2','1.3']},'2':{label:'2 · Calificación',ids:['2.1']},'3':{label:'3 · Calidad',ids:['3.1','3.2','3.3','3.4']},'4':{label:'4 · Gestión',ids:['4.1','4.2','4.3','4.4']},'5':{label:'5 · Negocio',ids:['5.1']},'6':{label:'6 · Impresión',ids:['6.1','6.2','6.3','6.4','6.5','6.6']}};
+const madC=[{n:1,l:'Inicial',s:'0–2',c:'m1',qs:['No está definido','Individual por persona','Impredecible']},{n:2,l:'Orientación',s:'4',c:'m2',qs:['Personal conoce el proceso','Comprensión compartida','Estimable, inestable']},{n:3,l:'Definido',s:'6',c:'m3',qs:['Documentación existente','Actualizada','Personal la conoce']},{n:4,l:'Gestionado',s:'8',c:'m4',qs:['Resultados vs objetivos','Proceso verificado','Historial de verificaciones']},{n:5,l:'Optimización',s:'10',c:'m5',qs:['KPIs activos','Revisión sistemática','Mejora continua']}];
+const lvL=['','Inicial','Orientación','Definido','Gestionado','Optimización'];
+const lvBg=['','#f5f5f5','#e3f0ff','#e8f5ee','#fff3e0','#e0f7ef'];
+const lvTx=['','#616161','#1565c0','#2e7d52','#b8690a','#00695c'];
+const aColors=['#4CAF7D','#1565c0','#b8690a','#6a1b9a','#BF360C'];
+const SD={};const YZD={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
+const madData={2025:{},2026:{}};
+const members=[];
+const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
+let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
+function initArea(id){if(!SD[id])SD[id]={};[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(!YZD[y][z][id])YZD[y][z][id]={};}));}
+function gzd(){return YZD[CY][CZ][CA]||{};}
+function gp(id){const s=SD[id]||{};const z=(YZD[CY]||{})[CZ]||{};const zd=z[id]||{};return['doc','kpi','action'].filter(t=>(t==='kpi'||t==='action')?zd[t]&&zd[t].saved:s[t]&&s[t].saved).length;}
+function gs(id){const p=gp(id);return p===3?'ok':p>0?'prog':'no';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function v(id){const el=document.getElementById(id);return el?el.value:'';}
+function setYear(y){CY=y;const is25=y===2025;document.getElementById('tbY').textContent='Ciclo '+y;document.getElementById('tbY').className='tb-badge '+(is25?'yb25':'yb26');renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
+function setZona(z){CZ=z;document.getElementById('pMTY').className='zpill'+(z==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(z==='CDMX'?' on':'');document.getElementById('tbZ').textContent=z==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(z==='MTY'?'zbm':'zbc');renderAcc();if(VM==='doc')openDoc();else if(VM==='area'&&CA)openArea(CA);}
+function renderAcc(){
+  const acc=document.getElementById('accordion');acc.innerHTML='';
+  document.getElementById('nav-doc').className='sb-nav-item'+(VM==='doc'?' on':'');
+  Object.entries(groups).forEach(([gk,g])=>{
+    const div=document.createElement('div');div.className='acc-group';
+    const ok=g.ids.filter(id=>gs(id)==='ok').length;
+    const head=document.createElement('div');
+    const isOpen=CA&&CA.startsWith(gk+'.');
+    head.className='acc-head'+(isOpen?' open':'');
+    head.innerHTML=`<span class="acc-gname">${g.label}</span><span class="acc-num">${ok}/${g.ids.length}</span><span class="acc-arrow">▶</span>`;
+    head.onclick=()=>{head.classList.toggle('open');};
+    const body=document.createElement('div');body.className='acc-body';
+    g.ids.forEach(id=>{
+      const a=areas.find(x=>x.id===id);const st=gs(id);
+      const item=document.createElement('div');
+      item.className='sb-item'+(id===CA&&VM==='area'?' on':'');
+      item.onclick=()=>openArea(id);
+      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}</span><span class="sb-dot ${st==='ok'?'dok':st==='prog'?'dpr':'dno'}"></span>`;
+      body.appendChild(item);
+    });
+    div.appendChild(head);div.appendChild(body);acc.appendChild(div);
+  });
+}
+function openDoc(){VM='doc';CA='';CAO=null;document.getElementById('tbT').textContent='Documentación';document.getElementById('tbS').textContent='Nivel de madurez · Resultados · Integrantes';renderAcc();renderDocView(docSub);}
+function renderDocView(sub){
+  docSub=sub;const mc=document.getElementById('mc');
+  let h=`<div class="doc-header"><div class="dh-t">📁 Documentación</div><div class="dh-s">Gestión centralizada del nivel de madurez, resultados por zona e integrantes del equipo auditor.</div><div class="dh-b"><span class="dh-badge">Ciclo ${CY}</span><span class="dh-badge">${CZ==='MTY'?'Monterrey':'Ciudad de México'}</span></div></div>
+  <div class="sub-tabs">
+    <button class="sub-tab ${sub==='madurez'?'on':''}" onclick="renderDocView('madurez')">📊 Nivel de Madurez</button>
+    <button class="sub-tab ${sub==='resultados'?'on':''}" onclick="renderDocView('resultados')">📈 Resultados</button>
+    <button class="sub-tab ${sub==='integrantes'?'on':''}" onclick="renderDocView('integrantes')">👥 Integrantes</button>
+  </div>`;
+  if(sub==='madurez')h+=renderMadurez();
+  else if(sub==='resultados')h+=renderResultados();
+  else if(sub==='integrantes')h+=renderIntegrantes();
+  mc.innerHTML=h;
+}
+function renderMadurez(){
+  const entries=Object.values(madData[CY]);const avg=entries.length>0?Math.round(entries.reduce((s,e)=>s+(parseInt(e.nivel)||0),0)/entries.length):0;
+  const byArea={};areas.forEach(a=>{if(!byArea[a.area])byArea[a.area]={a,items:[],tot:0,cnt:0};const m=madData[CY][a.id];if(m&&m.nivel){byArea[a.area].tot+=parseInt(m.nivel);byArea[a.area].cnt++;}byArea[a.area].items.push(a.id);});
+  const madGrid=madC.map(m=>{const cnt=Object.values(madData[CY]).filter(x=>parseInt(x.nivel)===m.n).length;return`<div class="mc ${m.c}"><div class="mlv">N${m.n}·${m.l}</div><div class="msc">${m.s}</div>${m.qs.map(q=>`<div class="mq">${q}</div>`).join('')}${cnt>0?`<div style="margin-top:4px;font-size:10px;font-weight:700;opacity:.7;">${cnt} punto${cnt>1?'s':''}</div>`:''}</div>`;}).join('');
+  const areaCards=Object.values(byArea).map(b=>{const an=b.cnt>0?Math.round(b.tot/b.cnt):0;return`<div class="asc"><div class="as-ava" style="background:${b.a.aC};color:${b.a.aT};">${b.a.aL}</div><div><div class="as-nm">${b.a.area}</div><div class="as-pt">${b.items.length} punto${b.items.length>1?'s':''}</div><span class="as-lv" style="background:${lvBg[an]||'#f5f5f5'};color:${lvTx[an]||'#999'};">${lvL[an]||'Sin datos'}</span></div></div>`;}).join('');
+  const itemRows=areas.map(a=>{const m=madData[CY][a.id]||{};const niv=parseInt(m.nivel)||0;return`<div class="itr"><span style="font-weight:700;color:var(--grn);font-size:11px;">${a.id}</span><span>${a.name}</span><span class="lv-b" style="background:${lvBg[niv]||'#f5f5f5'};color:${lvTx[niv]||'#999'};">${lvL[niv]||'—'}</span><button onclick="openItemMadurez('${a.id}')" style="font-size:11px;padding:3px 9px;border:1px solid var(--brd);border-radius:5px;background:#fff;color:var(--grn);cursor:pointer;font-family:inherit;font-weight:700;">${niv>0?'Editar':'Capturar'}</button></div>`;}).join('');
+  return`<div class="card"><div class="card-title">📈 Escala de madurez RATIONAL</div><div class="mad-grid">${madGrid}</div>${avg>0?`<p style="font-size:12px;color:var(--tx2);margin-top:4px;">Promedio actual: <strong>N${avg} · ${lvL[avg]}</strong> · ${entries.length}/19 capturados</p>`:''}</div>
+  <div class="card"><div class="card-title">🏢 Por área responsable</div><div class="area-scores">${areaCards}</div></div>
+  <div class="card"><div class="card-title">📋 Nivel por punto — Ciclo ${CY}</div><div class="ith"><span>#</span><span>Punto</span><span>Nivel</span><span></span></div>${itemRows}</div>`;
+}
+function openItemMadurez(id){
+  const a=areas.find(x=>x.id===id);const m=madData[CY][id]||{};const cur=parseInt(m.nivel||0);
+  const cols=madC.map(x=>`<div class="mc ${x.c}${cur===x.n?' m-on':''}"><div class="mlv">N${x.n}·${x.l}</div><div class="msc">${x.s}</div>${x.qs.map(q=>`<div class="mq">${q}</div>`).join('')}</div>`).join('');
+  document.getElementById('mc').innerHTML=`
+  <button class="btn btn-g" style="margin-bottom:10px;" onclick="renderDocView('madurez')">← Volver</button>
+  <div class="card"><div class="card-title">📊 ${a.id} · ${a.name}</div>
+  <div class="mad-grid">${cols}</div><div class="hr"></div>
+  <div class="fr"><div class="fg"><label class="fl">Nivel alcanzado</label>
+    <select class="fc" id="mn"><option value="">Selecciona...</option>${[1,2,3,4,5].map(n=>`<option value="${n}" ${cur===n?'selected':''}>${n} · ${lvL[n]} (${[0,2,4,6,8,10][n]} pts)</option>`).join('')}</select>
+  </div><div class="fg"><label class="fl">Evidencias</label><input class="fc" id="me" value="${esc(m.evidence)}" placeholder="Manual, registros, KPIs..."/></div></div>
+  <div class="fg"><label class="fl">Brechas para subir de nivel</label><textarea class="fc" id="mg" rows="2">${esc(m.gaps)}</textarea></div>
+  <div class="btn-row"><button class="btn btn-p" onclick="saveMad('${id}')">Guardar nivel</button></div></div>`;
+}
+function saveMad(id){madData[CY][id]={nivel:v('mn'),evidence:v('me'),gaps:v('mg'),saved:true};toast('Nivel guardado — '+id);renderDocView('madurez');}
+function renderResultados(){
+  const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';const nc=CZ==='MTY'?'notice-mty':'notice-cdmx';const r=resultados[CY][CZ]||{};
+  return`<div class="card">
+    <div class="notice ${nc}">📍 ${zl} · Ciclo ${CY} — Resultados exclusivos de esta zona</div>
+    <div class="card-title">📊 Resultados de auditoría</div>
+    <div class="fr"><div class="fg"><label class="fl">Puntaje total obtenido</label><input class="fc" id="r_pts" value="${esc(r.pts)}" placeholder="Ej: 78 / 100 pts"/></div>
+    <div class="fg"><label class="fl">Fecha de auditoría</label><input class="fc" id="r_fecha" type="date" value="${r.fecha||''}"/></div></div>
+    <div class="fr"><div class="fg"><label class="fl">Auditor RATIONAL</label><input class="fc" id="r_aud" value="${esc(r.auditor)}" placeholder="Nombre del auditor"/></div>
+    <div class="fg"><label class="fl">Calificación global</label><select class="fc" id="r_cal"><option value="">Selecciona...</option>${['Excelente (90–100)','Muy bien (80–89)','Bien (70–79)','Satisfactorio (60–69)','En desarrollo (<60)'].map(x=>`<option ${r.cal===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
+    <div class="fg"><label class="fl">Fortalezas identificadas</label><textarea class="fc" id="r_fort" rows="3" placeholder="Áreas que destacaron positivamente...">${esc(r.fort)}</textarea></div>
+    <div class="fg"><label class="fl">Áreas de oportunidad</label><textarea class="fc" id="r_opp" rows="3" placeholder="Puntos con mayor brecha...">${esc(r.opp)}</textarea></div>
+    <div class="fg"><label class="fl">Compromisos / Próximos pasos</label><textarea class="fc" id="r_comp" rows="3" placeholder="Acciones comprometidas con el auditor...">${esc(r.comp)}</textarea></div>
+    <div class="fg"><label class="fl">Observaciones adicionales</label><textarea class="fc" id="r_obs" rows="2" placeholder="Notas o comentarios internos...">${esc(r.obs)}</textarea></div>
+    <div class="btn-row"><button class="btn btn-p" onclick="saveResultados()">Guardar resultados</button></div>
+  </div>`;}
+function saveResultados(){resultados[CY][CZ]={pts:v('r_pts'),fecha:v('r_fecha'),auditor:v('r_aud'),cal:v('r_cal'),fort:v('r_fort'),opp:v('r_opp'),comp:v('r_comp'),obs:v('r_obs')};toast('Resultados guardados — '+(CZ==='MTY'?'Monterrey':'CDMX'));renderDocView('resultados');}
+function renderIntegrantes(){
+  const uniqueAreas=[...new Set(areas.map(a=>a.area))];
+  const areaOpts=uniqueAreas.map(a=>`<option>${a}</option>`).join('');
+  const em=editingMember!==null?members[editingMember]:null;
+  const areaGrouped={};areas.forEach(a=>{if(!areaGrouped[a.area])areaGrouped[a.area]=[];areaGrouped[a.area].push(a);});
+  const kpiChecks=Object.entries(areaGrouped).map(([ar,ars])=>`<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px;">${ar}</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${ars.map(a=>`<label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;"><input type="checkbox" value="${a.id}" id="ck_${a.id}" ${em&&em.permisos.includes(a.id)?'checked':''}/>${a.id}·${a.name}</label>`).join('')}</div></div>`).join('');
+  const memberList=members.length===0?'<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px;">No hay integrantes dados de alta aún</div>':members.map((m,i)=>{const col=aColors[i%aColors.length];return`<div class="member-card"><div class="m-ava" style="background:${col};">${m.nombre.charAt(0).toUpperCase()}</div><div class="m-info"><div class="m-name">${esc(m.nombre)}</div><div class="m-area-txt">${esc(m.puesto)} · ${esc(m.area)}</div><div class="m-area-txt" style="color:var(--tx3);">${esc(m.correo)}</div><div class="m-perms">${m.permisos.map(p=>`<span class="m-perm">${p}</span>`).join('')}</div></div><div class="m-actions"><button class="m-btn" onclick="editMember(${i})">Editar</button><button class="m-btn del" onclick="delMember(${i})">✕</button></div></div>`;}).join('');
+  return`<div class="card"><div class="card-title">👥 Integrantes del equipo auditor</div>${memberList}</div>
+  <div class="card"><div class="card-title">${em?'✏️ Editar':'➕ Nuevo'} integrante</div>
+  <div class="fr"><div class="fg"><label class="fl">Nombre completo</label><input class="fc" id="m_nom" value="${em?esc(em.nombre):''}" placeholder="Nombre completo"/></div>
+  <div class="fg"><label class="fl">Puesto</label><input class="fc" id="m_pue" value="${em?esc(em.puesto):''}" placeholder="Ej: Gerente de Servicio"/></div></div>
+  <div class="fr"><div class="fg"><label class="fl">Área</label><select class="fc" id="m_area"><option value="">Selecciona área...</option>${areaOpts}</select></div>
+  <div class="fg"><label class="fl">Correo</label><input class="fc" id="m_mail" value="${em?esc(em.correo):''}" placeholder="correo@servindustrial.mx"/></div></div>
+  <div class="fg"><label class="fl">Indicadores que puede ver y capturar</label>
+  <div style="background:#fafbfa;border:1px solid var(--brd);border-radius:6px;padding:10px 12px;max-height:200px;overflow-y:auto;">${kpiChecks}</div></div>
+  <div class="btn-row">${em?'<button class="btn btn-g" onclick="cancelEdit()">Cancelar</button>':''}<button class="btn btn-p" onclick="saveMember()">${em?'Actualizar':'Agregar integrante'}</button></div></div>`;}
+function saveMember(){const nom=v('m_nom');if(!nom){toast('Ingresa el nombre');return;}const perms=[...document.querySelectorAll('[id^="ck_"]:checked')].map(c=>c.value);const obj={nombre:nom,puesto:v('m_pue'),area:v('m_area'),correo:v('m_mail'),permisos:perms};if(editingMember!==null){members[editingMember]=obj;editingMember=null;toast('Integrante actualizado');}else{members.push(obj);toast('Integrante agregado');}renderDocView('integrantes');}
+function editMember(i){editingMember=i;renderDocView('integrantes');}
+function delMember(i){if(confirm('¿Eliminar a '+members[i].nombre+'?')){members.splice(i,1);editingMember=null;}renderDocView('integrantes');}
+function cancelEdit(){editingMember=null;renderDocView('integrantes');}
+function openArea(id){VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
+function renderMain(tab){
+  CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
+  let h=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi'?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
+  if(tab==='doc')h+=rDoc();else if(tab==='kpi')h+=rKPI();else if(tab==='action')h+=rAction();
+  document.getElementById('mc').innerHTML=h;
+}
+function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
+  return`<div class="card"><div class="notice notice-g">🔗 Compartido entre ambas zonas y ciclos · Precargado desde SGC Servindustrial</div>
+  <div class="card-title">📊 Diagrama de flujo · ${esc(d.flow_file||'')}</div>
+  <div class="fr"><div class="fg"><label class="fl">Responsable</label><input class="fc" id="fo" value="${esc(d.flow_owner)}"/></div>
+  <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="ff">${['','Diaria','Semanal','Mensual','Trimestral','Por evento','Continua'].map(f=>`<option ${d.flow_freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
+  <div class="fg"><label class="fl">Pasos del flujo</label><textarea class="fc" id="fst" rows="6">${esc(d.flow_steps)}</textarea></div>
+  <div class="fr"><div class="fg"><label class="fl">Sistemas / herramientas</label><input class="fc" id="ftl" value="${esc(d.flow_tools)}"/></div>
+  <div class="fg"><label class="fl">Código diagrama</label><input class="fc" id="ff2" value="${esc(d.flow_file)}"/></div></div>
+  <div class="hr"></div>
+  <div class="card-title">📄 Procedimiento · ${esc(d.proc_code||'')}</div>
+  <div class="fr3"><div class="fg"><label class="fl">Código</label><input class="fc" id="pc" value="${esc(d.proc_code)}"/></div>
+  <div class="fg"><label class="fl">Versión / Fecha</label><input class="fc" id="pv" value="${esc(d.proc_ver)}"/></div>
+  <div class="fg"><label class="fl">Aprobado por</label><input class="fc" id="pa" value="${esc(d.proc_approver)}"/></div></div>
+  <div class="fg"><label class="fl">Objetivo</label><textarea class="fc" id="po" rows="2">${esc(d.proc_obj)}</textarea></div>
+  <div class="fr"><div class="fg"><label class="fl">Alcance</label><input class="fc" id="psc" value="${esc(d.proc_scope)}"/></div>
+  <div class="fg"><label class="fl">Responsabilidades</label><input class="fc" id="pr" value="${esc(d.proc_resp)}"/></div></div>
+  <div class="fg"><label class="fl">Desarrollo del proceso</label><textarea class="fc" id="pb" rows="5">${esc(d.proc_body)}</textarea></div>
+  <div class="btn-row"><button class="btn btn-p" onclick="svDoc()">Guardar cambios</button></div></div>`;}
+function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
+  const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
+  return`<div class="card"><div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
+  <div class="th"><span>Indicador</span><span>Meta</span><span>Actual</span><span>Estado</span></div>${rows}
+  <button class="add-btn" onclick="addKPI()">＋ Agregar indicador</button><div class="hr"></div>
+  <div class="fr"><div class="fg"><label class="fl">Fuente de datos</label><input class="fc" id="ks" value="${esc(zd.kpi.source)}" placeholder="Kepler, Drive..."/></div>
+  <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="kf">${['','Diaria','Semanal','Mensual','Trimestral'].map(f=>`<option ${zd.kpi.freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
+  <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="2">${esc(zd.kpi.notes)}</textarea></div>
+  <div class="btn-row"><button class="btn btn-p" onclick="svKPI()">Guardar</button></div></div>`;}
+function rAction(){const zd=gzd();if(!zd.action)zd.action={rows:[{accion:'',resp:'',fecha:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
+  const rows=zd.action.rows.map((r,i)=>`<div class="tra"><input class="fc" style="font-size:12px;" placeholder="Descripción" value="${esc(r.accion)}" oninput="gzd().action.rows[${i}].accion=this.value"/><input class="fc" style="font-size:12px;" placeholder="Responsable" value="${esc(r.resp)}" oninput="gzd().action.rows[${i}].resp=this.value"/><input class="fc" style="font-size:12px;" type="date" value="${r.fecha||''}" oninput="gzd().action.rows[${i}].fecha=this.value"/><select class="ssel" onchange="gzd().action.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='open'?'selected':''} value="open">Abierto</option><option ${r.estado==='wip'?'selected':''} value="wip">En curso</option><option ${r.estado==='done'?'selected':''} value="done">Cerrado</option></select></div>`).join('');
+  return`<div class="card"><div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Plan exclusivo de esta zona</div>
+  <div class="fg"><label class="fl">Problema / brecha</label><textarea class="fc" id="ap" rows="2">${esc(zd.action.problem)}</textarea></div>
+  <div class="fg"><label class="fl">Causa raíz</label><textarea class="fc" id="ar" rows="3">${esc(zd.action.root)}</textarea></div>
+  <div class="fg"><label class="fl">Situación actual</label><textarea class="fc" id="ac" rows="2">${esc(zd.action.current)}</textarea></div>
+  <div class="tha"><span>Acción</span><span>Responsable</span><span>Fecha límite</span><span>Estado</span></div>${rows}
+  <button class="add-btn" onclick="addAction()">＋ Agregar acción</button>
+  <div class="fg" style="margin-top:8px;"><label class="fl">Resultado esperado</label><input class="fc" id="ag" value="${esc(zd.action.goal)}" placeholder="Ej: FTF > 85% en 90 días"/></div>
+  <div class="btn-row"><button class="btn btn-p" onclick="svAction()">Guardar</button></div></div>`;}
+function addKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.rows.push({name:'',meta:'',actual:'',estado:''});renderMain('kpi');}
+function addAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};zd.action.rows.push({accion:'',resp:'',fecha:'',estado:''});renderMain('action');}
+function svDoc(){if(!SD[CA])SD[CA]={};SD[CA].doc={saved:true,flow_owner:v('fo'),flow_freq:v('ff'),flow_steps:v('fst'),flow_tools:v('ftl'),flow_file:v('ff2'),proc_code:v('pc'),proc_ver:v('pv'),proc_approver:v('pa'),proc_obj:v('po'),proc_scope:v('psc'),proc_resp:v('pr'),proc_body:v('pb')};renderAcc();toast('Documentación guardada');}
+function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd.kpi.source=v('ks');zd.kpi.freq=v('kf');zd.kpi.notes=v('kn');renderAcc();toast('KPI guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
+function svAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};zd.action.saved=true;zd.action.problem=v('ap');zd.action.root=v('ar');zd.action.current=v('ac');zd.action.goal=v('ag');renderAcc();toast('Plan A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
+function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
+function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+renderAcc();
+</script>
+</body>
+</html>
