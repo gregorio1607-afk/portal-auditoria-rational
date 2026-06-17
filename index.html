@@ -313,7 +313,7 @@ function renderAcc(){
   });
 }
 let resYear=2025,resZone='MTY';
-function setResYear(y){resYear=y;renderDocView('resultados');}
+function setResYear(y){resYear=y;CY=y;renderAcc();renderDocView('resultados');}
 function setResZone(z){resZone=z;renderDocView('resultados');}
 function openDoc(){VM='doc';CA='';CAO=null;document.getElementById('tbT').textContent='Documentación';document.getElementById('tbS').textContent='Nivel de madurez · Resultados · Usuarios';renderAcc();renderDocView(docSub);}
 function renderDocView(sub){
