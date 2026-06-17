@@ -157,6 +157,7 @@ textarea.fc{resize:vertical;line-height:1.5;}
 .toast.show{opacity:1;}
 @media(max-width:768px){.sb{width:190px;}.fr,.fr3{grid-template-columns:1fr;}.mad-grid{grid-template-columns:repeat(3,1fr);}}
 </style>
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="portal">
@@ -855,7 +856,11 @@ function renderVisorFTF(){
           </thead>
           <tbody>${inputRows}</tbody>
         </table>
-        <div style="margin-top:10px;">
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px;">
+          <label style="display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:8px;background:#fff;border:1.5px dashed var(--grn);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:var(--grn);">
+            📤 Cargar Excel de Kepler
+            <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
+          </label>
           <button class="btn btn-p" onclick="updateVisorFTF()" style="width:100%;font-size:13px;padding:8px;">🔄 Actualizar visor</button>
         </div>
       </div>
@@ -885,6 +890,88 @@ function renderVisorFTF(){
       </div>`}
     </div>
   </div>`;
+}
+function loadExcelFTF(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(typeof XLSX==='undefined'){toast('Error: librería XLSX no cargada. Verifica conexión a internet.');return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      // Buscar hoja de base de datos (BD KEP. o similar)
+      const bdSheet=wb.SheetNames.find(n=>/BD|KEP/i.test(n))||wb.SheetNames[0];
+      const ws=wb.Sheets[bdSheet];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'dd/mm/yyyy'});
+      if(rows.length<2){toast('Excel sin datos en la hoja '+bdSheet);return;}
+
+      // Mapear columnas desde encabezado
+      const hdr=rows[0].map(h=>String(h||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
+      const ci={
+        marca:    hdr.findIndex(h=>h==='marca'),
+        tipo:     hdr.findIndex(h=>h.includes('tipo')),
+        fechaAlta:hdr.findIndex(h=>h.replace(/\s/g,'').includes('fechaalta')),
+        cantRep:  hdr.findIndex(h=>h.includes('cant')&&h.includes('rep')),
+      };
+      if(ci.marca<0||ci.tipo<0||ci.fechaAlta<0||ci.cantRep<0){
+        toast('No se encontraron columnas esperadas. Verifica que sea el archivo correcto.');
+        console.warn('Columnas detectadas:',hdr);return;
+      }
+
+      const counts={};
+      FTF_MESES.forEach(m=>counts[m]={ftf:0,noFtf:0});
+      let proc=0,skip=0;
+
+      for(let i=1;i<rows.length;i++){
+        const row=rows[i];
+        if(!row||!row[ci.marca])continue;
+        const marca=String(row[ci.marca]||'').trim().toUpperCase();
+        const tipo =String(row[ci.tipo] ||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+        if(!marca.includes('RATIONAL')){skip++;continue;}
+        if(!tipo.includes('garantia')&&!tipo.includes('garantia')){skip++;continue;}
+
+        // Extraer año y mes de Fecha Alta
+        let yr=null,mo=null;
+        const fv=row[ci.fechaAlta];
+        if(fv instanceof Date&&!isNaN(fv)){yr=fv.getFullYear();mo=fv.getMonth();}
+        else if(typeof fv==='string'&&fv.trim()){
+          // DD/MM/YYYY o MM/DD/YYYY o YYYY-MM-DD
+          const p=fv.trim().split(/[\/\-]/);
+          if(p.length===3){
+            // Detectar formato: si primer parte > 12 es día
+            const [a,b,c]=[parseInt(p[0]),parseInt(p[1]),parseInt(p[2])];
+            if(c>1900){yr=c;mo=b-1;}      // DD/MM/YYYY
+            else if(a>1900){yr=a;mo=b-1;} // YYYY-MM-DD
+          }
+        }
+        if(yr===null||yr!==CY||mo===null||mo<0||mo>11){skip++;continue;}
+
+        const mes=FTF_MESES[mo];
+        const cant=parseInt(row[ci.cantRep])||0;
+        if(cant===1)counts[mes].ftf++;
+        else if(cant>1)counts[mes].noFtf++;
+        // cant===0 → N/A, ignorar
+        proc++;
+      }
+
+      // Rellenar inputs
+      FTF_MESES.forEach(m=>{
+        const fi=document.getElementById('ftf_'+m);
+        const ni=document.getElementById('noftf_'+m);
+        if(fi)fi.value=counts[m].ftf;
+        if(ni)ni.value=counts[m].noFtf;
+      });
+
+      toast('Excel procesado: '+proc+' servicios RATIONAL Garantía en '+CY+(skip?' ('+skip+' omitidos)':''));
+      updateVisorFTF();
+    }catch(err){
+      toast('Error al procesar Excel: '+err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  // Reset input para permitir recargar mismo archivo
+  input.value='';
 }
 function updateVisorFTF(){
   const ftv=getFtv();
