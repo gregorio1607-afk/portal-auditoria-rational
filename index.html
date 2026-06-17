@@ -125,6 +125,18 @@ textarea.fc{resize:vertical;line-height:1.5;}
 .as-pt{font-size:10px;color:var(--tx3);}
 .as-lv{font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;display:inline-block;margin-top:2px;}
 .member-card{background:#fafbfa;border:1px solid var(--brd);border-radius:7px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.fc-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 4px;}
+.fc-step{display:flex;align-items:center;gap:10px;border:2px solid var(--grn);border-radius:8px;padding:9px 14px;font-size:12px;width:100%;max-width:380px;background:#fff;color:var(--tx);box-sizing:border-box;}
+.fc-decision{display:flex;align-items:flex-start;gap:10px;border:2px solid #f59f00;border-radius:8px;padding:9px 14px;font-size:12px;width:100%;max-width:380px;background:#fffbeb;color:var(--tx);box-sizing:border-box;}
+.fc-num{background:var(--grn);color:#fff;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.fc-dnum{background:#f59f00;color:#fff;border-radius:4px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.fc-arrow{color:var(--grn);font-size:18px;line-height:1;padding:1px 0;user-select:none;}
+.fc-branches{display:flex;gap:10px;width:100%;max-width:380px;justify-content:center;margin-top:0;}
+.fc-branch{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+.fc-blabel{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.fc-yes{background:#dcfce7;color:#166534;}
+.fc-no{background:#fee2e2;color:#991b1b;}
+.fc-bbox{background:#f5f9f6;border:1px solid var(--brd);border-radius:8px;padding:6px 10px;font-size:11px;text-align:center;width:100%;box-sizing:border-box;color:var(--tx2);}
 .m-ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
 .m-info{flex:1;}
 .m-name{font-size:13px;font-weight:600;color:var(--tx);}
@@ -603,12 +615,59 @@ function renderMain(tab){
   if(tab==='doc')h+=rDoc();else if(tab==='kpi')h+=rKPI();else if(tab==='action')h+=hasPerm('a3')?rAction():noAccessInline('A3');
   document.getElementById('mc').innerHTML=h;
 }
+function renderFlowChart(text){
+  if(!text)return'';
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
+  let html='<div class="fc-wrap">';
+  let first=true;
+  let i=0;
+  while(i<lines.length){
+    const line=lines[i];
+    const stepM=line.match(/^(\d+)\.\s+(.+)/);
+    if(stepM){
+      const num=stepM[1],txt=stepM[2];
+      const isDec=txt.startsWith('¿')||txt.includes('?');
+      if(!first)html+=`<div class="fc-arrow">↓</div>`;
+      first=false;
+      if(isDec){
+        html+=`<div class="fc-decision"><span class="fc-dnum">◇</span><span style="font-weight:600;">${esc(txt)}</span></div>`;
+        const branches=[];
+        while(i+1<lines.length&&(lines[i+1].startsWith('-')||lines[i+1].startsWith('*'))){
+          i++;
+          const bm=lines[i].match(/^[-*]\s*(SÍ|Sí|sí|SI|NO|No|no)[:：]\s*(.+)/i);
+          if(bm)branches.push({label:bm[1].toUpperCase(),text:bm[2]});
+          else branches.push({label:'',text:lines[i].replace(/^[-*]\s*/,'')});
+        }
+        if(branches.length){
+          html+=`<div class="fc-branches">`;
+          branches.forEach(b=>{
+            const isYes=b.label==='SÍ'||b.label==='SI';
+            html+=`<div class="fc-branch">
+              ${b.label?`<div class="fc-blabel ${isYes?'fc-yes':'fc-no'}">${b.label}</div>`:''}
+              <div class="fc-arrow" style="font-size:14px;">↓</div>
+              <div class="fc-bbox">${esc(b.text)}</div>
+            </div>`;
+          });
+          html+=`</div>`;
+        }
+      } else {
+        html+=`<div class="fc-step"><span class="fc-num">${num}</span><span>${esc(txt)}</span></div>`;
+      }
+    } else if(!stepM&&!line.startsWith('-')&&!line.startsWith('*')&&line.startsWith('*')){
+      // skip sub-bullets already consumed
+    }
+    i++;
+  }
+  html+='</div>';
+  return html;
+}
 function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   return`<div class="card"><div class="notice notice-g">🔗 Compartido entre ambas zonas y ciclos · Precargado desde SGC Servindustrial</div>
   <div class="card-title">📊 Diagrama de flujo · ${esc(d.flow_file||'')}</div>
   <div class="fr"><div class="fg"><label class="fl">Responsable</label><input class="fc" id="fo" value="${esc(d.flow_owner)}"/></div>
   <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="ff">${['','Diaria','Semanal','Mensual','Trimestral','Por evento','Continua'].map(f=>`<option ${d.flow_freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
-  <div class="fg"><label class="fl">Pasos del flujo</label><textarea class="fc" id="fst" rows="6">${esc(d.flow_steps)}</textarea></div>
+  ${renderFlowChart(d.flow_steps)}
+  <details style="margin:8px 0;"><summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:4px 0;">✏ Editar pasos del flujo</summary><textarea class="fc" id="fst" rows="6" style="margin-top:6px;">${esc(d.flow_steps)}</textarea></details>
   <div class="fr"><div class="fg"><label class="fl">Sistemas / herramientas</label><input class="fc" id="ftl" value="${esc(d.flow_tools)}"/></div>
   <div class="fg"><label class="fl">Código diagrama</label><input class="fc" id="ff2" value="${esc(d.flow_file)}"/></div></div>
   <div class="hr"></div>
