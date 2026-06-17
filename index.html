@@ -838,9 +838,14 @@ function renderA3KPI(id){
     const acciones=(ac.rows||[]).filter(r=>r.accion).length;
     const causas=(ac.causas||[]).filter(c=>c).length;
     const isCurrent=y===CY&&z===CZ;
+    const ver=ac.version?'V'+String(ac.version).padStart(2,'0'):'V01';
     cards+=`<div style="border:1px solid ${isCurrent?'var(--grn)':'var(--brd)'};border-radius:8px;padding:10px 12px;margin-bottom:8px;background:${isCurrent?'#f5fbf7':'#fff'};">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);">${z==='MTY'?'Monterrey':'CDMX'} · Ciclo ${y}${isCurrent?'<span style="font-size:10px;font-weight:700;margin-left:6px;padding:1px 7px;border-radius:8px;background:var(--grn);color:#fff;">actual</span>':''}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:700;color:var(--tx);">${z==='MTY'?'Monterrey':'CDMX'} · Ciclo ${y}</span>
+          <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:#e8f5ee;color:var(--grn);">${ver}</span>
+          ${isCurrent?'<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:var(--grn);color:#fff;">actual</span>':''}
+        </div>
         <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;background:${estColor}1a;color:${estColor};">${est}</span>
       </div>
       ${ac.situacion?`<p style="font-size:12px;color:var(--tx2);margin:6px 0 4px;line-height:1.5;">${esc(ac.situacion.substring(0,150))}${ac.situacion.length>150?'…':''}</p>`:''}
@@ -848,7 +853,7 @@ function renderA3KPI(id){
         ${ac.responsable?`<span style="font-size:11px;color:var(--tx3);">👤 ${esc(ac.responsable)}</span>`:''}
         ${causas?`<span style="font-size:11px;color:var(--tx3);">⚠️ ${causas} causa${causas>1?'s':''}</span>`:''}
         ${acciones?`<span style="font-size:11px;color:var(--tx3);">✅ ${acciones} acción${acciones>1?'es':''}</span>`:''}
-        ${ac.fechaFin?`<span style="font-size:11px;color:var(--tx3);">📅 ${ac.fechaFin}</span>`:''}
+        ${ac.fechaGuardado?`<span style="font-size:11px;color:var(--tx3);">💾 ${ac.fechaGuardado}</span>`:''}
       </div>
       ${!isCurrent?`<button class="btn" style="margin-top:8px;font-size:11px;padding:4px 12px;background:#fff;border:1px solid var(--grn);color:var(--grn);" onclick="openAreaA3('${id}','${z}',${y})">Abrir este A3</button>`:''}
     </div>`;
@@ -902,7 +907,7 @@ function addBeneficio(){const zd=gzd();if(!zd.action.beneficios)zd.action.benefi
 function addEquipo(){const zd=gzd();if(!zd.action.equipo)zd.action.equipo=[];zd.action.equipo.push('');renderMain('action');}
 function svDoc(){if(!SD[CA])SD[CA]={};SD[CA].doc={saved:true,flow_owner:v('fo'),flow_freq:v('ff'),flow_steps:v('fst'),flow_tools:v('ftl'),flow_file:v('ff2'),proc_code:v('pc'),proc_ver:v('pv'),proc_approver:v('pa'),proc_obj:v('po'),proc_scope:v('psc'),proc_resp:v('pr'),proc_body:v('pb')};saveData();renderAcc();toast('Documentación guardada');}
 function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd.kpi.source=v('ks');zd.kpi.freq=v('kf');zd.kpi.notes=v('kn');saveData();renderAcc();toast('KPI guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
-function svAction(){const zd=gzd();if(!zd.action)zd.action={};zd.action.saved=true;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');saveData();renderAcc();renderMain('action');toast('A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
+function svAction(){const zd=gzd();if(!zd.action)zd.action={};const ver=(zd.action.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});zd.action.saved=true;zd.action.version=ver;zd.action.fechaGuardado=fechaGuardado;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');saveData();renderAcc();renderMain('action');toast('A3 guardado V'+String(ver).padStart(2,'0')+' — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function applySession(idx,isAdmin){
