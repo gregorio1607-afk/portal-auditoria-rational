@@ -323,12 +323,10 @@ function renderDocView(sub){
     <button class="sub-tab ${sub==='madurez'?'on':''}" onclick="renderDocView('madurez')">📊 Nivel de Madurez</button>
     <button class="sub-tab ${sub==='resultados'?'on':''}" onclick="renderDocView('resultados')">📈 Resultados</button>
     <button class="sub-tab ${sub==='usuarios'?'on':''}" onclick="renderDocView('usuarios')">👤 Usuarios</button>
-    <button class="sub-tab ${sub==='a3list'?'on':''}" onclick="renderDocView('a3list')">📝 A3 Guardados</button>
   </div>`;
   if(sub==='madurez')h+=hasPerm('madurez')?renderMadurez():noAccessInline('Nivel de Madurez');
   else if(sub==='resultados')h+=hasPerm('resultados')?renderResultados():noAccessInline('Resultados');
   else if(sub==='usuarios')h+=hasPerm('usuarios')?renderUsuarios():noAccessInline('Gestión de Usuarios');
-  else if(sub==='a3list')h+=renderA3Guardados();
   mc.innerHTML=h;
 }
 function renderMadurez(){
@@ -823,7 +821,36 @@ function rAction(){
   ${a3step(5,'✅','¿Qué vamos a hacer? (acciones)',`<div class="tha"><span>Acción</span><span>Responsable</span><span>Fecha límite</span><span>Estado</span></div>${rows}<button class="add-btn" onclick="addAction()">＋ Agregar acción</button>`)}
   ${a3step(6,'🎯','¿Qué resultado esperamos?',`<input class="fc" id="a_rmed" value="${esc(ac.resultadoMedido)}" placeholder="Ej: FTF sube a ≥ 85% en 60 días"/>`)}
   <div class="btn-row"><button class="btn btn-p" onclick="svAction()">Guardar A3</button></div>
-  </div>`;}
+  </div>${renderA3KPI(CA)}`;}
+
+function renderA3KPI(id){
+  let cards='';
+  [2025,2026].forEach(y=>{['MTY','CDMX'].forEach(z=>{
+    const ac=YZD[y]&&YZD[y][z]&&YZD[y][z][id]&&YZD[y][z][id].action&&YZD[y][z][id].action.saved?YZD[y][z][id].action:null;
+    if(!ac)return;
+    const est=ac.estadoA3||'Abierto';
+    const estColor=est==='Cerrado'?'#2e7d52':est==='En proceso'?'#f57c00':'#e53935';
+    const acciones=(ac.rows||[]).filter(r=>r.accion).length;
+    const causas=(ac.causas||[]).filter(c=>c).length;
+    const isCurrent=y===CY&&z===CZ;
+    cards+=`<div style="border:1px solid ${isCurrent?'var(--grn)':'var(--brd)'};border-radius:8px;padding:10px 12px;margin-bottom:8px;background:${isCurrent?'#f5fbf7':'#fff'};">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);">${z==='MTY'?'Monterrey':'CDMX'} · Ciclo ${y}${isCurrent?'<span style="font-size:10px;font-weight:700;margin-left:6px;padding:1px 7px;border-radius:8px;background:var(--grn);color:#fff;">actual</span>':''}</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;background:${estColor}1a;color:${estColor};">${est}</span>
+      </div>
+      ${ac.situacion?`<p style="font-size:12px;color:var(--tx2);margin:6px 0 4px;line-height:1.5;">${esc(ac.situacion.substring(0,150))}${ac.situacion.length>150?'…':''}</p>`:''}
+      <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;">
+        ${ac.responsable?`<span style="font-size:11px;color:var(--tx3);">👤 ${esc(ac.responsable)}</span>`:''}
+        ${causas?`<span style="font-size:11px;color:var(--tx3);">⚠️ ${causas} causa${causas>1?'s':''}</span>`:''}
+        ${acciones?`<span style="font-size:11px;color:var(--tx3);">✅ ${acciones} acción${acciones>1?'es':''}</span>`:''}
+        ${ac.fechaFin?`<span style="font-size:11px;color:var(--tx3);">📅 ${ac.fechaFin}</span>`:''}
+      </div>
+      ${!isCurrent?`<button class="btn" style="margin-top:8px;font-size:11px;padding:4px 12px;background:#fff;border:1px solid var(--grn);color:var(--grn);" onclick="openAreaA3('${id}','${z}',${y})">Abrir este A3</button>`:''}
+    </div>`;
+  });});
+  if(!cards)return'';
+  return`<div class="card" style="margin-top:10px;"><div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">📋 A3 guardados para este KPI</div>${cards}</div>`;
+}
 
 function renderA3Guardados(){
   const estadoColor={Abierto:'#e53935','':{}, 'En proceso':'#f57c00','Cerrado':'#2e7d52'};
