@@ -662,8 +662,10 @@ function renderFlowChart(text){
   return html;
 }
 function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
+  const verLabel=d.version?'V'+String(d.version).padStart(2,'0'):'';
+  const savedInfo=verLabel?`<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:#e8f5ee;color:var(--grn);margin-left:6px;">${verLabel}</span>${d.fechaGuardado?`<span style="font-size:10px;color:var(--tx3);margin-left:6px;">💾 ${d.fechaGuardado}</span>`:''}`:d.saved?'':'<span style="font-size:10px;color:#e57373;margin-left:6px;">Sin guardar</span>';
   return`<div class="card"><div class="notice notice-g">🔗 Compartido entre ambas zonas y ciclos · Precargado desde SGC Servindustrial</div>
-  <div class="card-title">📊 Diagrama de flujo · ${esc(d.flow_file||'')}</div>
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:10px;"><div class="card-title" style="margin:0;">📊 Diagrama de flujo · ${esc(d.flow_file||'')}</div>${savedInfo}</div>
   <div class="fr"><div class="fg"><label class="fl">Responsable</label><input class="fc" id="fo" value="${esc(d.flow_owner)}"/></div>
   <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="ff">${['','Diaria','Semanal','Mensual','Trimestral','Por evento','Continua'].map(f=>`<option ${d.flow_freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
   ${renderFlowChart(d.flow_steps)}
@@ -679,7 +681,7 @@ function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   <div class="fr"><div class="fg"><label class="fl">Alcance</label><input class="fc" id="psc" value="${esc(d.proc_scope)}"/></div>
   <div class="fg"><label class="fl">Responsabilidades</label><input class="fc" id="pr" value="${esc(d.proc_resp)}"/></div></div>
   <div class="fg"><label class="fl">Desarrollo del proceso</label><textarea class="fc" id="pb" rows="5">${esc(d.proc_body)}</textarea></div>
-  <div class="btn-row" style="gap:8px;"><button class="btn btn-p" onclick="svDoc()">Guardar cambios</button><button class="btn" onclick="printDoc()" style="background:#fff;border:1px solid var(--grn);color:var(--grn);">🖨 Imprimir proceso</button></div></div>`;}
+  <div class="btn-row" style="gap:8px;"><button class="btn btn-p" onclick="svDoc()">💾 Guardar documento</button><button class="btn" onclick="printDoc()" style="background:#fff;border:1px solid var(--grn);color:var(--grn);">🖨 Imprimir proceso</button></div></div>`;}
 function printDoc(){
   const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   const stepsHtml=d.flow_steps?d.flow_steps.split('\n').map(l=>l.trim()).filter(l=>l).map(l=>{
@@ -905,7 +907,7 @@ function addAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};if(!zd.act
 function addCausa(){const zd=gzd();if(!zd.action)zd.action={causas:[]};if(!zd.action.causas)zd.action.causas=[];zd.action.causas.push({desc:'',cat:''});renderMain('action');}
 function addBeneficio(){const zd=gzd();if(!zd.action.beneficios)zd.action.beneficios=[];zd.action.beneficios.push('');renderMain('action');}
 function addEquipo(){const zd=gzd();if(!zd.action.equipo)zd.action.equipo=[];zd.action.equipo.push('');renderMain('action');}
-function svDoc(){if(!SD[CA])SD[CA]={};SD[CA].doc={saved:true,flow_owner:v('fo'),flow_freq:v('ff'),flow_steps:v('fst'),flow_tools:v('ftl'),flow_file:v('ff2'),proc_code:v('pc'),proc_ver:v('pv'),proc_approver:v('pa'),proc_obj:v('po'),proc_scope:v('psc'),proc_resp:v('pr'),proc_body:v('pb')};saveData();renderAcc();toast('Documentación guardada');}
+function svDoc(){if(!SD[CA])SD[CA]={};const prev=SD[CA].doc||{};const ver=(prev.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});SD[CA].doc={saved:true,version:ver,fechaGuardado,flow_owner:v('fo'),flow_freq:v('ff'),flow_steps:v('fst'),flow_tools:v('ftl'),flow_file:v('ff2'),proc_code:v('pc'),proc_ver:v('pv'),proc_approver:v('pa'),proc_obj:v('po'),proc_scope:v('psc'),proc_resp:v('pr'),proc_body:v('pb')};saveData();renderAcc();renderMain('doc');toast('Documento guardado V'+String(ver).padStart(2,'0'));}
 function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd.kpi.source=v('ks');zd.kpi.freq=v('kf');zd.kpi.notes=v('kn');saveData();renderAcc();toast('KPI guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};const ver=(zd.action.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});zd.action.saved=true;zd.action.version=ver;zd.action.fechaGuardado=fechaGuardado;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');saveData();renderAcc();renderMain('action');toast('A3 guardado V'+String(ver).padStart(2,'0')+' — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
