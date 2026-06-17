@@ -265,11 +265,15 @@ const lvL=['','Inicial','Orientación','Definido','Gestionado','Optimización'];
 const lvBg=['','#f5f5f5','#e3f0ff','#e8f5ee','#fff3e0','#e0f7ef'];
 const lvTx=['','#616161','#1565c0','#2e7d52','#b8690a','#00695c'];
 const aColors=['#4CAF7D','#1565c0','#b8690a','#6a1b9a','#BF360C'];
-const SD={};const YZD={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
-const madData={2025:{},2026:{}};
-const members=[];
+const _sdDef={};const _yzdDef={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
+function _mergeYZD(base,saved){[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(saved[y]&&saved[y][z])Object.assign(base[y][z],saved[y][z]);}));return base;}
+const SD=Object.assign(_sdDef,JSON.parse(localStorage.getItem('appSD')||'{}'));
+const YZD=_mergeYZD(_yzdDef,JSON.parse(localStorage.getItem('appYZD')||'{}'));
+const madData=Object.assign({2025:{},2026:{}},JSON.parse(localStorage.getItem('appMad')||'{}'));
+const members=JSON.parse(localStorage.getItem('appMembers')||'[]');
 const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
 const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:{MTY:[null,null,null,null],CDMX:[null,null,null,null]}};
+function saveData(){localStorage.setItem('appSD',JSON.stringify(SD));localStorage.setItem('appYZD',JSON.stringify(YZD));localStorage.setItem('appMad',JSON.stringify(madData));localStorage.setItem('appMembers',JSON.stringify(members));}
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
 const appUsers=JSON.parse(localStorage.getItem('appUsers')||'[]');let activeUserId=null,usuarioFiltro='',editingUserId=null;
 function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));}
@@ -598,9 +602,9 @@ function renderIntegrantes(){
   <div class="fg"><label class="fl">Indicadores que puede ver y capturar</label>
   <div style="background:#fafbfa;border:1px solid var(--brd);border-radius:6px;padding:10px 12px;max-height:200px;overflow-y:auto;">${kpiChecks}</div></div>
   <div class="btn-row">${em?'<button class="btn btn-g" onclick="cancelEdit()">Cancelar</button>':''}<button class="btn btn-p" onclick="saveMember()">${em?'Actualizar':'Agregar integrante'}</button></div></div>`;}
-function saveMember(){const nom=v('m_nom');if(!nom){toast('Ingresa el nombre');return;}const perms=[...document.querySelectorAll('[id^="ck_"]:checked')].map(c=>c.value);const obj={nombre:nom,puesto:v('m_pue'),area:v('m_area'),correo:v('m_mail'),permisos:perms};if(editingMember!==null){members[editingMember]=obj;editingMember=null;toast('Integrante actualizado');}else{members.push(obj);toast('Integrante agregado');}renderDocView('integrantes');}
+function saveMember(){const nom=v('m_nom');if(!nom){toast('Ingresa el nombre');return;}const perms=[...document.querySelectorAll('[id^="ck_"]:checked')].map(c=>c.value);const obj={nombre:nom,puesto:v('m_pue'),area:v('m_area'),correo:v('m_mail'),permisos:perms};if(editingMember!==null){members[editingMember]=obj;editingMember=null;toast('Integrante actualizado');}else{members.push(obj);toast('Integrante agregado');}saveData();renderDocView('integrantes');}
 function editMember(i){editingMember=i;renderDocView('integrantes');}
-function delMember(i){if(confirm('¿Eliminar a '+members[i].nombre+'?')){members.splice(i,1);editingMember=null;}renderDocView('integrantes');}
+function delMember(i){if(confirm('¿Eliminar a '+members[i].nombre+'?')){members.splice(i,1);editingMember=null;saveData();}renderDocView('integrantes');}
 function cancelEdit(){editingMember=null;renderDocView('integrantes');}
 function openArea(id){if(!hasPerm('kpi_'+id)){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess(id+' · '+(CAO?.name||'KPI'));return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
 function renderMain(tab){
@@ -895,9 +899,9 @@ function addAction(){const zd=gzd();if(!zd.action)zd.action={rows:[]};if(!zd.act
 function addCausa(){const zd=gzd();if(!zd.action)zd.action={causas:[]};if(!zd.action.causas)zd.action.causas=[];zd.action.causas.push({desc:'',cat:''});renderMain('action');}
 function addBeneficio(){const zd=gzd();if(!zd.action.beneficios)zd.action.beneficios=[];zd.action.beneficios.push('');renderMain('action');}
 function addEquipo(){const zd=gzd();if(!zd.action.equipo)zd.action.equipo=[];zd.action.equipo.push('');renderMain('action');}
-function svDoc(){if(!SD[CA])SD[CA]={};SD[CA].doc={saved:true,flow_owner:v('fo'),flow_freq:v('ff'),flow_steps:v('fst'),flow_tools:v('ftl'),flow_file:v('ff2'),proc_code:v('pc'),proc_ver:v('pv'),proc_approver:v('pa'),proc_obj:v('po'),proc_scope:v('psc'),proc_resp:v('pr'),proc_body:v('pb')};renderAcc();toast('Documentación guardada');}
-function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd.kpi.source=v('ks');zd.kpi.freq=v('kf');zd.kpi.notes=v('kn');renderAcc();toast('KPI guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
-function svAction(){const zd=gzd();if(!zd.action)zd.action={};zd.action.saved=true;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');renderAcc();toast('A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
+function svDoc(){if(!SD[CA])SD[CA]={};SD[CA].doc={saved:true,flow_owner:v('fo'),flow_freq:v('ff'),flow_steps:v('fst'),flow_tools:v('ftl'),flow_file:v('ff2'),proc_code:v('pc'),proc_ver:v('pv'),proc_approver:v('pa'),proc_obj:v('po'),proc_scope:v('psc'),proc_resp:v('pr'),proc_body:v('pb')};saveData();renderAcc();toast('Documentación guardada');}
+function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd.kpi.source=v('ks');zd.kpi.freq=v('kf');zd.kpi.notes=v('kn');saveData();renderAcc();toast('KPI guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
+function svAction(){const zd=gzd();if(!zd.action)zd.action={};zd.action.saved=true;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');saveData();renderAcc();renderMain('action');toast('A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function applySession(idx,isAdmin){
