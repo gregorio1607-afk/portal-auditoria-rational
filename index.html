@@ -536,7 +536,7 @@ let loginTargetId=null;
 function activateUser(i){loginTargetId=i;const u=appUsers[i];document.getElementById('login-modal').style.display='flex';document.getElementById('login-user-label').textContent=u.nombre;document.getElementById('login-usr').value='';document.getElementById('login-pwd').value='';document.getElementById('login-err').textContent='';setTimeout(()=>document.getElementById('login-usr').focus(),50);}
 function confirmLogin(){const u=appUsers[loginTargetId];const usr=document.getElementById('login-usr').value.trim();const pwd=document.getElementById('login-pwd').value;if(usr!==u.usuario||pwd!==u.password){document.getElementById('login-err').textContent='Usuario o contraseña incorrectos';return;}closeLoginModal();activeUserId=loginTargetId;if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}updateZonaLock();renderDocView('usuarios');toast('Sesión iniciada: '+u.nombre);}
 function closeLoginModal(){document.getElementById('login-modal').style.display='none';loginTargetId=null;}
-function deactivateUser(){activeUserId=null;updateZonaLock();renderDocView('usuarios');toast('Sesión cerrada');}
+
 function updateZonaLock(){const u=activeUserId!==null?appUsers[activeUserId]:null;const locked=u&&u.zona!=='Ambas';['MTY','CDMX'].forEach(z=>{const btn=document.getElementById('p'+z);if(!btn)return;btn.disabled=!!(locked&&u.zona!==z);btn.style.opacity=(locked&&u.zona!==z)?'0.35':'1';btn.style.cursor=(locked&&u.zona!==z)?'not-allowed':'pointer';});}
 function renderResultados(){
   const nivelColor=(n)=>n==='Nivel superior'?'background:#e8f5ee;color:#2e7d52;':n==='Nivel estándar'?'background:#e3f0ff;color:#1565c0;':'background:#fff3e0;color:#b8690a;';
@@ -703,24 +703,40 @@ function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};zd.action.saved=true;zd.action.departamento=v('a_dep');zd.action.responsable=v('a_rsp');zd.action.estadoA3=v('a_est');zd.action.fechaInicio=v('a_fi');zd.action.fechaFin=v('a_ff');zd.action.actual=v('a_act');zd.action.meta=v('a_met');zd.action.brecha=v('a_bre');zd.action.situacion=v('a_sit');zd.action.estrategia=v('a_est2');zd.action.fechaSeg=v('a_fseg');zd.action.resultadoMedido=v('a_rmed');zd.action.lecciones=v('a_lec');renderAcc();toast('A3 guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function applySession(idx,isAdmin){
+  if(!isAdmin){
+    activeUserId=idx;
+    const u=appUsers[idx];
+    if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}
+    updateZonaLock();
+  }
+  document.getElementById('portal-login').style.display='none';
+  renderAcc();
+}
 function checkPortalLogin(){
+  const s=sessionStorage.getItem('portalSession');
+  if(s){
+    const {type,idx}=JSON.parse(s);
+    if(type==='admin'){applySession(null,true);return;}
+    if(type==='user'&&idx!==null&&appUsers[idx]){applySession(idx,false);return;}
+  }
   document.getElementById('portal-login').style.display='flex';
   setTimeout(()=>document.getElementById('pl-usr').focus(),100);
 }
 function portalLogin(){
   const usr=document.getElementById('pl-usr').value.trim();
   const pwd=document.getElementById('pl-pwd').value;
-  if(usr==='admin'&&pwd==='admin'){document.getElementById('portal-login').style.display='none';renderAcc();toast('Bienvenido, Administrador');return;}
+  if(usr==='admin'&&pwd==='admin'){
+    sessionStorage.setItem('portalSession',JSON.stringify({type:'admin',idx:null}));
+    applySession(null,true);toast('Bienvenido, Administrador');return;
+  }
   const idx=appUsers.findIndex(u=>u.usuario.trim().toLowerCase()===usr&&u.password===pwd);
   if(idx===-1){document.getElementById('pl-err').textContent='Usuario o contraseña incorrectos';return;}
-  activeUserId=idx;
-  const u=appUsers[idx];
-  if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}
-  updateZonaLock();
-  document.getElementById('portal-login').style.display='none';
-  renderAcc();
-  toast('Bienvenido, '+u.nombre);
+  sessionStorage.setItem('portalSession',JSON.stringify({type:'user',idx}));
+  applySession(idx,false);
+  toast('Bienvenido, '+appUsers[idx].nombre);
 }
+function deactivateUser(){activeUserId=null;sessionStorage.removeItem('portalSession');updateZonaLock();renderDocView('usuarios');toast('Sesión cerrada');}
 checkPortalLogin();
 </script>
 </body>
