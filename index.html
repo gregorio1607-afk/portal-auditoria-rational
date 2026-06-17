@@ -199,6 +199,19 @@ textarea.fc{resize:vertical;line-height:1.5;}
 </div>
 </div>
 <div class="toast" id="tst"></div>
+<div id="login-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px 28px 22px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px;">🔐 Iniciar sesión</div>
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:16px;">Acceso como <strong id="login-user-label"></strong></div>
+    <div class="fg" style="margin-bottom:10px;"><label class="fl">Usuario</label><input class="fc" id="login-usr" placeholder="Usuario" onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()"/></div>
+    <div class="fg" style="margin-bottom:6px;"><label class="fl">Contraseña</label><input class="fc" type="password" id="login-pwd" placeholder="Contraseña" onkeydown="if(event.key==='Enter')confirmLogin()"/></div>
+    <div id="login-err" style="font-size:11px;color:#c62828;min-height:16px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeLoginModal()" style="padding:7px 16px;border-radius:20px;border:1px solid var(--brd);background:#fff;color:var(--tx2);font-size:12px;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmLogin()" style="padding:7px 18px;border-radius:20px;border:none;background:var(--grn);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Entrar</button>
+    </div>
+  </div>
+</div>
 <script>
 const areas=[
   {id:'1.1',g:'1',name:'Herramientas de trabajo',area:'Control Activos',aC:'#B5D4F4',aT:'#0C447C',aL:'CA',opt:false,flow_owner:'Auditora Administrativa / Control de Activos',flow_freq:'Trimestral',flow_steps:'1. Para asignar herramienta a técnico\n2. Ingresa listado en app de control de activos\n3. Entrega herramienta al técnico\n4. Verifica la herramienta asignada\n5. ¿Detecta herramienta faltante?\n   - SÍ: Solicitud de herramienta en aplicación\n   - NO: Continúa\n6. Registra en tablero de control\n7. ¿KPI ≥ 9.5?\n   - SÍ: Mantiene método\n   - NO: Elabora hoja A3 → Ejecuta plan de acción',flow_tools:'App de control de activos, Data Studio (Drive)',flow_file:'DF-SERV-021',proc_code:'AUDRTN-UN-PR-1.1',proc_ver:'14/12/2023',proc_approver:'Gregorio González – Dir. General',proc_obj:'Asegurar que los equipos de nuestros clientes son correctamente intervenidos y que se utilizan las herramientas de trabajo recomendadas.',proc_scope:'Todas las unidades de negocio.',proc_resp:'Control de Activos, Gerente UN, Analista de Productividad, Técnico',proc_body:'5.1 Control de Activos: Garantiza la asignación de herramienta conforme a formato y reglamento. Asegura el control de activos cada 3 meses.\n5.2 Gerente/Supervisor: Garantiza que el indicador esté dentro de la meta (≥ 9.5). Gestiona reposición en caso de faltante.\n5.3 Analista de Productividad: Sube información de auditorías técnicas a Data Studio.\n5.4 Técnico: Asegura que su herramienta esté completa y ordenada.'},
@@ -430,7 +443,10 @@ function renderUsuarios(){
 }
 function saveUser(){const nom=v('u_nom');if(!nom){toast('Ingresa el nombre');return;}const usr=v('u_usr');if(!usr){toast('Ingresa el usuario');return;}const pwd=v('u_pwd');if(!pwd){toast('Ingresa la contraseña');return;}const zona=v('u_zona');if(!zona){toast('Selecciona una zona');return;}if(appUsers.find(u=>u.usuario===usr)){toast('Ese usuario ya existe');return;}appUsers.push({nombre:nom,puesto:v('u_pue'),usuario:usr,password:pwd,zona});toast('Usuario registrado: '+nom);renderDocView('usuarios');}
 function delUser(i){if(activeUserId===i)deactivateUser();else if(activeUserId!==null&&activeUserId>i)activeUserId--;appUsers.splice(i,1);renderDocView('usuarios');}
-function activateUser(i){activeUserId=i;const u=appUsers[i];if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}updateZonaLock();renderDocView('usuarios');toast('Sesión iniciada: '+u.nombre);}
+let loginTargetId=null;
+function activateUser(i){loginTargetId=i;const u=appUsers[i];document.getElementById('login-modal').style.display='flex';document.getElementById('login-user-label').textContent=u.nombre;document.getElementById('login-usr').value='';document.getElementById('login-pwd').value='';document.getElementById('login-err').textContent='';setTimeout(()=>document.getElementById('login-usr').focus(),50);}
+function confirmLogin(){const u=appUsers[loginTargetId];const usr=document.getElementById('login-usr').value.trim();const pwd=document.getElementById('login-pwd').value;if(usr!==u.usuario||pwd!==u.password){document.getElementById('login-err').textContent='Usuario o contraseña incorrectos';return;}closeLoginModal();activeUserId=loginTargetId;if(u.zona!=='Ambas'){CZ=u.zona;document.getElementById('pMTY').className='zpill'+(CZ==='MTY'?' on':'');document.getElementById('pCDMX').className='zpill'+(CZ==='CDMX'?' on':'');document.getElementById('tbZ').textContent=CZ==='MTY'?'Monterrey':'CDMX';document.getElementById('tbZ').className='tb-badge '+(CZ==='MTY'?'zbm':'zbc');}updateZonaLock();renderDocView('usuarios');toast('Sesión iniciada: '+u.nombre);}
+function closeLoginModal(){document.getElementById('login-modal').style.display='none';loginTargetId=null;}
 function deactivateUser(){activeUserId=null;updateZonaLock();renderDocView('usuarios');toast('Sesión cerrada');}
 function updateZonaLock(){const u=activeUserId!==null?appUsers[activeUserId]:null;const locked=u&&u.zona!=='Ambas';['MTY','CDMX'].forEach(z=>{const btn=document.getElementById('p'+z);if(!btn)return;btn.disabled=!!(locked&&u.zona!==z);btn.style.opacity=(locked&&u.zona!==z)?'0.35':'1';btn.style.cursor=(locked&&u.zona!==z)?'not-allowed':'pointer';});}
 function renderResultados(){
