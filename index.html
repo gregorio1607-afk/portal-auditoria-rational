@@ -834,6 +834,7 @@ const FTF_TRIMS=[
 ];
 // Auditoría 1.1 — sessionStorage
 let _aud11SelQ=null;
+let _cap13Search='';
 function setAud11Q(qi){_aud11SelQ=(_aud11SelQ===qi?null:qi);renderMain(CT);setTimeout(()=>{const el=document.getElementById('aud11-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);}
 function getAud11F(){const ftv=getFtv();if(!ftv.aud11f)ftv.aud11f={sucs:[],año:0};if(!ftv.aud11f.sucs)ftv.aud11f.sucs=[];return ftv.aud11f;}
 function setAud11Año(val){const f=getAud11F();f.año=Number(val);saveData();_aud11SelQ=null;renderMain(CT);}
@@ -1902,124 +1903,142 @@ function renderVisorCapacitacion13(){
     return`<span style="font-size:10px;background:#ffebee;color:#c62828;padding:2px 8px;border-radius:10px;font-weight:700;">✗ Vencido</span>`;
   };
 
-  const diasBar=d=>{
-    if(!d.fd||!d.vigente===null)return'';
-    const ref=new Date(d.fd);ref.setFullYear(ref.getFullYear()-1);
-    const totalDias=Math.max(1,Math.ceil((d.fd-ref)/86400000));
-    const elapsed=Math.ceil((hoy-ref)/86400000);
-    const p=Math.min(100,Math.max(0,Math.round(elapsed/totalDias*100)));
-    const clr=d.vigente===false?red:d.porVencer?org:grn;
-    const txt=d.vigente?(d.dias===0?'Vence hoy':`${d.dias} días restantes`):`Venció hace ${Math.abs(d.dias)} días`;
-    return`<div style="margin-top:6px;">
-      <div style="height:6px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
-        <div style="height:100%;width:${p}%;background:${clr};border-radius:4px;transition:width .4s;"></div>
+  // ── Gráfica horizontal de días vigentes ──────────────────────────────────
+  const conFecha=tecData.filter(d=>d.fd!==null).sort((a,b)=>(b.dias||0)-(a.dias||0));
+  let svgChart='';
+  if(conFecha.length>0){
+    const maxDias=Math.max(...conFecha.map(d=>Math.abs(d.dias||0)),1);
+    const rh=22,pad=6,labelW=130,barAreaW=260,totalW=labelW+barAreaW+60;
+    const svgH=conFecha.length*rh+pad*2;
+    const bars=conFecha.map((d,ri)=>{
+      const clr=d.vigente===false?red:d.porVencer?org:grn;
+      const bw=Math.round(Math.abs(d.dias||0)/maxDias*barAreaW);
+      const y=pad+ri*rh;
+      const lbl=d.nombre.split(' ').slice(0,2).join(' ');
+      const diasTxt=d.vigente===false?`-${Math.abs(d.dias)}d`:`+${d.dias}d`;
+      return`<g>
+        <text x="${labelW-4}" y="${y+14}" text-anchor="end" font-size="10" fill="var(--tx)" font-family="sans-serif" dominant-baseline="auto">${esc(lbl)}</text>
+        <rect x="${labelW}" y="${y+4}" width="${bw}" height="${rh-10}" rx="3" fill="${clr}" opacity="${d.vigente===false?'0.7':'0.85'}"/>
+        <text x="${labelW+bw+4}" y="${y+14}" font-size="10" fill="${clr}" font-weight="700" font-family="sans-serif">${diasTxt}</text>
+      </g>`;
+    }).join('');
+    svgChart=`<details style="margin-bottom:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;" open>
+      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);list-style:none;outline:none;font-size:13px;font-weight:700;color:var(--tx);">📊 Días vigentes por técnico</summary>
+      <div style="overflow-x:auto;padding:10px 14px;">
+        <svg viewBox="0 0 ${totalW} ${svgH}" width="100%" style="max-width:${totalW}px;display:block;">${bars}</svg>
+        <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:${grn};font-weight:700;">■ Vigente</span>
+          <span style="font-size:10px;color:${org};font-weight:700;">■ Por vencer ≤90d</span>
+          <span style="font-size:10px;color:${red};font-weight:700;">■ Vencido</span>
+        </div>
       </div>
-      <div style="font-size:9px;color:${clr};margin-top:2px;font-weight:700;">${txt}${d.fd?' · Caduca: '+d.fd.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):''}</div>
-    </div>`;
-  };
+    </details>`;
+  }
 
+  // ── Buscador ─────────────────────────────────────────────────────────────
+  const buscar=`<div style="margin-bottom:12px;">
+    <input id="cap13-search" class="fc" value="${esc(_cap13Search)}" placeholder="🔍 Buscar técnico por nombre…" style="font-size:12px;width:100%;box-sizing:border-box;"
+      oninput="_cap13Search=this.value;
+        const q=this.value.toLowerCase();
+        document.querySelectorAll('.cap13-card').forEach(el=>{
+          el.style.display=el.dataset.nombre.toLowerCase().includes(q)?'':'none';
+        });"/>
+  </div>`;
+
+  // ── Tarjetas acordeón ─────────────────────────────────────────────────────
   const tecCards=tecData.map(d=>{
     const i=d.idx;
     const borderClr=d.vigente===null?'var(--brd)':d.vigente===false?'#ffcdd2':d.porVencer?'#ffe0b2':'#c8e6c9';
-    return`<div style="border:1.5px solid ${borderClr};border-radius:12px;padding:14px 16px;background:var(--bg2);">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-        <span style="font-size:20px;">👤</span>
+    const clr=d.vigente===false?red:d.porVencer?org:grn;
+    // Barra de progreso días
+    let progBar='';
+    if(d.fd){
+      const ref=new Date(d.fd);ref.setFullYear(ref.getFullYear()-1);
+      const totalDias=Math.max(1,Math.ceil((d.fd-ref)/86400000));
+      const elapsed=Math.ceil((hoy-ref)/86400000);
+      const p=Math.min(100,Math.max(0,Math.round(elapsed/totalDias*100)));
+      const txt=d.vigente?(d.dias===0?'Vence hoy':`${d.dias} días restantes`):`Venció hace ${Math.abs(d.dias)} días`;
+      progBar=`<div style="margin:8px 0 4px;">
+        <div style="height:6px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${p}%;background:${clr};border-radius:4px;"></div>
+        </div>
+        <div style="font-size:9px;color:${clr};margin-top:2px;font-weight:700;">${txt} · Caduca: ${d.fd.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</div>
+      </div>`;
+    }
+    const certList=d.certs.length>0
+      ?d.certs.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
+          <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
+          <a href="${c.data}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
+          <button onclick="delCertCap13(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
+        </div>`).join('')
+      :`<div style="font-size:11px;color:var(--tx3);padding:4px 0;">Sin certificados aún.</div>`;
+
+    return`<details class="cap13-card" data-nombre="${esc(d.nombre)}" style="border:1.5px solid ${borderClr};border-radius:12px;margin-bottom:8px;overflow:hidden;background:var(--bg2);" ${_cap13Search&&d.nombre.toLowerCase().includes(_cap13Search.toLowerCase())?'open':''}>
+      <summary style="padding:10px 14px;cursor:pointer;user-select:none;list-style:none;outline:none;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">👤</span>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:800;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(d.nombre)||'<span style="color:var(--tx3);">Sin nombre</span>'}</div>
-          <div style="font-size:10px;color:var(--tx3);">${esc(d.sucursal)||'—'}</div>
+          <div style="font-size:12px;font-weight:800;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(d.nombre)||'Sin nombre'}</div>
+          <div style="font-size:10px;color:var(--tx3);">${esc(d.sucursal)||'—'}${d.certs.length>0?` · 📎 ${d.certs.length} cert.`:''}</div>
         </div>
         ${badge(d)}
-        <button onclick="delM13Tec(${i})" style="font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;cursor:pointer;flex-shrink:0;">🗑</button>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px;">
-        <div style="grid-column:1/-1;"><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Nombre completo</label>
-          <input class="fc" value="${esc(d.nombre)}" placeholder="Nombre del técnico" style="font-size:11px;" onblur="saveM13Tec(${i},'nombre',this.value);this.closest('div[style]').querySelector('div').querySelector('div').textContent=this.value||'Sin nombre'"/></div>
-        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Sucursal</label>
-          <input class="fc" value="${esc(d.sucursal)}" placeholder="Ej. Noreste" style="font-size:11px;" onblur="saveM13Tec(${i},'sucursal',this.value)"/></div>
-        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Curso / Certificación</label>
-          <input class="fc" value="${esc(d.curso)}" placeholder="Ej. iCombi MEX" style="font-size:11px;" onblur="saveM13Tec(${i},'curso',this.value)"/></div>
-        <div style="grid-column:1/-1;"><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Fecha de caducidad</label>
-          <input type="date" class="fc" value="${d.fechaCaducidad||''}" style="font-size:11px;" onchange="saveM13TecR(${i},'fechaCaducidad',this.value)"/></div>
-      </div>
-      ${diasBar(d)}
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--brd);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;">Certificados de capacitación</span>
-          <label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;">
-            📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertCap13(this,${i})"/>
-          </label>
+        <button onclick="event.preventDefault();delM13Tec(${i})" style="font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;cursor:pointer;flex-shrink:0;">🗑</button>
+      </summary>
+      <div style="padding:12px 14px;border-top:1px solid ${borderClr};">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:4px;">
+          <div style="grid-column:1/-1;"><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Nombre completo</label>
+            <input class="fc" value="${esc(d.nombre)}" placeholder="Nombre del técnico" style="font-size:11px;" onblur="saveM13Tec(${i},'nombre',this.value)"/></div>
+          <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Sucursal</label>
+            <input class="fc" value="${esc(d.sucursal)}" placeholder="Ej. Noreste" style="font-size:11px;" onblur="saveM13Tec(${i},'sucursal',this.value)"/></div>
+          <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Curso</label>
+            <input class="fc" value="${esc(d.curso)}" placeholder="Ej. iCombi MEX" style="font-size:11px;" onblur="saveM13Tec(${i},'curso',this.value)"/></div>
+          <div style="grid-column:1/-1;"><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Fecha de caducidad</label>
+            <input type="date" class="fc" value="${d.fechaCaducidad||''}" style="font-size:11px;" onchange="saveM13TecR(${i},'fechaCaducidad',this.value)"/></div>
         </div>
-        ${d.certs.length>0
-          ?d.certs.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
-              <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
-              <a href="${c.data}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
-              <button onclick="delCertCap13(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
-            </div>`).join('')
-          :`<div style="font-size:11px;color:var(--tx3);padding:4px 0;">Sin certificados aún.</div>`}
+        ${progBar}
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--brd);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;">Historial certificados</span>
+            <label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:3px 10px;border:1px solid var(--grn);border-radius:6px;">
+              📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertCap13(this,${i})"/>
+            </label>
+          </div>
+          ${certList}
+        </div>
       </div>
-    </div>`;
+    </details>`;
   }).join('');
-
-  // Resumen tabla
-  const resumenRows=tecData.length>0?[...tecData].sort((a,b)=>{
-    const ord=v=>v===false?0:v===null?1:2;return ord(a.vigente)-ord(b.vigente);
-  }).map((d,i)=>`<tr style="border-bottom:1px solid #f0f0f0;">
-    <td style="padding:5px 6px;text-align:center;font-size:10px;color:var(--tx3);">${i+1}</td>
-    <td style="padding:5px 8px;font-size:11px;font-weight:600;">${esc(d.nombre)}</td>
-    <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(d.sucursal)}</td>
-    <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.curso)}</td>
-    <td style="padding:5px 8px;font-size:11px;">${d.fd?d.fd.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):'-'}</td>
-    <td style="padding:5px 8px;">${badge(d)}</td>
-  </tr>`).join('')
-  :`<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Sin técnicos registrados. Agrega uno o importa el Excel.</td></tr>`;
 
   return`<div class="card" style="margin-bottom:10px;">
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
       <div style="flex:1;min-width:0;">
-        <div class="card-title" style="margin-bottom:2px;">🎓 Capacitación Técnica · KPI 1.3</div>
+        <div class="card-title" style="margin-bottom:2px;">🎓 Plan de Formación · KPI 2.1</div>
         <div style="font-size:11px;color:var(--tx3);">Técnicos con certificación Rational vigente · Meta ≥ ${meta}%</div>
       </div>
       <label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
         📤 Importar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCap13(this)"/>
       </label>
-      <button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">+ Agregar técnico</button>
+      <button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">+ Agregar</button>
     </div>
 
-    ${total>0?`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+    ${total>0?`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
       <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;min-width:100px;">
         <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">KPI Vigentes</div>
         <div style="font-size:36px;font-weight:900;color:${clrKpi};line-height:1.1;">${kpiPct}%</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${nVig} / ${total} técnicos</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${nVig} / ${total}</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;justify-content:center;">
-        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#c8e6c9;border-radius:2px;margin-right:4px;"></span>Vigentes: <strong>${nVig}</strong></div>
-        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#ffe0b2;border-radius:2px;margin-right:4px;"></span>Por vencer (≤90d): <strong>${tecData.filter(d=>d.porVencer).length}</strong></div>
-        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#ffcdd2;border-radius:2px;margin-right:4px;"></span>Vencidos: <strong>${nVenc}</strong></div>
-        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#f5f5f5;border-radius:2px;margin-right:4px;"></span>Sin fecha: <strong>${nSin}</strong></div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="font-size:11px;"><span style="display:inline-block;width:9px;height:9px;background:#c8e6c9;border-radius:2px;margin-right:5px;"></span>Vigentes: <strong>${nVig}</strong></div>
+        <div style="font-size:11px;"><span style="display:inline-block;width:9px;height:9px;background:#ffe0b2;border-radius:2px;margin-right:5px;"></span>Por vencer ≤90d: <strong>${tecData.filter(d=>d.porVencer).length}</strong></div>
+        <div style="font-size:11px;"><span style="display:inline-block;width:9px;height:9px;background:#ffcdd2;border-radius:2px;margin-right:5px;"></span>Vencidos: <strong>${nVenc}</strong></div>
+        <div style="font-size:11px;"><span style="display:inline-block;width:9px;height:9px;background:#f5f5f5;border-radius:2px;margin-right:5px;"></span>Sin fecha: <strong>${nSin}</strong></div>
       </div>
     </div>`:''}
 
-    <details style="margin-bottom:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;" ${total>0?'open':''}>
-      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);display:flex;align-items:center;gap:8px;list-style:none;outline:none;">
-        <span style="font-size:13px;font-weight:700;color:var(--tx);">📋 Resumen · ${total} técnicos</span>
-      </summary>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#f5f5f5;">
-            <th style="padding:6px;font-size:10px;color:var(--tx3);font-weight:700;">#</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Nombre</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Sucursal</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Curso</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Caduca</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Estado</th>
-          </tr></thead>
-          <tbody>${resumenRows}</tbody>
-        </table>
-      </div>
-    </details>
+    ${svgChart}
 
-    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Tarjetas de técnicos</div>
-    ${tecCards||`<div style="padding:30px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;">Sin técnicos registrados. Importa el Excel o agrega manualmente.</div>`}
+    ${total>0?`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Técnicos · ${total} registrados</div>
+    ${buscar}
+    ${tecCards}`:`<div style="padding:30px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;">Sin técnicos registrados. Importa el Excel o agrega manualmente.</div>`}
     <div style="margin-top:12px;text-align:right;">
       <button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;">+ Agregar técnico</button>
     </div>
