@@ -615,12 +615,18 @@ function saveMember(){const nom=v('m_nom');if(!nom){toast('Ingresa el nombre');r
 function editMember(i){editingMember=i;renderDocView('integrantes');}
 function delMember(i){if(confirm('¿Eliminar a '+members[i].nombre+'?')){members.splice(i,1);editingMember=null;saveData();}renderDocView('integrantes');}
 function cancelEdit(){editingMember=null;renderDocView('integrantes');}
-function openArea(id){if(!hasPerm('kpi_'+id)){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess(id+' · '+(CAO?.name||'KPI'));return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();renderMain(CT||'kpi');}
+function openArea(id){if(!hasPerm('kpi_'+id)){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess(id+' · '+(CAO?.name||'KPI'));return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();const defTab=id==='1.1'?'kpi-herr':id==='1.2'?'kpi-gas':'kpi';renderMain(CT&&CT!=='kpi'?CT:defTab);}
 function renderMain(tab){
   CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   let h=`<div style="margin-bottom:10px;">${a.proc_obj?`<p style="font-size:12px;color:var(--tx2);line-height:1.6;">${esc(a.proc_obj)}</p>`:''}</div>`;
-  h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi'?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
-  if(tab==='doc')h+=rDoc();else if(tab==='kpi')h+=rKPI();else if(tab==='action')h+=hasPerm('a3')?rAction():noAccessInline('A3');
+  const isR1=(CA==='1.1'||CA==='1.2');
+  const kpiActive=tab==='kpi'||tab==='kpi-herr'||tab==='kpi-gas';
+  if(isR1){
+    h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi-herr'?'on':''}" onclick="renderMain('kpi-herr')">🔧 KPI Herramienta</button><button class="mod-tab ${tab==='kpi-gas'?'on':''}" onclick="renderMain('kpi-gas')">🔬 KPI Analizador Gas</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
+  } else {
+    h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${kpiActive?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
+  }
+  if(tab==='doc')h+=rDoc();else if(kpiActive)h+=rKPI();else if(tab==='action')h+=hasPerm('a3')?rAction():noAccessInline('A3');
   document.getElementById('mc').innerHTML=h;
 }
 function renderFlowChart(text){
@@ -776,7 +782,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='1.1'?renderVisorAuditoria11():CA==='1.2'?renderVisorMedicion12():'';
+  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():(CA==='1.1'||CA==='1.2')?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
