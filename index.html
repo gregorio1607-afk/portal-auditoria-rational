@@ -2346,8 +2346,8 @@ function loadExcelOS34(input){
       const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
       const ci=k=>hdr.findIndex(h=>h.includes(k));
       const idx={
-        fecha:ci('fecha')>-1&&!hdr[ci('fecha')].includes('prog')&&!hdr[ci('fecha')].includes('ult')?ci('fecha'):hdr.findIndex(h=>h==='fecha'),
-        os:hdr.findIndex(h=>h==='os'),
+        fecha:0,        // columna A — nueva orden
+        os:1,           // columna B
         tipo:ci('tipo_serv')>-1?ci('tipo_serv'):ci('tipo'),
         status:ci('status'),
         sucursal:ci('sucursal'),
@@ -2355,14 +2355,9 @@ function loadExcelOS34(input){
         tecnico:ci('tecnico'),
         marca:ci('marca'),
         modelo:ci('modelo'),
-        fechaTerm:hdr.findIndex(h=>h.includes('ult_rep_term')||h.includes('rep_term')),
-        fechaProg:hdr.findIndex(h=>h.includes('fecha_programacion')||h.includes('programacion')),
-        estEq:hdr.findIndex(h=>h.includes('estatus_eq')),
+        fechaTerm:20,   // columna U — fecha última reparación terminada
         falla:ci('falla'),
       };
-      // fallback: fecha es col 0 si sigue sin encontrarse
-      if(idx.fecha<0)idx.fecha=0;
-      if(idx.os<0)idx.os=1;
       const parseDate=v=>{
         if(!v)return null;
         if(typeof v==='number')return new Date(Math.round((v-25569)*86400*1000));
