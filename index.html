@@ -854,7 +854,7 @@ function getFtfFiltered(){
   return getFtfOS().filter(r=>{
     if(f.año&&f.año!=='Todos'&&r.año!==parseInt(f.año))return false;
     if(f.marca&&f.marca!=='Todos'&&nc(r.marca)!==nc(f.marca))return false;
-    if(f.tipoServicio&&f.tipoServicio!=='Todos'&&nc(r.tipoServicio)!==nc(f.tipoServicio))return false;
+    if(f.tipoServicio&&f.tipoServicio!=='Todos'&&r.tipoServicio.trim()!==f.tipoServicio.trim())return false;
     if(sels&&!sels.includes(r.sucursal))return false;
     return true;
   });
@@ -1232,8 +1232,11 @@ function loadExcelFTF(input){
         tipo:     hdr.findIndex(h=>h.includes('tipo')),
         fechaAlta:hdr.findIndex(h=>norm(h).replace(/\s/g,'').includes('fechaalta')),
         cantRep:  hdr.findIndex(h=>h.includes('cant')&&h.includes('rep')),
+        mesCol:   hdr.findIndex(h=>h==='mes'),        // col S: nombre del mes
+        añoCol:   hdr.findIndex(h=>h==='áño'||h==='ano'||h==='year'||h==='año'), // col T: año
+        ftfCol:   hdr.findIndex(h=>h.includes('f.t.f')||h==='ftf'), // col U: F.T.F. calculado
       };
-      const missing=[['marca',ci.marca],['tipo',ci.tipo],['fechaAlta',ci.fechaAlta],['cantRep',ci.cantRep]].filter(([,v])=>v<0).map(([k])=>k);
+      const missing=[['marca',ci.marca],['tipo',ci.tipo],['fechaAlta',ci.fechaAlta]].filter(([,v])=>v<0).map(([k])=>k);
       if(missing.length){toast('Columnas no encontradas: '+missing.join(', '));console.warn('Headers:',hdr);return;}
 
       const osData=[];
@@ -1242,17 +1245,39 @@ function loadExcelFTF(input){
       for(let i=hdrIdx+1;i<rows.length;i++){
         const row=rows[i];
         if(!row||!row[ci.marca])continue;
-        const fecha=_parseFechaAlta(row[ci.fechaAlta]);
-        if(!fecha||fecha.mo<0||fecha.mo>11){skip++;continue;}
-        const cant=parseInt(row[ci.cantRep])||0;
-        if(cant===0){skip++;continue;}
 
+        // Mes y año: usar columnas MES/AÑO del Excel si existen (más fiable que parsear fecha)
+        let mesIdx=-1,añoVal=0;
+        if(ci.mesCol>=0&&row[ci.mesCol]){
+          const mn=norm(String(row[ci.mesCol]));
+          mesIdx=FTF_MESES.findIndex(m=>mn.startsWith(m.slice(0,3)));
+        }
+        if(ci.añoCol>=0&&row[ci.añoCol]){
+          añoVal=parseInt(row[ci.añoCol])||0;
+        }
+        // Fallback: parsear Fecha Alta (col P)
+        if(mesIdx<0||!añoVal){
+          const fecha=_parseFechaAlta(row[ci.fechaAlta]);
+          if(!fecha){skip++;continue;}
+          if(mesIdx<0)mesIdx=fecha.mo;
+          if(!añoVal)añoVal=fecha.yr;
+        }
+        if(mesIdx<0||mesIdx>11||!añoVal){skip++;continue;}
+
+        const cant=parseInt(row[ci.cantRep])||0;
         const marca=String(row[ci.marca]||'').trim();
         const tipoServicio=String(row[ci.tipo]||'').trim();
-        const isFtf=cant===1;
-        const fechaStr=row[ci.fechaAlta] instanceof Date
-          ?row[ci.fechaAlta].toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})
-          :String(row[ci.fechaAlta]||'').trim();
+        // FTF: usar col U si existe, sino cant===1
+        let ftfVal;
+        if(ci.ftfCol>=0&&row[ci.ftfCol]){
+          const rv=String(row[ci.ftfCol]).trim();
+          ftfVal=rv==='F.T.F.'?'F.T.F.':rv==='NO F.T.F.'?'NO F.T.F.':null;
+        }
+        if(!ftfVal){
+          if(cant===0){skip++;continue;}
+          ftfVal=cant===1?'F.T.F.':'NO F.T.F.';
+        }
+        const fechaStr=String(row[ci.fechaAlta]||'').trim();
         osData.push({
           os:          String(row[ci.os]       ||'').trim(),
           prospecto:   String(row[ci.prospecto]||'').trim(),
@@ -1260,10 +1285,10 @@ function loadExcelFTF(input){
           tecnico:     String(row[ci.tecnico]  ||'').trim(),
           fechaAlta:   fechaStr,
           cantRep:     cant,
-          ftf:         isFtf?'F.T.F.':'NO F.T.F.',
-          mes:         fecha.mo,
-          trim:        Math.floor(fecha.mo/3),
-          año:         fecha.yr,
+          ftf:         ftfVal,
+          mes:         mesIdx,
+          trim:        Math.floor(mesIdx/3),
+          año:         añoVal,
           marca,
           tipoServicio,
         });
