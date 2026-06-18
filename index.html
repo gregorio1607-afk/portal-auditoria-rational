@@ -995,14 +995,59 @@ function loadExcelFTF(input){
   reader.onload=function(e){
     try{
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
-      const bdSheet=wb.SheetNames.find(n=>/BD|KEP/i.test(n))||wb.SheetNames[0];
-      const ws=wb.Sheets[bdSheet];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'dd/mm/yyyy'});
-      if(rows.length<2){toast('Excel sin datos en la hoja '+bdSheet);return;}
-
-      // Detectar columnas por nombre de encabezado
       const norm=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      const hdr=rows[0].map(norm);
+
+      // Buscar la hoja correcta: primero FTF, luego BD/KEP, luego la primera
+      const sheetName=wb.SheetNames.find(n=>/ftf/i.test(n))
+        ||wb.SheetNames.find(n=>/BD|KEP/i.test(n))
+        ||wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'dd/mm/yyyy'});
+      if(rows.length<2){toast('Excel sin datos en la hoja '+sheetName);return;}
+
+      // Detectar encabezados buscando la primera fila no vacía con al menos 2 celdas
+      let hdrIdx=0;
+      for(let i=0;i<Math.min(rows.length,10);i++){
+        if(rows[i]&&rows[i].filter(c=>c).length>=2){hdrIdx=i;break;}
+      }
+      const hdr=rows[hdrIdx].map(norm);
+
+      // ── MODO A: Tabla dinámica de Kepler (MES ALTA / F.T.F. / NO F.T.F.) ──
+      const iMes =hdr.findIndex(h=>h.replace(/\s/g,'').includes('mesalta'));
+      const iFtf =hdr.findIndex(h=>h.replace(/\s/g,'')===norm('F.T.F.')||h.replace(/\s/g,'').includes('ftf')&&!h.includes('no'));
+      const iNoFtf=hdr.findIndex(h=>h.replace(/\s/g,'').includes('noftf')||h.includes('no')&&h.includes('ftf'));
+
+      if(iMes>=0&&iFtf>=0&&iNoFtf>=0){
+        // Formato tabla dinámica — leer directamente los conteos mensuales
+        const counts={};
+        FTF_MESES.forEach(m=>counts[m]={ftf:0,noFtf:0});
+        let proc=0;
+        for(let i=hdrIdx+1;i<rows.length;i++){
+          const row=rows[i];if(!row)continue;
+          const mesRaw=norm(String(row[iMes]||''));
+          if(!mesRaw||mesRaw.includes('total')||mesRaw==='-')continue;
+          // Normalizar nombre del mes
+          const mes=FTF_MESES.find(m=>mesRaw.startsWith(m.slice(0,3)));
+          if(!mes)continue;
+          const ftf=parseInt(String(row[iFtf]||'').replace(/[^0-9]/g,''))||0;
+          const noFtf=parseInt(String(row[iNoFtf]||'').replace(/[^0-9]/g,''))||0;
+          counts[mes]={ftf,noFtf};
+          proc++;
+        }
+        // No hay desglose OS en este formato
+        getFtv().osData=[];
+        FTF_MESES.forEach(m=>{
+          const fi=document.getElementById('ftf_'+m);
+          const ni=document.getElementById('noftf_'+m);
+          if(fi)fi.value=counts[m].ftf;
+          if(ni)ni.value=counts[m].noFtf;
+        });
+        toast('✅ Tabla Kepler cargada · '+proc+' meses · Hoja: '+sheetName);
+        updateVisorFTF();
+        return;
+      }
+
+      // ── MODO B: Detalle de OS (una fila por orden de servicio) ──
       const ci={
         os:       hdr.findIndex(h=>h==='os'),
         tecnico:  hdr.findIndex(h=>h.includes('tecnico')),
@@ -1021,7 +1066,7 @@ function loadExcelFTF(input){
       const osData=[];
       let proc=0,skip=0;
 
-      for(let i=1;i<rows.length;i++){
+      for(let i=hdrIdx+1;i<rows.length;i++){
         const row=rows[i];
         if(!row||!row[ci.marca])continue;
         const marca=String(row[ci.marca]||'').trim().toUpperCase();
@@ -1035,12 +1080,11 @@ function loadExcelFTF(input){
         const mo=fecha.mo;
         const mes=FTF_MESES[mo];
         const cant=parseInt(row[ci.cantRep])||0;
-        if(cant===0){skip++;continue;} // N/A
+        if(cant===0){skip++;continue;}
 
         const isFtf=cant===1;
         if(isFtf)counts[mes].ftf++;else counts[mes].noFtf++;
 
-        // Capturar datos completos para desglose
         const fechaStr=row[ci.fechaAlta] instanceof Date
           ?row[ci.fechaAlta].toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})
           :String(row[ci.fechaAlta]||'').trim();
@@ -1058,7 +1102,6 @@ function loadExcelFTF(input){
         proc++;
       }
 
-      // Guardar OS data y rellenar inputs
       getFtv().osData=osData;
       FTF_MESES.forEach(m=>{
         const fi=document.getElementById('ftf_'+m);
@@ -1066,7 +1109,6 @@ function loadExcelFTF(input){
         if(fi)fi.value=counts[m].ftf;
         if(ni)ni.value=counts[m].noFtf;
       });
-
       toast('✅ '+proc+' OS cargadas · RATIONAL Garantía '+CY+(skip?' ('+skip+' omitidas)':''));
       updateVisorFTF();
     }catch(err){
@@ -1075,7 +1117,6 @@ function loadExcelFTF(input){
     }
   };
   reader.readAsArrayBuffer(file);
-  // Reset input para permitir recargar mismo archivo
   input.value='';
 }
 function updateVisorFTF(){
