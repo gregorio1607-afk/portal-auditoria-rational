@@ -767,6 +767,14 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
+  if(CA==='3.3'){
+    return`${renderVisorFTF()}
+    <div class="card" style="margin-top:10px;">
+      <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
+      <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
+      <div class="btn-row"><button class="btn btn-p" onclick="svKPI()">Guardar</button></div>
+    </div>`;
+  }
   return`<div class="card"><div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
   <div class="th"><span>Indicador</span><span>Meta</span><span>Actual</span><span>Estado</span></div>${rows}
   <button class="add-btn" onclick="addKPI()">＋ Agregar indicador</button><div class="hr"></div>
@@ -774,8 +782,7 @@ function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:
   <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="kf">${['','Diaria','Semanal','Mensual','Trimestral'].map(f=>`<option ${zd.kpi.freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
   <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="2">${esc(zd.kpi.notes)}</textarea></div>
   <div class="btn-row"><button class="btn btn-p" onclick="svKPI()">Guardar</button></div></div>
-  ${CA==='3.1'?renderEncuestas31():''}
-  ${CA==='3.3'?renderVisorFTF():''}`;
+  ${CA==='3.1'?renderEncuestas31():''}`;
 }
 /* ── VISOR FTF 3.3 ──────────────────────────────────────────── */
 const FTF_MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
