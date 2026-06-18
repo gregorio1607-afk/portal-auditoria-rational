@@ -895,6 +895,79 @@ function makeFtfBarChart(mData,trimIdx){
 }
 function showFTFDetalle(ti){ftfTrimDetail=ti;renderMain('kpi');setTimeout(()=>{const el=document.getElementById('ftf-detalle');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);}
 function hideFTFDetalle(){ftfTrimDetail=null;renderMain('kpi');}
+function descargarAuditoria11(){
+  const tecns=[
+    {n:'Gaspar Aragon',seg:'Corporativo',h:'-',a:'-',m:''},
+    {n:'Enrique Estrada',seg:'Corporativo',h:'-',a:'-',m:''},
+    {n:'Rodrigo Malpica',seg:'Corporativo',h:'-',a:'-',m:''},
+    {n:'Leonel Muños',seg:'LOS CABOS',h:'No',a:'No',m:''},
+    {n:'Pedro Higuera',seg:'LOS CABOS',h:'No',a:'No',m:''},
+    {n:'Jaime May',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
+    {n:'Armin Chan',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
+    {n:'Israel Jimenez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Julio Solis',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Cristofer Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Martin Rentaria',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Juan Pablo Silva',seg:'HEB AT CORREC',h:'-',a:'-',m:''},
+    {n:'Abraham Rubio',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'David Guzman',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Job Torres',seg:'HEB PREV',h:'-',a:'-',m:'BAJA'},
+    {n:'Fabian Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Eduardo Almaraz',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Anderson Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Raymundo Valente',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Pablo Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Jacob Figueroa',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Juan Izquierdo',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Alejandro Escobedo',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Angel Menchaca',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Cesar Tapia',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Genaro Hernandez',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Said Osmar Fraga',seg:'HEB PREV',h:'Si',a:'Si',m:''},
+    {n:'Garardo Ruelas',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Echavarria Lopez Heriberto',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Cumplido Hernandez Pablo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Salas Valadez Gerardo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Martin Solis Rios',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Isaac Enrique Parra',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Jesus Antonio García',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Brayan Eduardo Ramirez',seg:'Chihuahua',h:'Si',a:'Si',m:''},
+    {n:'Jose Ramirez',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Fernando Mendez',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Cervantes Aguilar Gabriel',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Gabriel Becerril',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Cesar Amed Flores',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Agustin Velazquez',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Angel Guzman Ledezma',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Gabriel Raul Balderas',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'José Angel Mendoza',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Juan Sanchez Victoria',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'José Guadalupe Castillo',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Noe Peña Bailon',seg:'MEXICO',h:'No',a:'No',m:''},
+    {n:'Mayra Sanchez',seg:'MEXICO',h:'No',a:'No',m:''},
+    {n:'Polo Velazco',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Carlos Cruz',seg:'CI MTY',h:'No',a:'No',m:''},
+    {n:'Angel Lara',seg:'CI MTY',h:'No',a:'No',m:''},
+    {n:'Jose Conrrado',seg:'CI MTY',h:'No',a:'No',m:''},
+    {n:'Dayan Sagrero',seg:'QUERETARO',h:'No',a:'No',m:''},
+    {n:'Raul Gallegos',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Victor Hugo Leon',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Daniel Trevilla',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Carlos Vazquez',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Elena Joo',seg:'HEB QUERETARO',h:'No',a:'No',m:''},
+    {n:'Leonardo Santander',seg:'HEB QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Cristhian Rodriguez',seg:'Guadalajara',h:'No',a:'No',m:''},
+    {n:'Carlos Pérez',seg:'Guadalajara',h:'Si',a:'No',m:''},
+    {n:'Espinoza Medina Carlos',seg:'Guadalajara',h:'No',a:'No',m:''},
+    {n:'Jose Martin Gallegos',seg:'Guadalajara',h:'No',a:'No',m:''},
+  ];
+  const hdrs=['#','Técnico','Segmento','Herramienta','Automóvil','Nota'];
+  const rows=tecns.map((t,i)=>[i+1,t.n,t.seg,t.h,t.a,t.m]);
+  const csv=[hdrs,...rows].map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='Auditoria_1.1_Enero2026.csv';a.click();URL.revokeObjectURL(url);
+}
 function descargarDesglose(){
   const os=ftfTrimDetail!==null?getFtfFiltered().filter(r=>r.trim===ftfTrimDetail):getFtfFiltered();
   const lbl=ftfTrimDetail!==null?FTF_TRIMS[ftfTrimDetail].label.replace(/\s/g,'_'):'Todos';
@@ -1599,22 +1672,38 @@ function renderVisorAuditoria11(){
       <tbody>${segRows}</tbody>
     </table></div>`:''}
 
-    ${CY===2026&&tecRows?`<details style="margin-top:12px;">
-      <summary style="cursor:pointer;font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:6px 0;">
-        ▶ Detalle por técnico · ${mesLabel} (${tecns2026.length} personas)
-      </summary>
-      <div style="overflow-x:auto;margin-top:6px;">
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:var(--bg2);font-size:10px;color:var(--tx3);">
-          <th style="padding:5px 8px;text-align:left;font-weight:700;">Técnico</th>
-          <th style="padding:5px 8px;text-align:left;font-weight:700;">Segmento</th>
-          <th style="padding:5px 8px;text-align:center;font-weight:700;">Herramienta</th>
-          <th style="padding:5px 8px;text-align:center;font-weight:700;">Automóvil</th>
-        </tr></thead>
-        <tbody>${tecRows}</tbody>
-      </table></div>
-    </details>`:''}
-  </div>`;
+  </div>
+  ${CY===2026?`<div class="card" style="margin-top:10px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;color:var(--tx);">📋 Desglose por técnico · ${mesLabel}</div>
+      <span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#e8f5e9;color:#2e7d32;">${last.herr} Presentaron</span>
+      <span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#ffebee;color:#c62828;">${last.totH-last.herr} No presentaron</span>
+      <button onclick="descargarAuditoria11()" style="margin-left:auto;padding:5px 14px;border:1px solid var(--brd);border-radius:8px;background:#fff;font-size:12px;cursor:pointer;font-weight:600;">⬇ Descargar</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;min-width:500px;">
+      <thead><tr style="background:#f5f9f6;border-bottom:2px solid var(--brd);">
+        <th style="padding:6px;font-size:10px;color:var(--tx3);text-align:center;">#</th>
+        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Técnico</th>
+        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Segmento</th>
+        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Herramienta</th>
+        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Automóvil</th>
+        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Nota</th>
+      </tr></thead>
+      <tbody>${(CY===2026?tecns2026:[]).map((t,i)=>{
+        const baja=t.m==='BAJA';
+        const chip=v=>v==='Si'?`<span style="background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✓ Sí</span>`:v==='-'?`<span style="font-size:11px;color:var(--tx3);">—</span>`:`<span style="background:#ffebee;color:#c62828;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✗ No</span>`;
+        return`<tr style="border-bottom:1px solid #f0f0f0;${baja?'opacity:.45':''}">
+          <td style="padding:5px 6px;text-align:center;font-size:10px;color:var(--tx3);">${i+1}</td>
+          <td style="padding:5px 8px;font-size:11px;color:var(--tx);font-weight:600;">${t.n}</td>
+          <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${t.seg}</td>
+          <td style="padding:5px 8px;text-align:center;">${chip(t.h)}</td>
+          <td style="padding:5px 8px;text-align:center;">${chip(t.a)}</td>
+          <td style="padding:5px 8px;text-align:center;">${baja?`<span style="font-size:9px;background:#f5f5f5;color:#888;padding:2px 6px;border-radius:8px;">BAJA</span>`:''}${t.m&&t.m!=='BAJA'?`<span style="font-size:9px;color:var(--tx3);">${t.m}</span>`:''}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+  </div>`:''}`;
 }
 function renderEncuestas31(){
   const docs=enc31[CZ]||[];
