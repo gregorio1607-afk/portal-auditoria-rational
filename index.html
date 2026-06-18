@@ -2326,7 +2326,7 @@ function loadExcelEnc31(input){
   reader.readAsArrayBuffer(file);
 }
 // ── KPI 3.4 Tiempo de Resolución ─────────────────────────────────────────────
-let _os34Filtros={año:'Todos',sucursal:'Todos',tipo:'Todos',tecnico:'Todos'};
+let _os34Filtros={año:'Todos',marca:'Todos',tipo:'Todos',sucursales:null};
 let _os34TrimDetail=null;
 const OS34_TRIMS=[
   {label:'1er Trimestre',meses:'Ene–Mar',idx:[0,1,2]},
@@ -2336,13 +2336,22 @@ const OS34_TRIMS=[
 ];
 const OS34_MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function setOs34Filtro(k,v){_os34Filtros[k]=v;_os34TrimDetail=null;renderMain(CT);}
+function toggleOs34Suc(s,checked){
+  const all=(getOS34().os||[]);const opts=[...new Set(all.map(r=>r.sucursal).filter(Boolean))].sort();
+  if(_os34Filtros.sucursales===null)_os34Filtros.sucursales=[...opts];
+  if(checked){if(!_os34Filtros.sucursales.includes(s))_os34Filtros.sucursales.push(s);}
+  else{_os34Filtros.sucursales=_os34Filtros.sucursales.filter(x=>x!==s);}
+  if(_os34Filtros.sucursales.length===opts.length)_os34Filtros.sucursales=null;
+  _os34TrimDetail=null;renderMain(CT);
+}
+function setOs34SucTodas(){_os34Filtros.sucursales=null;_os34TrimDetail=null;renderMain(CT);}
 function getOs34Filtered(){
   const d=getOS34();const all=d.os||[];const f=_os34Filtros;
   return all.filter(r=>{
     if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
-    if(f.sucursal&&f.sucursal!=='Todos'&&r.sucursal!==f.sucursal)return false;
+    if(f.marca&&f.marca!=='Todos'&&r.marca!==f.marca)return false;
     if(f.tipo&&f.tipo!=='Todos'&&r.tipo!==f.tipo)return false;
-    if(f.tecnico&&f.tecnico!=='Todos'&&r.tecnico!==f.tecnico)return false;
+    if(f.sucursales!==null&&!f.sucursales.includes(r.sucursal))return false;
     return true;
   });
 }
@@ -2361,60 +2370,45 @@ function loadExcelOS34(input){
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
       if(rows.length<2){toast('⚠ Excel vacío');return;}
-      const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
-      const ci=k=>hdr.findIndex(h=>h.includes(k));
-      const idx={
-        fecha:0,        // columna A — fecha nueva orden
-        os:1,           // columna B — número OS
-        tipo:ci('tipo_serv')>-1?ci('tipo_serv'):ci('tipo'),
-        status:ci('status'),
-        sucursal:ci('sucursal'),
-        cliente:hdr.findIndex(h=>h==='prosp'),
-        tecnico:ci('tecnico'),
-        marca:ci('marca'),
-        modelo:ci('modelo'),
-        fechaTerm:20,   // columna U — fecha última reparación terminada
-        falla:ci('falla'),
-      };
+      // Índices confirmados del Excel real (TS.xlsx)
+      // A=0 FECHA, B=1 OS, C=2 TIPO_SERV, D=3 STATUS, F=5 PROSP(cliente)
+      // H=7 SUCURSAL, I=8 MARCA, J=9 TECNICO, U=20 FECHA_ULT_REP_TERM
+      // col 31=MES#, col 33=AÑO (pre-calculados en el Excel)
       const parseDate=v=>{
         if(!v||v==='')return null;
         if(v instanceof Date)return isNaN(v)?null:v;
-        if(typeof v==='number')return new Date(Math.round((v-25569)*86400*1000));
+        if(typeof v==='number'&&v>1000)return new Date(Math.round((v-25569)*86400*1000));
         const s=String(v).trim();
-        // dd/mm/yyyy
         let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         if(m)return new Date(+m[3],+m[2]-1,+m[1]);
-        // yyyy-mm-dd
         m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if(m)return new Date(+m[1],+m[2]-1,+m[3]);
-        // mm/dd/yyyy
-        m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        if(m)return new Date(+m[3],+m[1]-1,+m[2]);
         const d=new Date(s);return isNaN(d)?null:d;
       };
+      const fmtDate=d=>d instanceof Date&&!isNaN(d)?d.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
       const osList=[];
       rows.slice(1).forEach(r=>{
-        const osNum=String(r[idx.os]||'').trim();if(!osNum||osNum==='0'||osNum==='')return;
-        const fechaOS=parseDate(r[idx.fecha]);
-        const fechaTerm=parseDate(r[idx.fechaTerm]);
-        const año=fechaOS?fechaOS.getFullYear():CY;
-        const mes=fechaOS?fechaOS.getMonth():-1;
-        const fmtDate=d=>d?d.toISOString().slice(0,10):'';
+        const osNum=String(r[1]||'').trim();if(!osNum||osNum==='0'||osNum==='')return;
+        const fechaOS=parseDate(r[0]);
+        const fechaTerm=parseDate(r[20]);
+        // Usar AÑO y MES pre-calculados del Excel si existen, si no derivar de la fecha
+        const año=r[33]?+r[33]:(fechaOS?fechaOS.getFullYear():CY);
+        const mes=r[31]!==''?+r[31]-1:(fechaOS?fechaOS.getMonth():-1);
         const diasRes=fechaOS&&fechaTerm?Math.round((fechaTerm-fechaOS)/86400000):null;
         const cumple=diasRes!==null&&diasRes>=0&&diasRes<=30;
-        const terminada=!!r[idx.fechaTerm]||(String(r[idx.status]||'').toLowerCase().includes('rep'));
+        const statusVal=String(r[3]||'').trim().toLowerCase();
+        const terminada=!!(r[20]&&r[20]!=='')||statusVal.includes('terminado')||statusVal.includes('rep');
         osList.push({
           os:osNum,
           fecha:fmtDate(fechaOS),mes,año,
           fechaTerm:fmtDate(fechaTerm),
-          sucursal:String(r[idx.sucursal]||'').trim(),
-          cliente:String(r[idx.cliente]||'').trim(),
-          tipo:String(r[idx.tipo]||'').trim(),
-          status:String(r[idx.status]||'').trim(),
-          tecnico:String(r[idx.tecnico]||'').trim(),
-          marca:String(r[idx.marca]||'').trim(),
-          modelo:String(r[idx.modelo]||'').trim(),
-          falla:String(r[idx.falla]||'').trim(),
+          sucursal:String(r[7]||'').trim(),
+          cliente:String(r[5]||'').trim(),
+          tipo:String(r[2]||'').trim(),
+          status:String(r[3]||'').trim(),
+          tecnico:String(r[9]||'').trim(),
+          marca:String(r[8]||'').trim(),
+          falla:String(r[14]||'').trim(),
           diasRes,cumple,terminada,
         });
       });
@@ -2437,10 +2431,11 @@ function renderVisorOS34(){
 
   // Opciones únicas para filtros
   const años=hasRaw?[...new Set(rawOS.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
-  const sucursales=hasRaw?[...new Set(rawOS.map(r=>r.sucursal))].filter(Boolean).sort():[];
+  const marcas=hasRaw?[...new Set(rawOS.map(r=>r.marca))].filter(Boolean).sort():[];
   const tipos=hasRaw?[...new Set(rawOS.map(r=>r.tipo))].filter(Boolean).sort():[];
-  const tecnicos=hasRaw?[...new Set(rawOS.map(r=>r.tecnico))].filter(Boolean).sort():[];
+  const sucursales=hasRaw?[...new Set(rawOS.map(r=>r.sucursal))].filter(Boolean).sort():[];
   const f=_os34Filtros;
+  const selSucs=f.sucursales;
 
   const selStyle='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
   const mkSel=(key,opts,cur)=>`<select style="${selStyle}" onchange="setOs34Filtro('${key}',this.value)">
@@ -2448,14 +2443,34 @@ function renderVisorOS34(){
     ${opts.map(o=>`<option value="${o}"${cur==o?' selected':''}>${o}</option>`).join('')}
   </select>`;
 
+  const sucSelLbl=selSucs===null?'Todas ('+sucursales.length+')':'Sel. '+selSucs.length+' / '+sucursales.length;
+  const sucItems=[
+    `<label style="display:flex;align-items:center;gap:6px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;font-weight:700;">
+      <input type="checkbox" ${selSucs===null?'checked':''} onchange="setOs34SucTodas()" style="accent-color:var(--grn);cursor:pointer;"/>Todas</label>`,
+    ...sucursales.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 14px;cursor:pointer;font-size:11px;white-space:nowrap;">
+      <input type="checkbox" ${selSucs===null||selSucs.includes(s)?'checked':''} onchange="toggleOs34Suc('${s.replace(/'/g,"\\'")}',this.checked)" style="accent-color:var(--grn);cursor:pointer;"/>${s}</label>`)
+  ].join('');
+
   const filtroBar=hasRaw?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
     <span style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;">Filtros:</span>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
-    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">SUCURSAL</span>${mkSel('sucursal',sucursales,f.sucursal)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MARCA</span>${mkSel('marca',marcas,f.marca)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipo',tipos,f.tipo)}</div>
-    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TÉCNICO</span>${mkSel('tecnico',tecnicos,f.tecnico)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">SUCURSAL</span>
+      <details style="position:relative;" onmouseleave="this.removeAttribute('open')">
+        <summary style="list-style:none;padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;cursor:pointer;min-width:150px;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <span>${sucSelLbl}</span><span style="font-size:10px;color:var(--tx3);">▾</span>
+        </summary>
+        <div style="position:absolute;z-index:99;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px #0002;min-width:200px;max-height:280px;overflow-y:auto;margin-top:2px;">
+          ${sucItems}
+          <div style="padding:6px 8px;border-top:1px solid #f0f0f0;">
+            <button style="width:100%;padding:5px;border-radius:6px;background:var(--grn);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;" onclick="this.closest('details').removeAttribute('open');renderMain(CT)">✔ Aplicar</button>
+          </div>
+        </div>
+      </details>
+    </div>
     <div style="margin-left:auto;display:flex;gap:6px;">
-      <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getOS34().os=[];_os34Filtros={año:'Todos',sucursal:'Todos',tipo:'Todos',tecnico:'Todos'};_os34TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>
+      <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getOS34().os=[];_os34Filtros={año:'Todos',marca:'Todos',tipo:'Todos',sucursales:null};_os34TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>
       <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
       </label>
