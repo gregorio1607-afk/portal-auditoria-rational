@@ -821,16 +821,18 @@ function toggleSucursal(suc){
 }
 function toggleSucursalSave(suc,checked,todas){
   const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
-  const arr=ftv.filtros.sucursales;
-  if(arr.length===0&&!checked){
-    // Estaban todas seleccionadas, excluir esta
-    ftv.filtros.sucursales=todas.filter(x=>x!==suc);
+  if(ftv.filtros.sucursales.length===0&&!checked){
+    // Estaban todas — excluir esta usando la lista completa del Excel
+    const allSucs=[...new Set(getFtfOS().map(r=>r.sucursal).filter(Boolean))];
+    ftv.filtros.sucursales=allSucs.filter(x=>x!==suc);
   } else {
+    const arr=ftv.filtros.sucursales;
     const idx=arr.indexOf(suc);
     if(checked&&idx<0)arr.push(suc);
     if(!checked&&idx>=0)arr.splice(idx,1);
+    if(arr.length===0)ftv.filtros.sucursales=[]; // vacío = todas
   }
-  saveData();
+  saveData();renderMain('kpi');
 }
 function setSucTodasSave(){
   const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');
