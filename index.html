@@ -857,87 +857,65 @@ function loadExcelAuditoria11(input){
     try{
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
       const MES_NUM={'ENERO':0,'FEBRERO':1,'MARZO':2,'ABRIL':3,'MAYO':4,'JUNIO':5,'JULIO':6,'AGOSTO':7,'SEPTIEMBRE':8,'OCTUBRE':9,'NOVIEMBRE':10,'DICIEMBRE':11};
+      const MES_NOMBRES=Object.keys(MES_NUM);
       const records=[];
-      // Parsear hojas Auditorias YYYY (estructura tabular limpia)
-      wb.SheetNames.filter(n=>/auditorias\s+\d{4}/i.test(n)).forEach(name=>{
+
+      // Acepta hojas "HERRAMIENTA YYYY" o "Auditorias YYYY"
+      wb.SheetNames.filter(n=>/\d{4}/.test(n)).forEach(name=>{
         const ws=wb.Sheets[name];
         const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        if(!rows.length)return;
+        if(rows.length<3)return;
         const añoMatch=name.match(/\d{4}/);
         const año=añoMatch?parseInt(añoMatch[0]):CY;
 
-        // Detectar si fila 0 es título de mes (ej. "ENERO") y fila 1 son encabezados
-        // o si fila 0 ya son los encabezados con columna "mes"
-        const normH=s=>String(s||'').toLowerCase().trim();
-        let hdrIdx=0;
-        let mesGlobal=-1; // mes fijo si la hoja declara el mes en fila título
+        // Fila 0: ["","","ENERO","FEBRERO",...] → índices de columna por mes
+        const mesRow=rows[0].map(c=>String(c||'').toUpperCase().trim());
+        const mesCols={}; // {0:2, 1:3, ...}  mesNum → colIdx
+        mesRow.forEach((v,ci)=>{const m=MES_NUM[v];if(m!==undefined)mesCols[m]=ci;});
 
-        // Buscar primera fila con texto "mes" o con columna nombre
-        for(let i=0;i<Math.min(rows.length,5);i++){
-          const row=rows[i].map(normH);
-          if(row.some(h=>h==='nombre'||h.includes('nombre')||h.includes('tecnico'))){hdrIdx=i;break;}
-        }
+        // Si no hay columnas de mes en fila 0 → no es este formato, saltar
+        if(Object.keys(mesCols).length===0)return;
 
-        // Si la fila anterior a los encabezados contiene un nombre de mes, usarlo como mes global
-        if(hdrIdx>0){
-          for(let i=0;i<hdrIdx;i++){
-            for(const cell of rows[i]){
-              const v=String(cell||'').toUpperCase().trim();
-              const m=Object.keys(MES_NUM).find(k=>v.includes(k));
-              if(m!==undefined){mesGlobal=MES_NUM[m];break;}
-            }
-            if(mesGlobal>=0)break;
-          }
-        }
+        // Fila 1: encabezados → buscar col SUCURSAL y col NOMBRE
+        const hdr1=rows[1].map(c=>String(c||'').toLowerCase().trim());
+        const colSuc=hdr1.findIndex(h=>h.includes('sucursal')||h.includes('ubicacion'));
+        const colNom=hdr1.findIndex(h=>h.includes('nombre'));
 
-        const hdr=rows[hdrIdx].map(normH);
-        const ci={
-          nombre:hdr.findIndex(h=>h.includes('nombre')||h.includes('tecnico')),
-          puesto:hdr.findIndex(h=>h.includes('puesto')||h.includes('cargo')),
-          seg:hdr.findIndex(h=>h.includes('segmento')),
-          subUbic:hdr.findIndex(h=>h.includes('sub ubic')||h.includes('ubicacion')||h.includes('sucursal')),
-          herr:hdr.findIndex(h=>h.includes('herramienta')&&!h.includes('presento')&&!h.includes('presentó')),
-          presHerr:hdr.findIndex(h=>(h.includes('presento')||h.includes('presentó'))&&h.includes('herramienta')),
-          auto:hdr.findIndex(h=>h.includes('automov')&&!h.includes('presento')&&!h.includes('presentó')),
-          presAuto:hdr.findIndex(h=>(h.includes('presento')||h.includes('presentó'))&&h.includes('automov')),
-          motivo:hdr.findIndex(h=>h.includes('motivo')),
-          mes:hdr.findIndex(h=>h==='mes'||h==='mes alta'||h==='mes de alta'),
-        };
-        for(let i=hdrIdx+1;i<rows.length;i++){
+        // Filas 2+: una fila por persona
+        for(let i=2;i<rows.length;i++){
           const r=rows[i];
-          const nombre=String(r[ci.nombre>=0?ci.nombre:0]||'').trim();
-          if(!nombre||nombre.toLowerCase().includes('total'))continue;
-          let mesNum=mesGlobal;
-          let mesStr='';
-          if(ci.mes>=0){
-            mesStr=String(r[ci.mes]||'').toUpperCase().trim();
-            mesNum=MES_NUM[mesStr]??mesGlobal;
-          }
-          if(mesNum<0)continue;
-          if(!mesStr)mesStr=Object.keys(MES_NUM).find(k=>MES_NUM[k]===mesNum)||'';
-          records.push({
-            nombre,
-            puesto:ci.puesto>=0?String(r[ci.puesto]||'').trim():'',
-            segmento:ci.seg>=0?String(r[ci.seg]||'').trim():'',
-            subUbic:ci.subUbic>=0?String(r[ci.subUbic]||'').trim():'',
-            herr:ci.herr>=0?String(r[ci.herr]||'').trim():'-',
-            presHerr:ci.presHerr>=0?String(r[ci.presHerr]||'').trim():'',
-            auto:ci.auto>=0?String(r[ci.auto]||'').trim():'',
-            presAuto:ci.presAuto>=0?String(r[ci.presAuto]||'').trim():'',
-            motivo:ci.motivo>=0?String(r[ci.motivo]||'').trim():'',
-            mes:mesNum,
-            mesNombre:mesStr,
-            año
+          const nombre=String(r[colNom>=0?colNom:1]||'').trim();
+          const sucursal=String(r[colSuc>=0?colSuc:0]||'').trim();
+          if(!nombre)continue;
+
+          // Por cada mes con columna definida, crear un registro si hay valor Si/No
+          Object.entries(mesCols).forEach(([mesNum,ci])=>{
+            const val=String(r[ci]||'').trim();
+            if(!val||val==='-'||val==='0')return; // sin dato ese mes → no auditado
+            const presHerr=val.toLowerCase()==='si'?'Si':'No';
+            const mesNombre=MES_NOMBRES[Number(mesNum)]||'';
+            records.push({
+              nombre,
+              puesto:'',segmento:'',
+              subUbic:sucursal,
+              herr:'auditado',   // indica que sí fue auditado
+              presHerr,
+              auto:'',presAuto:'',motivo:'',
+              mes:Number(mesNum),
+              mesNombre,
+              año
+            });
           });
         }
       });
-      if(records.length===0){toast('⚠ No se encontraron hojas "Auditorias YYYY" en el archivo');return;}
+
+      if(records.length===0){toast('⚠ No se reconoció la estructura del Excel. Verifica que tenga meses en la fila 1.');return;}
       setAud11(records);
       const ftv=getFtv();
       ftv.aud11UpdatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
       saveData();
       toast('✅ Auditoría cargada · '+records.length+' registros');
-      renderMain('kpi');
+      renderMain('kpi-herr');
     }catch(ex){toast('❌ Error al leer Excel: '+ex.message);}
   };
   reader.readAsArrayBuffer(file);
