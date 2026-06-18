@@ -968,35 +968,32 @@ function renderVisorFTF(){
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MARCA</span>${mkSel('marca',marcas,f.marca)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipoServicio',tipos,f.tipoServicio)}</div>
-    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">SUCURSAL</span>${(()=>{
+    <div style="display:flex;flex-direction:column;gap:4px;">${(()=>{
       const sels=f.sucursales&&f.sucursales.length>0?f.sucursales:null;
       const grpMTY=sucursales.filter(s=>getSucZona(s)==='MTY');
       const grpCDMX=sucursales.filter(s=>getSucZona(s)==='CDMX');
-      const allMTYsel=grpMTY.length>0&&grpMTY.every(s=>sels?sels.includes(s):true);
-      const allCDMXsel=grpCDMX.length>0&&grpCDMX.every(s=>sels?sels.includes(s):true);
-      const selLbl=sels===null?'Todas':'Sel. '+sels.length;
-      const mkGrp=(zona,grp,allSel)=>grp.length===0?'':
-        `<div style="padding:4px 8px 2px;background:#f0f4f0;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" ${allSel?'checked':''} onchange="setSucursalZona('${zona}',${JSON.stringify(grp)},this.checked)" style="cursor:pointer;accent-color:var(--grn);"/>
-          <span onclick="selZonaOnly('${zona}',${JSON.stringify(sucursales)})" style="cursor:pointer;color:var(--grn);text-decoration:underline;text-underline-offset:2px;" title="Seleccionar solo ${zona}">${zona}</span>
-        </div>`+
-        grp.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px 20px;cursor:pointer;font-size:11px;color:var(--tx);">
-          <input type="checkbox" value="${s}" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursal('${s}')" style="cursor:pointer;accent-color:var(--grn);"/>
-          ${s}
-        </label>`).join('');
-      return`<details style="position:relative;">
-        <summary style="list-style:none;padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;cursor:pointer;min-width:130px;display:flex;justify-content:space-between;align-items:center;gap:6px;">
-          <span>${selLbl}</span><span style="font-size:10px;color:var(--tx3);">▾</span>
-        </summary>
-        <div style="position:absolute;z-index:99;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px #0002;min-width:200px;max-height:280px;overflow-y:auto;margin-top:4px;">
-          <label style="display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;">
-            <input type="checkbox" ${sels===null?'checked':''} onchange="(function(c){const ftv=getFtv();ftv.filtros.sucursales=c?[]:${JSON.stringify(sucursales)};saveData();renderMain('kpi');})(this.checked)" style="cursor:pointer;accent-color:var(--grn);"/>
-            <strong>Todas las sucursales</strong>
-          </label>
-          ${mkGrp('MTY',grpMTY,allMTYsel)}
-          ${mkGrp('CDMX',grpCDMX,allCDMXsel)}
+      const isMTYonly=sels&&grpMTY.length>0&&grpMTY.every(s=>sels.includes(s))&&(grpCDMX.length===0||!grpCDMX.some(s=>sels.includes(s)));
+      const isCDMXonly=sels&&grpCDMX.length>0&&grpCDMX.every(s=>sels.includes(s))&&(grpMTY.length===0||!grpMTY.some(s=>sels.includes(s)));
+      const isTodas=sels===null;
+      const btnSt=(act)=>`padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--grn);transition:all .15s;${act?'background:var(--grn);color:#fff;':'background:#fff;color:var(--grn);'}`;
+      const zonaBtns=`<div style="display:flex;gap:4px;align-items:center;">
+        <span style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-right:2px;">SUCURSAL</span>
+        <button style="${btnSt(isTodas)}" onclick="(function(){const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');})()">Todas</button>
+        ${grpMTY.length>0?`<button style="${btnSt(isMTYonly)}" onclick="selZonaOnly('MTY',${JSON.stringify(sucursales)})">MTY</button>`:''}
+        ${grpCDMX.length>0?`<button style="${btnSt(isCDMXonly)}" onclick="selZonaOnly('CDMX',${JSON.stringify(sucursales)})">CDMX</button>`:''}
+      </div>`;
+      const mkChks=(grp)=>grp.map(s=>`<label style="display:flex;align-items:center;gap:5px;padding:3px 0;cursor:pointer;font-size:11px;color:var(--tx);white-space:nowrap;">
+        <input type="checkbox" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursal('${s}')" style="cursor:pointer;accent-color:var(--grn);"/>
+        ${s}
+      </label>`).join('');
+      const detalle=(grpMTY.length>0||grpCDMX.length>0)?`<details style="margin-top:2px;">
+        <summary style="font-size:10px;color:var(--tx3);cursor:pointer;list-style:none;padding:2px 0;">▸ Selección individual</summary>
+        <div style="display:flex;gap:16px;margin-top:4px;padding:6px 8px;background:#f8f9fa;border-radius:6px;border:1px solid var(--brd);">
+          ${grpMTY.length>0?`<div><div style="font-size:9px;font-weight:700;color:var(--tx3);margin-bottom:3px;">MTY</div>${mkChks(grpMTY)}</div>`:''}
+          ${grpCDMX.length>0?`<div><div style="font-size:9px;font-weight:700;color:var(--tx3);margin-bottom:3px;">CDMX</div>${mkChks(grpCDMX)}</div>`:''}
         </div>
-      </details>`;
+      </details>`:'';
+      return zonaBtns+detalle;
     })()}</div>
     <label style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
       📤 Cargar Excel
