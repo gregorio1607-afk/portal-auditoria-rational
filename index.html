@@ -675,20 +675,28 @@ function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   <div class="card-title">📊 Diagrama de flujo · ${esc(d.flow_file||'')}</div>
   <div class="fr"><div class="fg"><label class="fl">Responsable</label><input class="fc" id="fo" value="${esc(d.flow_owner)}"/></div>
   <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="ff">${['','Diaria','Semanal','Mensual','Trimestral','Por evento','Continua'].map(f=>`<option ${d.flow_freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
-  ${renderFlowChart(d.flow_steps)}
-  <details style="margin:8px 0;"><summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:4px 0;">✏ Editar pasos del flujo</summary><textarea class="fc" id="fst" rows="6" style="margin-top:6px;">${esc(d.flow_steps)}</textarea></details>
+  <div id="fc-diagram">${renderFlowChart(d.flow_steps)}</div>
+  <details style="margin:8px 0;"><summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:4px 0;">✏ Editar pasos del flujo</summary>
+    <textarea class="fc" id="fst" rows="6" style="margin-top:6px;" oninput="(function(v){const el=document.getElementById('fc-diagram');if(el)el.innerHTML=renderFlowChart(v);})(this.value)">${esc(d.flow_steps)}</textarea>
+  </details>
   <div class="fr"><div class="fg"><label class="fl">Sistemas / herramientas</label><input class="fc" id="ftl" value="${esc(d.flow_tools)}"/></div>
   <div class="fg"><label class="fl">Código diagrama</label><input class="fc" id="ff2" value="${esc(d.flow_file)}"/></div></div>
   <div class="hr"></div>
-  <div class="card-title">📄 Procedimiento · ${esc(d.proc_code||'')}</div>
-  <div class="fr3"><div class="fg"><label class="fl">Código</label><input class="fc" id="pc" value="${esc(d.proc_code)}"/></div>
-  <div class="fg"><label class="fl">Versión / Fecha</label><input class="fc" id="pv" value="${esc(d.proc_ver)}"/></div>
-  <div class="fg"><label class="fl">Aprobado por</label><input class="fc" id="pa" value="${esc(d.proc_approver)}"/></div></div>
-  <div class="fg"><label class="fl">Objetivo</label><textarea class="fc" id="po" rows="2">${esc(d.proc_obj)}</textarea></div>
-  <div class="fr"><div class="fg"><label class="fl">Alcance</label><input class="fc" id="psc" value="${esc(d.proc_scope)}"/></div>
-  <div class="fg"><label class="fl">Responsabilidades</label><input class="fc" id="pr" value="${esc(d.proc_resp)}"/></div></div>
-  <div class="fg"><label class="fl">Desarrollo del proceso</label><textarea class="fc" id="pb" rows="5">${esc(d.proc_body)}</textarea></div>
-  <div class="btn-row" style="gap:8px;"><button class="btn btn-p" onclick="svDoc()">💾 Guardar documento</button><button class="btn" onclick="printDoc()" style="background:#fff;border:1px solid var(--grn);color:var(--grn);">🖨 Imprimir proceso</button></div></div>${docGuardadoCard}`;}
+  <details style="margin:4px 0;">
+    <summary style="cursor:pointer;padding:6px 0;user-select:none;">
+      <span class="card-title" style="display:inline;margin:0;">📄 Procedimiento · ${esc(d.proc_code||'')}</span>
+    </summary>
+    <div style="margin-top:10px;">
+      <div class="fr3"><div class="fg"><label class="fl">Código</label><input class="fc" id="pc" value="${esc(d.proc_code)}"/></div>
+      <div class="fg"><label class="fl">Versión / Fecha</label><input class="fc" id="pv" value="${esc(d.proc_ver)}"/></div>
+      <div class="fg"><label class="fl">Aprobado por</label><input class="fc" id="pa" value="${esc(d.proc_approver)}"/></div></div>
+      <div class="fg"><label class="fl">Objetivo</label><textarea class="fc" id="po" rows="2">${esc(d.proc_obj)}</textarea></div>
+      <div class="fr"><div class="fg"><label class="fl">Alcance</label><input class="fc" id="psc" value="${esc(d.proc_scope)}"/></div>
+      <div class="fg"><label class="fl">Responsabilidades</label><input class="fc" id="pr" value="${esc(d.proc_resp)}"/></div></div>
+      <div class="fg"><label class="fl">Desarrollo del proceso</label><textarea class="fc" id="pb" rows="5">${esc(d.proc_body)}</textarea></div>
+    </div>
+  </details>
+  <div class="btn-row" style="gap:8px;margin-top:10px;"><button class="btn btn-p" onclick="svDoc()">💾 Guardar documento</button><button class="btn" onclick="printDoc()" style="background:#fff;border:1px solid var(--grn);color:var(--grn);">🖨 Imprimir proceso</button></div></div>${docGuardadoCard}`;}
 function printDoc(){
   const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   const stepsHtml=d.flow_steps?d.flow_steps.split('\n').map(l=>l.trim()).filter(l=>l).map(l=>{
