@@ -791,22 +791,16 @@ const FTF_TRIMS=[
   {label:'3er Trimestre',meses:'Jul · Ago · Sep',idx:[6,7,8]},
   {label:'4to Trimestre',meses:'Oct · Nov · Dic',idx:[9,10,11]}
 ];
+// osData de FTF vive en sessionStorage (sin límite de cuota)
 function _ftfOsKey(){return'ftfOS_'+CZ;}
-function getFtfOS(){try{const raw=sessionStorage.getItem(_ftfOsKey());return raw?JSON.parse(raw):[];}catch(e){return[];}}
-function setFtfOS(arr){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr));}catch(e){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr.slice(0,500)));}catch(e2){}}}
+function getFtfOS(){try{const r=sessionStorage.getItem(_ftfOsKey());return r?JSON.parse(r):[];}catch(e){return[];}}
+function setFtfOS(arr){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr));}catch(e){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr.slice(0,800)));}catch(e2){}}}
+// Limpiar osData de localStorage al inicio (versiones anteriores lo guardaban ahí)
+(function _purgeFtfFromLS(){try{['appSD','appYZD'].forEach(k=>{const raw=localStorage.getItem(k);if(!raw||!raw.includes('osData'))return;try{const obj=JSON.parse(raw);const strip=o=>{if(!o||typeof o!=='object')return;if(Array.isArray(o))return;if('osData'in o){delete o.osData;}Object.values(o).forEach(strip);};strip(obj);localStorage.setItem(k,JSON.stringify(obj));}catch(e){}});}catch(e){}})();
 function getFtv(){
   const zd=gzd();
-  if(!zd.ftv)zd.ftv={filtros:{},updatedAt:'',osCount:0};
+  if(!zd.ftv)zd.ftv={filtros:{},updatedAt:''};
   if(!zd.ftv.filtros)zd.ftv.filtros={};
-  // Limpiar osData del localStorage si quedó de versión anterior
-  if(Object.prototype.hasOwnProperty.call(zd.ftv,'osData')&&!zd.ftv.osData.__isProxy){
-    delete zd.ftv.osData;
-  }
-  // osData vive en sessionStorage, no en localStorage
-  const desc=Object.getOwnPropertyDescriptor(zd.ftv,'osData');
-  if(!desc||!desc.get){
-    Object.defineProperty(zd.ftv,'osData',{get:getFtfOS,set:setFtfOS,configurable:true,enumerable:false});
-  }
   return zd.ftv;
 }
 function setFtfFiltro(k,v){
@@ -816,10 +810,9 @@ function setFtfFiltro(k,v){
   renderMain('kpi');
 }
 function getFtfFiltered(){
-  const ftv=getFtv();
-  const f=ftv.filtros||{};
+  const f=(getFtv().filtros)||{};
   const nc=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  return ftv.osData.filter(r=>{
+  return getFtfOS().filter(r=>{
     if(f.año&&f.año!=='Todos'&&r.año!==parseInt(f.año))return false;
     if(f.marca&&f.marca!=='Todos'&&nc(r.marca)!==nc(f.marca))return false;
     if(f.tipoServicio&&f.tipoServicio!=='Todos'&&nc(r.tipoServicio)!==nc(f.tipoServicio))return false;
@@ -858,7 +851,7 @@ function showFTFDetalle(ti){ftfTrimDetail=ti;renderMain('kpi');setTimeout(()=>{c
 function hideFTFDetalle(){ftfTrimDetail=null;renderMain('kpi');}
 function renderFTFDetalleOS(){
   const ftv=getFtv();const t=FTF_TRIMS[ftfTrimDetail];
-  const os=ftv.osData.filter(r=>r.trim===ftfTrimDetail);
+  const os=getFtfOS().filter(r=>r.trim===ftfTrimDetail);
   const ftfC=os.filter(r=>r.ftf==='F.T.F.').length;
   const noC=os.filter(r=>r.ftf==='NO F.T.F.').length;
   const pct=os.length>0?Math.round(ftfC/os.length*1000)/10:null;
@@ -931,14 +924,15 @@ function makeFtfHBarChart(trimData){
 function renderVisorFTF(){
   const ftv=getFtv();
   const f=ftv.filtros||{};
-  const hasRaw=ftv.osData&&ftv.osData.length>0;
+  const rawOS=getFtfOS();
+  const hasRaw=rawOS.length>0;
   const pct=(n,d)=>d>0?Math.round(n/d*1000)/10:null;
 
   // Opciones únicas para filtros
-  const años=hasRaw?[...new Set(ftv.osData.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
-  const marcas=hasRaw?[...new Set(ftv.osData.map(r=>r.marca))].filter(Boolean).sort():[];
-  const tipos=hasRaw?[...new Set(ftv.osData.map(r=>r.tipoServicio))].filter(Boolean).sort():[];
-  const sucursales=hasRaw?[...new Set(ftv.osData.map(r=>r.sucursal))].filter(Boolean).sort():[];
+  const años=hasRaw?[...new Set(rawOS.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
+  const marcas=hasRaw?[...new Set(rawOS.map(r=>r.marca))].filter(Boolean).sort():[];
+  const tipos=hasRaw?[...new Set(rawOS.map(r=>r.tipoServicio))].filter(Boolean).sort():[];
+  const sucursales=hasRaw?[...new Set(rawOS.map(r=>r.sucursal))].filter(Boolean).sort():[];
 
   const selStyle='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
   const mkSel=(key,opts,cur)=>`<select style="${selStyle}" onchange="setFtfFiltro('${key}',this.value)">
@@ -1152,7 +1146,7 @@ function loadExcelFTF(input){
           for(let x=0;x<c.ftf;x++) synth.push({os:'',prospecto:'',sucursal:'',tecnico:'',fechaAlta:'',cantRep:1,ftf:'F.T.F.',mes:mi,trim:Math.floor(mi/3),año:CY,marca:'RATIONAL',tipoServicio:'Garantía'});
           for(let x=0;x<c.noFtf;x++) synth.push({os:'',prospecto:'',sucursal:'',tecnico:'',fechaAlta:'',cantRep:2,ftf:'NO F.T.F.',mes:mi,trim:Math.floor(mi/3),año:CY,marca:'RATIONAL',tipoServicio:'Garantía'});
         });
-        ftv.osData=synth;
+        setFtfOS(synth);
         ftv.filtros={año:CY,marca:'RATIONAL',tipoServicio:'Garantía',sucursal:'Todos'};
         ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
         saveData();
@@ -1211,7 +1205,7 @@ function loadExcelFTF(input){
       }
 
       const ftv=getFtv();
-      ftv.osData=osData;
+      setFtfOS(osData);
       // Resetear filtros al cargar nuevo Excel
       const años=[...new Set(osData.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a);
       const marcasU=[...new Set(osData.map(r=>r.marca))].filter(Boolean);
