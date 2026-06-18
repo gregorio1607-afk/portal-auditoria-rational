@@ -776,7 +776,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='1.1'?renderVisorAuditoria11():'';
+  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='1.1'?renderVisorAuditoria11():CA==='1.2'?renderVisorMedicion12():'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -1652,6 +1652,179 @@ function renderVisorAuditoria11(){
           <td style="padding:5px 8px;text-align:center;">${baja?`<span style="font-size:9px;background:#f5f5f5;color:#888;padding:2px 6px;border-radius:8px;">BAJA</span>`:''}${t.motivo&&t.motivo!=='BAJA'?`<span style="font-size:9px;color:var(--tx3);">${esc(t.motivo)}</span>`:''}</td>
         </tr>`;
       }).join(''):`<tr><td colspan="6" style="padding:40px;text-align:center;color:var(--tx3);font-size:12px;">Carga el Excel de Auditorías para ver el desglose por técnico.</td></tr>`}</tbody>
+    </table></div>
+  </div>`;
+}
+// ── KPI 1.2 · Analizador de Gas ──────────────────────────────────────────────
+function getM12(){const zd=gzd();if(!zd.m12)zd.m12={instrumentos:[
+  {serie:'15060143',marca:'BACHARACH',modelo:'',unidad:'México',responsable:'Ana Montemayor',fechaCal:'2025-07-22',fechaPlaneada:'2026-04-22',cert:''},
+  {serie:'17043495',marca:'BACHARACH',modelo:'',unidad:'Norte',responsable:'Ana Montemayor',fechaCal:'2026-04-17',fechaPlaneada:'2027-01-17',cert:''},
+],bitacora:[]};return zd.m12;}
+function saveM12Bit(entry){const m=getM12();m.bitacora.unshift(entry);saveData();renderMain('kpi');}
+function delM12Bit(id){const m=getM12();m.bitacora=m.bitacora.filter(e=>e.id!==id);saveData();renderMain('kpi');}
+function saveM12Inst(idx,field,val){const m=getM12();if(m.instrumentos[idx])m.instrumentos[idx][field]=val;saveData();renderMain('kpi');}
+function uploadCertM12(input,serie){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{localStorage.setItem('cert12_'+serie,e.target.result);toast('✅ Certificado guardado');renderMain('kpi');}
+    catch(ex){toast('❌ Archivo muy grande para almacenar');}
+  };
+  reader.readAsDataURL(file);
+}
+function renderVisorMedicion12(){
+  const m=getM12();
+  const insts=m.instrumentos||[];
+  const bit=m.bitacora||[];
+  const grn='#2e7d32',org='#e65100';
+
+  // Meses Jul2025–Jun2026
+  const MESES=[
+    {label:'Jul',año:2025,mi:6},{label:'Ago',año:2025,mi:7},{label:'Sep',año:2025,mi:8},
+    {label:'Oct',año:2025,mi:9},{label:'Nov',año:2025,mi:10},{label:'Dic',año:2025,mi:11},
+    {label:'Ene',año:2026,mi:0},{label:'Feb',año:2026,mi:1},{label:'Mar',año:2026,mi:2},
+    {label:'Abr',año:2026,mi:3},{label:'May',año:2026,mi:4},{label:'Jun',año:2026,mi:5},
+  ];
+
+  // Cumplimiento por instrumento: SI si ese mes <= fechaPlaneada
+  const cumple=(inst,m)=>{
+    if(!inst.fechaPlaneada)return false;
+    const fp=new Date(inst.fechaPlaneada);
+    const mesDate=new Date(m.año,m.mi+1,0); // último día del mes
+    return mesDate<=fp;
+  };
+
+  // SVG gráfica cumplimiento
+  const W=520,H=120,pad=28,bw=Math.floor((W-pad*2)/MESES.length)-4;
+  const colors=['#1565c0','#e65100'];
+  const svgBars=MESES.map((mes,i)=>{
+    const x=pad+i*(bw+4);
+    return insts.map((inst,j)=>{
+      const ok=cumple(inst,mes);
+      const bh=ok?70:20;
+      const y=H-bh-15;
+      const clr=ok?grn:org;
+      const offset=j*(Math.floor(bw/2)+1);
+      return`<rect x="${x+offset}" y="${y}" width="${Math.floor(bw/2)-1}" height="${bh}" fill="${clr}" opacity="0.8" rx="2"/>`;
+    }).join('')+`<text x="${x+bw/2}" y="${H-2}" text-anchor="middle" font-size="8" fill="var(--tx3)" font-family="sans-serif">${mes.label}</text>`;
+  }).join('');
+  const svgChart=`<svg width="100%" viewBox="0 0 ${W} ${H+8}" style="margin:6px 0 10px;">
+    <line x1="${pad}" y1="${H-15}" x2="${W-10}" y2="${H-15}" stroke="var(--brd)" stroke-width="0.5"/>
+    ${svgBars}
+    <rect x="10" y="4" width="8" height="8" fill="${grn}" rx="1"/><text x="21" y="12" font-size="8" fill="var(--tx3)" font-family="sans-serif">Calibrado</text>
+    <rect x="80" y="4" width="8" height="8" fill="${org}" rx="1"/><text x="91" y="12" font-size="8" fill="var(--tx3)" font-family="sans-serif">Vencido</text>
+    <text x="${W-10}" y="12" text-anchor="end" font-size="8" fill="var(--tx3)" font-family="sans-serif">■ Azul=México ■ Naranja=Norte</text>
+  </svg>`;
+
+  // Cards de instrumentos
+  const instCards=insts.map((inst,idx)=>{
+    const fp=inst.fechaPlaneada?new Date(inst.fechaPlaneada):null;
+    const hoy=new Date();
+    const vigente=fp&&hoy<=fp;
+    const cert=localStorage.getItem('cert12_'+inst.serie)||'';
+    const diasRestantes=fp?Math.ceil((fp-hoy)/(1000*60*60*24)):null;
+    return`<div style="background:var(--bg2);border-radius:10px;padding:12px 16px;flex:1;min-width:240px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:12px;font-weight:800;color:var(--tx);">Serie ${esc(inst.serie)}</span>
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;${vigente?'background:#e8f5e9;color:#2e7d32':'background:#ffebee;color:#c62828'};">${vigente?'✓ Vigente':'✗ Vencido'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);line-height:1.8;">
+        <span style="font-weight:600;color:var(--tx);">UN:</span> ${esc(inst.unidad)} &nbsp;
+        <span style="font-weight:600;color:var(--tx);">Marca:</span> ${esc(inst.marca)}<br/>
+        <span style="font-weight:600;color:var(--tx);">Últ. calibración:</span> ${inst.fechaCal||'—'} &nbsp;
+        <span style="font-weight:600;color:var(--tx);">Próxima:</span> ${inst.fechaPlaneada||'—'}
+        ${diasRestantes!==null?`<br/><span style="color:${vigente&&diasRestantes<=90?org:vigente?grn:'#c62828'};font-weight:600;">${vigente?diasRestantes+' días para vencer':'Venció hace '+Math.abs(diasRestantes)+' días'}</span>`:''}
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        ${cert?`<a href="${cert}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;">📄 Ver certificado</a>
+          <button onclick="localStorage.removeItem('cert12_${inst.serie}');renderMain('kpi');" style="font-size:10px;padding:2px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕ Eliminar</button>`
+          :`<label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;">📎 Subir certificado PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertM12(this,'${inst.serie}')"/></label>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Form nueva entrada bitácora
+  const formBit=`<div style="background:#f8fdf9;border:1.5px solid #c8e6c9;border-radius:10px;padding:14px;margin-bottom:14px;" id="m12-form">
+    <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">➕ Registrar préstamo</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;">FECHA</label>
+        <input type="date" id="m12f_fecha" style="width:100%;padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;" value="${new Date().toISOString().slice(0,10)}"/></div>
+      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;">SERIE</label>
+        <select id="m12f_serie" style="width:100%;padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;">
+          ${insts.map(i=>`<option value="${i.serie}">${i.serie} (${i.unidad})</option>`).join('')}
+        </select></div>
+      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;">REVISÓ</label>
+        <input type="text" id="m12f_reviso" placeholder="Nombre" style="width:100%;padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;box-sizing:border-box;"/></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_filtro" style="accent-color:var(--grn);"/> Filtro</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_sonda" style="accent-color:var(--grn);"/> Sonda</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_funda" style="accent-color:var(--grn);"/> Funda</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_equipo" style="accent-color:var(--grn);"/> Equipo</label>
+      <div style="margin-left:auto;"><label style="font-size:10px;color:var(--tx3);font-weight:700;">FIRMA</label>
+        <input type="text" id="m12f_firma" placeholder="Nombre quien recibe" style="padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;width:160px;"/></div>
+    </div>
+    <button onclick="(function(){
+      const f=document.getElementById('m12f_fecha').value;
+      const s=document.getElementById('m12f_serie').value;
+      const rev=document.getElementById('m12f_reviso').value.trim();
+      const fir=document.getElementById('m12f_firma').value.trim();
+      if(!f||!s){toast('Completa fecha y serie');return;}
+      saveM12Bit({id:Date.now(),fecha:f,serie:s,
+        filtro:document.getElementById('m12f_filtro').checked,
+        sonda:document.getElementById('m12f_sonda').checked,
+        funda:document.getElementById('m12f_funda').checked,
+        equipo:document.getElementById('m12f_equipo').checked,
+        reviso:rev,firma:fir});
+      toast('✅ Registro guardado');
+    })()" style="padding:6px 18px;background:var(--grn);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Guardar registro</button>
+  </div>`;
+
+  // Tabla bitácora
+  const bit12Rows=bit.length===0
+    ?`<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros. Usa el formulario para agregar el primer préstamo.</td></tr>`
+    :bit.map((e,i)=>{
+      const chk=v=>`<span style="font-size:13px;">${v?'✅':'⬜'}</span>`;
+      return`<tr style="border-bottom:1px solid #f0f0f0;font-size:11px;">
+        <td style="padding:4px 6px;text-align:center;color:var(--tx3);">${i+1}</td>
+        <td style="padding:4px 8px;">${e.fecha||''}</td>
+        <td style="padding:4px 8px;font-weight:600;">${e.serie||''}</td>
+        <td style="padding:4px 8px;text-align:center;">${chk(e.filtro)}</td>
+        <td style="padding:4px 8px;text-align:center;">${chk(e.sonda)}</td>
+        <td style="padding:4px 8px;text-align:center;">${chk(e.funda)}</td>
+        <td style="padding:4px 8px;text-align:center;">${chk(e.equipo)}</td>
+        <td style="padding:4px 8px;">${esc(e.reviso||'')} ${e.firma?'/ '+esc(e.firma):''}</td>
+        <td style="padding:4px 6px;text-align:center;"><button onclick="if(confirm('¿Eliminar este registro?'))delM12Bit(${e.id})" style="font-size:10px;padding:2px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕</button></td>
+      </tr>`;
+    }).join('');
+
+  return`<div class="card" style="margin-bottom:10px;">
+    <div class="card-title">🔬 Analizador de Gas · KPI 1.2</div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;">Control de calibración y préstamo de analizadores de gas Bacharach</div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">${instCards}</div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Cumplimiento calibración mensual</div>
+    ${svgChart}
+  </div>
+
+  <div class="card" style="margin-top:10px;">
+    <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px;">📋 Bitácora de préstamo · Analizador de Gas</div>
+    ${formBit}
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;min-width:560px;">
+      <thead><tr style="background:#f5f9f6;border-bottom:2px solid var(--brd);">
+        <th style="padding:5px 6px;font-size:10px;color:var(--tx3);text-align:center;">#</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Fecha</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Serie</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Filtro</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Sonda</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Funda</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Equipo</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Revisó / Firma</th>
+        <th style="padding:5px 6px;font-size:10px;color:var(--tx3);"></th>
+      </tr></thead>
+      <tbody>${bit12Rows}</tbody>
     </table></div>
   </div>`;
 }
