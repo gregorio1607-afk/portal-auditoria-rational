@@ -2323,6 +2323,25 @@ function loadExcelEnc31(input){
   };
   reader.readAsArrayBuffer(file);
 }
+function uploadPdfEnc31(input,osId){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const enc=getEnc31();
+    const rec=enc.os.find(r=>r.os===String(osId));
+    if(!rec){toast('❌ OS no encontrada');return;}
+    rec.pdf=e.target.result;
+    saveData();toast('✅ PDF guardado');renderMain(CT);
+  };
+  reader.readAsDataURL(file);
+}
+function viewPdfEnc31(osId){
+  const enc=getEnc31();
+  const rec=enc.os.find(r=>r.os===String(osId));
+  if(!rec||!rec.pdf){toast('Sin PDF');return;}
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><body style="margin:0;"><embed src="${rec.pdf}" type="application/pdf" width="100%" height="100%" style="height:100vh;"/></body></html>`);
+}
 function renderEncuestas31(){
   const enc=getEnc31();
   const all=enc.os||[];
@@ -2405,16 +2424,26 @@ function renderEncuestas31(){
     return'';
   };
   const makeTabla=rows=>{
-    if(!rows.length)return`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS en este período.</td></tr>`;
-    return rows.map(r=>`<tr style="border-bottom:1px solid #f0f0f0;">
-      <td style="padding:5px 6px;font-size:10px;color:var(--tx3);">${r.fecha?r.fecha.slice(0,7):'-'}</td>
-      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(r.sucursal)}</td>
-      <td style="padding:5px 8px;font-size:11px;font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.cliente)}</td>
-      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(r.tipo)}</td>
-      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${r.os}</td>
-      <td style="padding:5px 8px;">${npsChip(r)}</td>
-      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.comentarios||r.satEscrito)}</td>
-    </tr>`).join('');
+    if(!rows.length)return`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS en este período.</td></tr>`;
+    return rows.map(r=>{
+      const hasPdf=!!(r.pdf);
+      const pdfCell=hasPdf
+        ?`<button onclick="viewPdfEnc31('${r.os}')" style="background:#e8f5e9;border:none;cursor:pointer;border-radius:6px;padding:3px 7px;font-size:10px;color:#2e7d32;font-weight:700;">📄 Ver</button>`
+        :`<label style="cursor:pointer;background:#f5f5f5;border-radius:6px;padding:3px 7px;font-size:10px;color:#888;font-weight:700;white-space:nowrap;" title="Adjuntar PDF">📎<input type="file" accept="application/pdf" style="display:none;" onchange="uploadPdfEnc31(this,'${r.os}')"/></label>`;
+      return`<tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:5px 6px;font-size:10px;color:var(--tx3);">${r.fecha?r.fecha.slice(0,7):'-'}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(r.sucursal)}</td>
+        <td style="padding:5px 8px;font-size:11px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.cliente)}</td>
+        <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(r.tipo)}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${r.os}</td>
+        <td style="padding:5px 8px;">${npsChip(r)}</td>
+        <td style="padding:5px 8px;text-align:center;">
+          <div style="font-size:12px;font-weight:700;color:${r.satScore!==null?(r.satScore>=8?grn:r.satScore>=6?org:red):'#888'}">${r.satScore!==null?r.satScore:'-'}</div>
+          <div style="margin-top:2px;">${pdfCell}</div>
+        </td>
+        <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.comentarios||r.satEscrito)}</td>
+      </tr>`;
+    }).join('');
   };
   const thead=`<thead><tr style="background:#f5f5f5;">
     <th style="padding:6px;font-size:10px;color:var(--tx3);font-weight:700;">Mes</th>
@@ -2423,6 +2452,7 @@ function renderEncuestas31(){
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Tipo</th>
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;"># OS</th>
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;">NPS</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:center;">Sat. / PDF</th>
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Comentario</th>
   </tr></thead>`;
 
