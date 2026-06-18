@@ -1674,10 +1674,13 @@ function renderVisorAuditoria11(){
 // ── KPI 1.2 · Analizador de Gas ──────────────────────────────────────────────
 function getM12(){
   const zd=gzd();if(!zd.m12)zd.m12={instrumentos:[],bitacora:[]};
-  // Migrar certs de clave separada al objeto principal
   let migrated=false;
   zd.m12.instrumentos.forEach(inst=>{
-    if(!inst.cert&&inst.serie){const old=localStorage.getItem('cert12_'+inst.serie);if(old){inst.cert=old;try{localStorage.removeItem('cert12_'+inst.serie);}catch(e){}migrated=true;}}
+    // Migrar cert string → array certs
+    if(inst.cert&&!inst.certs){inst.certs=[{id:Date.now(),fecha:new Date().toISOString().slice(0,10),nombre:'Certificado anterior',data:inst.cert}];delete inst.cert;migrated=true;}
+    if(!inst.certs)inst.certs=[];
+    // Migrar cert12_ localStorage
+    if(inst.serie){const old=localStorage.getItem('cert12_'+inst.serie);if(old){inst.certs.unshift({id:Date.now()+1,fecha:new Date().toISOString().slice(0,10),nombre:'Certificado migrado',data:old});try{localStorage.removeItem('cert12_'+inst.serie);}catch(e){}migrated=true;}}
   });
   if(migrated)saveData();
   return zd.m12;
@@ -1686,17 +1689,21 @@ function saveM12Bit(entry){const m=getM12();m.bitacora.unshift(entry);saveData()
 function delM12Bit(id){const m=getM12();m.bitacora=m.bitacora.filter(e=>e.id!==id);saveData();renderMain(CT);}
 function saveM12Inst(idx,field,val){const m=getM12();if(m.instrumentos[idx])m.instrumentos[idx][field]=val;saveData();}
 function saveM12InstR(idx,field,val){saveM12Inst(idx,field,val);renderMain(CT);}
-function addM12Inst(){const m=getM12();m.instrumentos.push({serie:'',marca:'',modelo:'',unidad:'',responsable:'',fechaCal:'',fechaPlaneada:'',cert:''});saveData();renderMain(CT);}
+function addM12Inst(){const m=getM12();m.instrumentos.push({serie:'',marca:'',modelo:'',unidad:'',responsable:'',fechaCal:'',fechaPlaneada:'',certs:[]});saveData();renderMain(CT);}
 function delM12Inst(idx){if(!confirm('¿Eliminar este analizador?'))return;const m=getM12();m.instrumentos.splice(idx,1);saveData();renderMain(CT);}
+function delCertM12(instIdx,certId){if(!confirm('¿Eliminar este certificado del historial?'))return;const m=getM12();const inst=m.instrumentos[instIdx];if(inst)inst.certs=(inst.certs||[]).filter(c=>c.id!==certId);saveData();renderMain(CT);}
 function uploadCertM12(input,idx){
   const file=input.files[0];if(!file)return;
   if(file.size>3*1024*1024){toast('❌ Archivo muy grande — máximo 3 MB');return;}
+  const nombre=file.name;
+  const fecha=new Date().toISOString().slice(0,10);
   const reader=new FileReader();
   reader.onload=e=>{
     const m=getM12();if(!m.instrumentos[idx])return;
-    m.instrumentos[idx].cert=e.target.result;
+    if(!m.instrumentos[idx].certs)m.instrumentos[idx].certs=[];
+    m.instrumentos[idx].certs.unshift({id:Date.now(),fecha,nombre,data:e.target.result});
     try{saveData();toast('✅ Certificado guardado');renderMain(CT);}
-    catch(ex){m.instrumentos[idx].cert='';toast('❌ No se pudo guardar — archivo demasiado grande');}
+    catch(ex){m.instrumentos[idx].certs.shift();toast('❌ No se pudo guardar — archivo demasiado grande');}
   };
   reader.readAsDataURL(file);
 }
@@ -1714,7 +1721,7 @@ function renderVisorMedicion12(){
     const vigente=fp?(hoy<=fp):null;
     const dias=fp?Math.ceil((fp-hoy)/86400000):null;
     const porVencer=vigente&&dias!==null&&dias<=90;
-    const cert=inst.cert||'';
+    const certs=inst.certs||[];
     return{...inst,idx,fp,fc,vigente,dias,porVencer,cert};
   });
 
@@ -1773,14 +1780,20 @@ function renderVisorMedicion12(){
           <input type="date" class="fc" value="${d.fechaPlaneada||''}" style="font-size:11px;" onchange="saveM12InstR(${i},'fechaPlaneada',this.value)"/></div>
       </div>
       ${diasBar(d)}
-      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--brd);">
-        <span style="font-size:10px;font-weight:700;color:var(--tx3);">CERTIFICADO:</span>
-        ${d.cert
-          ?`<a href="${d.cert}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;">📄 Ver PDF</a>
-             <button onclick="saveM12Inst(${i},'cert','');renderMain(CT);" style="font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕ Quitar</button>`
-          :`<label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-              📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertM12(this,${i})"/>
-            </label>`}
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--brd);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;">Historial de certificados</span>
+          <label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;">
+            📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertM12(this,${i})"/>
+          </label>
+        </div>
+        ${d.certs.length>0
+          ?d.certs.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
+              <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
+              <a href="${c.data}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
+              <button onclick="delCertM12(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
+            </div>`).join('')
+          :`<div style="font-size:11px;color:var(--tx3);padding:6px 0;">Sin certificados aún.</div>`}
       </div>
     </div>`;
   }).join('');
