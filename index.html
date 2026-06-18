@@ -824,6 +824,12 @@ function setSucursalZona(zona,sucucursalesEnZona,checked){
   sucucursalesEnZona.forEach(s=>{const i=arr.indexOf(s);if(checked&&i<0)arr.push(s);if(!checked&&i>=0)arr.splice(i,1);});
   saveData();renderMain('kpi');
 }
+function selZonaOnly(zona,todasSucursales){
+  // Selecciona SOLO las sucursales de la zona indicada, deselecciona el resto
+  const ftv=getFtv();
+  ftv.filtros.sucursales=todasSucursales.filter(s=>getSucZona(s)===zona);
+  saveData();renderMain('kpi');
+}
 function getFtfFiltered(){
   const f=(getFtv().filtros)||{};
   const nc=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
@@ -969,9 +975,9 @@ function renderVisorFTF(){
       const allCDMXsel=grpCDMX.length>0&&grpCDMX.every(s=>sels?sels.includes(s):true);
       const selLbl=sels===null?'Todas':'Sel. '+sels.length;
       const mkGrp=(zona,grp,allSel)=>grp.length===0?'':
-        `<div style="padding:4px 8px 2px;background:#f5f5f5;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px;">
+        `<div style="padding:4px 8px 2px;background:#f0f4f0;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px;">
           <input type="checkbox" ${allSel?'checked':''} onchange="setSucursalZona('${zona}',${JSON.stringify(grp)},this.checked)" style="cursor:pointer;accent-color:var(--grn);"/>
-          ${zona}
+          <span onclick="selZonaOnly('${zona}',${JSON.stringify(sucursales)})" style="cursor:pointer;color:var(--grn);text-decoration:underline;text-underline-offset:2px;" title="Seleccionar solo ${zona}">${zona}</span>
         </div>`+
         grp.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px 20px;cursor:pointer;font-size:11px;color:var(--tx);">
           <input type="checkbox" value="${s}" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursal('${s}')" style="cursor:pointer;accent-color:var(--grn);"/>
@@ -1211,6 +1217,7 @@ function loadExcelFTF(input){
         tipo:     hdr.findIndex(h=>h.includes('tipo')),
         fechaAlta:hdr.findIndex(h=>norm(h).replace(/\s/g,'').includes('fechaalta')),
         cantRep:  hdr.findIndex(h=>h.includes('cant')&&h.includes('rep')),
+        trimCol:  hdr.findIndex(h=>h.includes('trim')),  // columna P Kepler
       };
       const missing=[['marca',ci.marca],['tipo',ci.tipo],['fechaAlta',ci.fechaAlta],['cantRep',ci.cantRep]].filter(([,v])=>v<0).map(([k])=>k);
       if(missing.length){toast('Columnas no encontradas: '+missing.join(', '));console.warn('Headers:',hdr);return;}
@@ -1232,6 +1239,12 @@ function loadExcelFTF(input){
         const fechaStr=row[ci.fechaAlta] instanceof Date
           ?row[ci.fechaAlta].toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})
           :String(row[ci.fechaAlta]||'').trim();
+        // Trimestre: leer columna P si existe (valor "T1"/"1"/1), si no derivar del mes
+        let trimVal=Math.floor(fecha.mo/3);
+        if(ci.trimCol>=0&&row[ci.trimCol]!=null){
+          const tr=parseInt(String(row[ci.trimCol]).replace(/[^0-9]/g,''));
+          if(tr>=1&&tr<=4)trimVal=tr-1; // normalizar a 0-3
+        }
         osData.push({
           os:          String(row[ci.os]       ||'').trim(),
           prospecto:   String(row[ci.prospecto]||'').trim(),
@@ -1241,7 +1254,7 @@ function loadExcelFTF(input){
           cantRep:     cant,
           ftf:         isFtf?'F.T.F.':'NO F.T.F.',
           mes:         fecha.mo,
-          trim:        Math.floor(fecha.mo/3),
+          trim:        trimVal,
           año:         fecha.yr,
           marca,
           tipoServicio,
