@@ -862,37 +862,69 @@ function loadExcelAuditoria11(input){
       wb.SheetNames.filter(n=>/auditorias\s+\d{4}/i.test(n)).forEach(name=>{
         const ws=wb.Sheets[name];
         const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
+        if(!rows.length)return;
+        const añoMatch=name.match(/\d{4}/);
+        const año=añoMatch?parseInt(añoMatch[0]):CY;
+
+        // Detectar si fila 0 es título de mes (ej. "ENERO") y fila 1 son encabezados
+        // o si fila 0 ya son los encabezados con columna "mes"
+        const normH=s=>String(s||'').toLowerCase().trim();
+        let hdrIdx=0;
+        let mesGlobal=-1; // mes fijo si la hoja declara el mes en fila título
+
+        // Buscar primera fila con texto "mes" o con columna nombre
+        for(let i=0;i<Math.min(rows.length,5);i++){
+          const row=rows[i].map(normH);
+          if(row.some(h=>h==='nombre'||h.includes('nombre')||h.includes('tecnico'))){hdrIdx=i;break;}
+        }
+
+        // Si la fila anterior a los encabezados contiene un nombre de mes, usarlo como mes global
+        if(hdrIdx>0){
+          for(let i=0;i<hdrIdx;i++){
+            for(const cell of rows[i]){
+              const v=String(cell||'').toUpperCase().trim();
+              const m=Object.keys(MES_NUM).find(k=>v.includes(k));
+              if(m!==undefined){mesGlobal=MES_NUM[m];break;}
+            }
+            if(mesGlobal>=0)break;
+          }
+        }
+
+        const hdr=rows[hdrIdx].map(normH);
         const ci={
-          nombre:hdr.findIndex(h=>h==='nombre'),
-          puesto:hdr.findIndex(h=>h==='puesto'),
+          nombre:hdr.findIndex(h=>h.includes('nombre')||h.includes('tecnico')),
+          puesto:hdr.findIndex(h=>h.includes('puesto')||h.includes('cargo')),
           seg:hdr.findIndex(h=>h.includes('segmento')),
-          subUbic:hdr.findIndex(h=>h.includes('sub ubic')||h.includes('ubicacion')),
-          herr:hdr.findIndex(h=>h.includes('herramienta')&&!h.includes('presento')),
-          presHerr:hdr.findIndex(h=>h.includes('presento')&&h.includes('herramienta')),
-          auto:hdr.findIndex(h=>h.includes('automovil')&&!h.includes('presento')&&!h.includes('presento')),
-          presAuto:hdr.findIndex(h=>h.includes('presento')&&h.includes('automovil')),
-          motivo:hdr.findIndex(h=>h==='motivo'),
-          mes:hdr.findIndex(h=>h==='mes'),
+          subUbic:hdr.findIndex(h=>h.includes('sub ubic')||h.includes('ubicacion')||h.includes('sucursal')),
+          herr:hdr.findIndex(h=>h.includes('herramienta')&&!h.includes('presento')&&!h.includes('presentó')),
+          presHerr:hdr.findIndex(h=>(h.includes('presento')||h.includes('presentó'))&&h.includes('herramienta')),
+          auto:hdr.findIndex(h=>h.includes('automov')&&!h.includes('presento')&&!h.includes('presentó')),
+          presAuto:hdr.findIndex(h=>(h.includes('presento')||h.includes('presentó'))&&h.includes('automov')),
+          motivo:hdr.findIndex(h=>h.includes('motivo')),
+          mes:hdr.findIndex(h=>h==='mes'||h==='mes alta'||h==='mes de alta'),
         };
-        for(let i=1;i<rows.length;i++){
+        for(let i=hdrIdx+1;i<rows.length;i++){
           const r=rows[i];
-          const nombre=String(r[ci.nombre]||'').trim();
-          if(!nombre)continue;
-          const mesStr=String(r[ci.mes]||'').toUpperCase().trim();
-          const mesNum=MES_NUM[mesStr]??-1;
-          const añoMatch=name.match(/\d{4}/);
-          const año=añoMatch?parseInt(añoMatch[0]):CY;
+          const nombre=String(r[ci.nombre>=0?ci.nombre:0]||'').trim();
+          if(!nombre||nombre.toLowerCase().includes('total'))continue;
+          let mesNum=mesGlobal;
+          let mesStr='';
+          if(ci.mes>=0){
+            mesStr=String(r[ci.mes]||'').toUpperCase().trim();
+            mesNum=MES_NUM[mesStr]??mesGlobal;
+          }
+          if(mesNum<0)continue;
+          if(!mesStr)mesStr=Object.keys(MES_NUM).find(k=>MES_NUM[k]===mesNum)||'';
           records.push({
             nombre,
-            puesto:String(r[ci.puesto]||'').trim(),
-            segmento:String(r[ci.seg]||'').trim(),
-            subUbic:String(r[ci.subUbic]||'').trim(),
-            herr:String(r[ci.herr]||'').trim(),
-            presHerr:String(r[ci.presHerr]||'').trim(),
-            auto:String(r[ci.auto]||'').trim(),
-            presAuto:String(r[ci.presAuto]||'').trim(),
-            motivo:String(r[ci.motivo]||'').trim(),
+            puesto:ci.puesto>=0?String(r[ci.puesto]||'').trim():'',
+            segmento:ci.seg>=0?String(r[ci.seg]||'').trim():'',
+            subUbic:ci.subUbic>=0?String(r[ci.subUbic]||'').trim():'',
+            herr:ci.herr>=0?String(r[ci.herr]||'').trim():'-',
+            presHerr:ci.presHerr>=0?String(r[ci.presHerr]||'').trim():'',
+            auto:ci.auto>=0?String(r[ci.auto]||'').trim():'',
+            presAuto:ci.presAuto>=0?String(r[ci.presAuto]||'').trim():'',
+            motivo:ci.motivo>=0?String(r[ci.motivo]||'').trim():'',
             mes:mesNum,
             mesNombre:mesStr,
             año
