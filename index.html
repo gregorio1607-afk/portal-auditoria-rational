@@ -831,8 +831,10 @@ function toggleSucursalSave(suc,checked){
     if(!checked&&idx>=0)arr.splice(idx,1);
     if(arr.length===0)ftv.filtros.sucursales=[];
   }
-  saveData();renderMain('kpi');
-  // Re-abrir dropdown después del re-render
+  saveData();
+  const dbgSels=getFtv().filtros.sucursales;
+  toast('🔍 Suc guardadas: '+(dbgSels&&dbgSels.length>0?dbgSels.length+' sel':'Todas'));
+  renderMain('kpi');
   setTimeout(()=>{const d=document.getElementById('suc-details');if(d)d.setAttribute('open','');},20);
 }
 function setSucTodasSave(){
@@ -1167,7 +1169,7 @@ function renderVisorFTF(){
   </details>`;
 
   return`<div class="card" style="margin-top:10px;">
-    <div class="card-title">📊 Visor FTF · Kepler ERP <span style="font-size:10px;color:var(--tx3);font-weight:400;">v18jun-C</span></div>
+    <div class="card-title">📊 Visor FTF · Kepler ERP <span style="font-size:10px;color:var(--tx3);font-weight:400;">v18jun-D</span></div>
     ${filtroBar}
     ${anualBar}
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">
