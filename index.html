@@ -809,14 +809,30 @@ function setFtfFiltro(k,v){
   saveData();
   renderMain('kpi');
 }
+const _SCDMX=s=>{const n=String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');return/chihuahua|juarez|mexico|cdmx|ciudad de mexico/.test(n);};
+function getSucZona(s){return _SCDMX(s)?'CDMX':'MTY';}
+function toggleSucursal(suc){
+  const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
+  const arr=ftv.filtros.sucursales;
+  const idx=arr.indexOf(suc);
+  if(idx>=0)arr.splice(idx,1);else arr.push(suc);
+  saveData();renderMain('kpi');
+}
+function setSucursalZona(zona,sucucursalesEnZona,checked){
+  const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
+  const arr=ftv.filtros.sucursales;
+  sucucursalesEnZona.forEach(s=>{const i=arr.indexOf(s);if(checked&&i<0)arr.push(s);if(!checked&&i>=0)arr.splice(i,1);});
+  saveData();renderMain('kpi');
+}
 function getFtfFiltered(){
   const f=(getFtv().filtros)||{};
   const nc=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const sels=f.sucursales&&f.sucursales.length>0?f.sucursales:null;
   return getFtfOS().filter(r=>{
     if(f.año&&f.año!=='Todos'&&r.año!==parseInt(f.año))return false;
     if(f.marca&&f.marca!=='Todos'&&nc(r.marca)!==nc(f.marca))return false;
     if(f.tipoServicio&&f.tipoServicio!=='Todos'&&nc(r.tipoServicio)!==nc(f.tipoServicio))return false;
-    if(f.sucursal&&f.sucursal!=='Todos'&&nc(r.sucursal)!==nc(f.sucursal))return false;
+    if(sels&&!sels.includes(r.sucursal))return false;
     return true;
   });
 }
@@ -945,7 +961,36 @@ function renderVisorFTF(){
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MARCA</span>${mkSel('marca',marcas,f.marca)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipoServicio',tipos,f.tipoServicio)}</div>
-    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">SUCURSAL</span>${mkSel('sucursal',sucursales,f.sucursal)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">SUCURSAL</span>${(()=>{
+      const sels=f.sucursales&&f.sucursales.length>0?f.sucursales:null;
+      const grpMTY=sucursales.filter(s=>getSucZona(s)==='MTY');
+      const grpCDMX=sucursales.filter(s=>getSucZona(s)==='CDMX');
+      const allMTYsel=grpMTY.length>0&&grpMTY.every(s=>sels?sels.includes(s):true);
+      const allCDMXsel=grpCDMX.length>0&&grpCDMX.every(s=>sels?sels.includes(s):true);
+      const selLbl=sels===null?'Todas':'Sel. '+sels.length;
+      const mkGrp=(zona,grp,allSel)=>grp.length===0?'':
+        `<div style="padding:4px 8px 2px;background:#f5f5f5;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${allSel?'checked':''} onchange="setSucursalZona('${zona}',${JSON.stringify(grp)},this.checked)" style="cursor:pointer;accent-color:var(--grn);"/>
+          ${zona}
+        </div>`+
+        grp.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px 20px;cursor:pointer;font-size:11px;color:var(--tx);">
+          <input type="checkbox" value="${s}" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursal('${s}')" style="cursor:pointer;accent-color:var(--grn);"/>
+          ${s}
+        </label>`).join('');
+      return`<details style="position:relative;">
+        <summary style="list-style:none;padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;cursor:pointer;min-width:130px;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <span>${selLbl}</span><span style="font-size:10px;color:var(--tx3);">▾</span>
+        </summary>
+        <div style="position:absolute;z-index:99;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px #0002;min-width:200px;max-height:280px;overflow-y:auto;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;">
+            <input type="checkbox" ${sels===null?'checked':''} onchange="(function(c){const ftv=getFtv();ftv.filtros.sucursales=c?[]:${JSON.stringify(sucursales)};saveData();renderMain('kpi');})(this.checked)" style="cursor:pointer;accent-color:var(--grn);"/>
+            <strong>Todas las sucursales</strong>
+          </label>
+          ${mkGrp('MTY',grpMTY,allMTYsel)}
+          ${mkGrp('CDMX',grpCDMX,allCDMXsel)}
+        </div>
+      </details>`;
+    })()}</div>
     <label style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
       📤 Cargar Excel
       <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
