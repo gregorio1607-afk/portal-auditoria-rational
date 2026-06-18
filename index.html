@@ -2326,8 +2326,26 @@ function loadExcelEnc31(input){
   reader.readAsArrayBuffer(file);
 }
 // ── KPI 3.4 Tiempo de Resolución ─────────────────────────────────────────────
-let _os34Search='';
-let _os34SelQ=null;
+let _os34Filtros={año:'Todos',sucursal:'Todos',tipo:'Todos',tecnico:'Todos'};
+let _os34TrimDetail=null;
+const OS34_TRIMS=[
+  {label:'1er Trimestre',meses:'Ene–Mar',idx:[0,1,2]},
+  {label:'2do Trimestre',meses:'Abr–Jun',idx:[3,4,5]},
+  {label:'3er Trimestre',meses:'Jul–Sep',idx:[6,7,8]},
+  {label:'4to Trimestre',meses:'Oct–Dic',idx:[9,10,11]},
+];
+const OS34_MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function setOs34Filtro(k,v){_os34Filtros[k]=v;_os34TrimDetail=null;renderMain(CT);}
+function getOs34Filtered(){
+  const d=getOS34();const all=d.os||[];const f=_os34Filtros;
+  return all.filter(r=>{
+    if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
+    if(f.sucursal&&f.sucursal!=='Todos'&&r.sucursal!==f.sucursal)return false;
+    if(f.tipo&&f.tipo!=='Todos'&&r.tipo!==f.tipo)return false;
+    if(f.tecnico&&f.tecnico!=='Todos'&&r.tecnico!==f.tecnico)return false;
+    return true;
+  });
+}
 function getOS34(){
   if(!YZD[CY][CZ]['3.4'])YZD[CY][CZ]['3.4']={};
   const zd=YZD[CY][CZ]['3.4'];
@@ -2411,148 +2429,166 @@ function loadExcelOS34(input){
 }
 function renderVisorOS34(){
   const d=getOS34();
-  const all=(d.os||[]).filter(r=>r.año===CY);
+  const rawOS=d.os||[];
+  const hasRaw=rawOS.length>0;
   const grn='#2e7d32',org='#e65100',red='#c62828';
   const meta=85;
-  const terminadas=all.filter(r=>r.terminada);
+  const pct=(n,tot)=>tot>0?Math.round(n/tot*1000)/10:null;
+
+  // Opciones únicas para filtros
+  const años=hasRaw?[...new Set(rawOS.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
+  const sucursales=hasRaw?[...new Set(rawOS.map(r=>r.sucursal))].filter(Boolean).sort():[];
+  const tipos=hasRaw?[...new Set(rawOS.map(r=>r.tipo))].filter(Boolean).sort():[];
+  const tecnicos=hasRaw?[...new Set(rawOS.map(r=>r.tecnico))].filter(Boolean).sort():[];
+  const f=_os34Filtros;
+
+  const selStyle='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
+  const mkSel=(key,opts,cur)=>`<select style="${selStyle}" onchange="setOs34Filtro('${key}',this.value)">
+    <option value="Todos"${!cur||cur==='Todos'?' selected':''}>Todos</option>
+    ${opts.map(o=>`<option value="${o}"${cur==o?' selected':''}>${o}</option>`).join('')}
+  </select>`;
+
+  const filtroBar=hasRaw?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
+    <span style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;">Filtros:</span>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">SUCURSAL</span>${mkSel('sucursal',sucursales,f.sucursal)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipo',tipos,f.tipo)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TÉCNICO</span>${mkSel('tecnico',tecnicos,f.tecnico)}</div>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getOS34().os=[];_os34Filtros={año:'Todos',sucursal:'Todos',tipo:'Todos',tecnico:'Todos'};_os34TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>
+      <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
+        📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
+      </label>
+    </div>
+  </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">Carga el Excel exportado del SQL para visualizar el KPI de Tiempo de Resolución</div>
+    <label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
+      📤 Cargar Excel
+      <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
+    </label>
+  </div>`;
+
+  const osF=getOs34Filtered();
+  const terminadas=osF.filter(r=>r.terminada);
   const enTiempo=terminadas.filter(r=>r.cumple);
-  const pctKPI=terminadas.length>0?Math.round(enTiempo.length/terminadas.length*100):null;
-  const kpiClr=pctKPI===null?'#888':pctKPI>=meta?grn:pctKPI>=70?org:red;
+  const kpiAnual=pct(enTiempo.length,terminadas.length);
+  const kpiColor=kpiAnual===null?'var(--tx3)':kpiAnual>=meta?grn:kpiAnual>=70?org:red;
+  const kpiBg=kpiAnual===null?'#f8f8f8':kpiAnual>=meta?'#f0fbf5':kpiAnual>=70?'#fffde7':'#fff5f5';
+  const kpiBdr=kpiAnual===null?'#e0e0e0':kpiAnual>=meta?'#a5d6a7':kpiAnual>=70?'#ffe082':'#ef9a9a';
   const avgDias=terminadas.filter(r=>r.diasRes!==null).length>0
     ?Math.round(terminadas.filter(r=>r.diasRes!==null).reduce((s,r)=>s+r.diasRes,0)/terminadas.filter(r=>r.diasRes!==null).length)
     :null;
 
-  // ── Tarjetas KPI ──────────────────────────────────────────────────────────
-  const cards=all.length>0?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
-      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">KPI ≤ 30 días</div>
-      <div style="font-size:30px;font-weight:900;color:${kpiClr};line-height:1.1;">${pctKPI!==null?pctKPI+'%':'—'}</div>
-      <div style="font-size:10px;color:var(--tx3);">${enTiempo.length} / ${terminadas.length} OS</div>
+  const anualBar=osF.length>0?`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;background:${kpiBg};border:1.5px solid ${kpiBdr};margin-bottom:14px;">
+    <div style="text-align:center;min-width:80px;">
+      <div style="font-size:11px;color:var(--tx3);">TIEMPO RESOLUCIÓN ${f.año||CY}</div>
+      <div style="font-size:36px;font-weight:900;color:${kpiColor};line-height:1.1;">${kpiAnual!==null?kpiAnual+'%':'—'}</div>
     </div>
-    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
-      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Promedio días</div>
-      <div style="font-size:30px;font-weight:900;color:${avgDias===null?'#888':avgDias<=30?grn:avgDias<=45?org:red};line-height:1.1;">${avgDias!==null?avgDias:'—'}</div>
-      <div style="font-size:10px;color:var(--tx3);">días promedio</div>
-    </div>
-    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
-      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Total OS</div>
-      <div style="font-size:30px;font-weight:900;color:#1565c0;line-height:1.1;">${all.length}</div>
-      <div style="font-size:10px;color:var(--tx3);">${terminadas.length} terminadas</div>
-    </div>
-    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
-      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Meta</div>
-      <div style="font-size:30px;font-weight:900;color:var(--tx3);line-height:1.1;">${meta}%</div>
-      <div style="font-size:10px;color:${kpiClr};font-weight:700;">${pctKPI!==null?(pctKPI>=meta?'✅ Cumplida':'⚠ Bajo meta'):'Sin datos'}</div>
+    <div style="flex:1;min-width:140px;">
+      <div style="font-size:12px;font-weight:700;color:${kpiColor};">${kpiAnual!==null?(kpiAnual>=meta?'✅ Dentro de meta':kpiAnual>=70?'⚠️ En riesgo':'✗ Brecha — requiere plan A3'):'Sin datos'}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:3px;">${enTiempo.length} en tiempo de ${terminadas.length} terminadas · Meta ≥ ${meta}% · Dif: ${kpiAnual!==null?Math.round((kpiAnual-meta)*10)/10:'—'}%</div>
+      ${avgDias!==null?`<div style="font-size:10px;color:var(--tx3);margin-top:1px;">⏱ Promedio: ${avgDias} días · Total OS: ${osF.length}</div>`:''}
+      ${d.updatedAt?`<div style="font-size:10px;color:var(--tx3);margin-top:2px;">Actualizado: ${d.updatedAt}</div>`:''}
     </div>
   </div>`:'';
 
-  // ── Gráfica trimestral ───────────────────────────────────────────────────
-  const QTRS=[{label:'Q1',sub:'Ene–Mar',months:[0,1,2]},{label:'Q2',sub:'Abr–Jun',months:[3,4,5]},{label:'Q3',sub:'Jul–Sep',months:[6,7,8]},{label:'Q4',sub:'Oct–Dic',months:[9,10,11]}];
-  const qData=QTRS.map((q,i)=>{
-    const recs=all.filter(r=>q.months.includes(r.mes));
-    const term=recs.filter(r=>r.terminada);
-    const ok=term.filter(r=>r.cumple);
-    const pct=term.length>0?Math.round(ok.length/term.length*100):null;
-    return{...q,i,total:recs.length,term:term.length,ok:ok.length,pct};
-  });
-  const selQ=_os34SelQ;
-  let svgChart='';
-  if(qData.some(q=>q.total>0)){
-    const maxV=Math.max(...qData.map(q=>q.total),1);
-    const bw=56,gap=14,pad=20,svgH=130,labelH=36;
-    const chartW=pad*2+4*(bw+gap)-gap;
-    const bars=qData.map((q,i)=>{
-      const isSel=selQ===i;
-      const hT=Math.round(q.total/maxV*(svgH-labelH-14));
-      const hOk=q.ok>0?Math.round(q.ok/maxV*(svgH-labelH-14)):0;
-      const yT=svgH-labelH-hT;const yOk=svgH-labelH-hOk;
-      const clrBg=isSel?'#90caf9':'#b0bec5';
-      const pctClr=q.pct===null?'#888':q.pct>=meta?grn:q.pct>=70?org:red;
-      return`<g style="cursor:${q.total>0?'pointer':'default'};" ${q.total>0?`onclick="_os34SelQ=(_os34SelQ===${i}?null:${i});renderMain(CT);setTimeout(()=>{const el=document.getElementById('os34-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);"`:''}">
-        <rect x="${pad+i*(bw+gap)}" y="${yT}" width="${bw}" height="${hT}" rx="4" fill="${clrBg}" opacity="${isSel?'1':'0.75'}"/>
-        ${hOk>0?`<rect x="${pad+i*(bw+gap)+6}" y="${yOk}" width="${bw-12}" height="${hOk}" rx="3" fill="${grn}" opacity=".85"/>`:''}
-        <text x="${pad+i*(bw+gap)+bw/2}" y="${svgH-labelH+14}" text-anchor="middle" font-size="12" font-weight="700" fill="${isSel?'#1565c0':'var(--tx)'}" font-family="sans-serif">${q.label}</text>
-        <text x="${pad+i*(bw+gap)+bw/2}" y="${svgH-labelH+26}" text-anchor="middle" font-size="9" fill="var(--tx3)" font-family="sans-serif">${q.sub}</text>
-        ${q.total>0?`<text x="${pad+i*(bw+gap)+bw/2}" y="${yT-4}" text-anchor="middle" font-size="10" fill="var(--tx3)" font-family="sans-serif">${q.total}</text>`:''}
-        ${q.pct!==null?`<text x="${pad+i*(bw+gap)+bw/2}" y="${Math.max(yT-16,8)}" text-anchor="middle" font-size="10" font-weight="700" fill="${pctClr}" font-family="sans-serif">${q.pct}%</text>`:''}
-      </g>`;
+  // Tarjetas trimestrales con tabla mensual
+  const trimCards=OS34_TRIMS.map((t,ti)=>{
+    const osTrim=osF.filter(r=>t.idx.includes(r.mes));
+    const termTrim=osTrim.filter(r=>r.terminada);
+    const okTrim=termTrim.filter(r=>r.cumple);
+    const noOkTrim=termTrim.filter(r=>!r.cumple);
+    const pTrim=pct(okTrim.length,termTrim.length);
+    const clr=pTrim===null?'#9e9e9e':pTrim>=meta?grn:pTrim>=70?org:red;
+    const bg=pTrim===null?'#fafafa':pTrim>=meta?'#f0fbf5':pTrim>=70?'#fffde7':'#fff5f5';
+    const isSel=_os34TrimDetail===ti;
+    const rows=t.idx.map(mi=>{
+      const osMes=osF.filter(r=>r.mes===mi&&t.idx.includes(r.mes));
+      const termMes=osMes.filter(r=>r.terminada);
+      const okMes=termMes.filter(r=>r.cumple);
+      const noOkMes=termMes.filter(r=>!r.cumple);
+      return`<tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:4px 8px;font-size:12px;color:var(--tx2);">${OS34_MESES[mi]}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;color:${grn};font-weight:700;">${okMes.length||'—'}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;color:${red};font-weight:700;">${noOkMes.length||'—'}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;font-weight:700;color:var(--tx);">${osMes.length||'—'}</td>
+      </tr>`;
     }).join('');
-    svgChart=`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">
-      Tendencia trimestral ${CY} <span style="font-size:10px;font-weight:400;">— clic en barra para ver desglose</span>
-    </div>
-    <div style="overflow-x:auto;margin-bottom:14px;">
-      <svg viewBox="0 0 ${chartW} ${svgH}" width="100%" style="max-width:${chartW}px;display:block;">${bars}</svg>
-      <div style="display:flex;gap:14px;margin-top:2px;">
-        <span style="font-size:10px;color:#b0bec5;font-weight:700;">■ Total OS</span>
-        <span style="font-size:10px;color:${grn};font-weight:700;">■ Cerradas ≤30 días</span>
+    return`<div style="flex:1;min-width:200px;border:${isSel?'2.5px solid '+clr:'1.5px solid '+(bg==='#fafafa'?'#e5e5e5':clr+'55')};border-radius:10px;overflow:hidden;cursor:pointer;" onclick="_os34TrimDetail=${isSel?'null':ti};renderMain(CT);setTimeout(()=>{const el=document.getElementById('os34-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60)">
+      <div style="background:${bg};padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${bg==='#fafafa'?'#e5e5e5':clr+'44'};">
+        <span style="font-size:12px;font-weight:700;color:var(--tx);">${t.label.replace('Trimestre','TRIM.')}${isSel?' ✓':''}</span>
+        <span style="font-size:18px;font-weight:900;color:${clr};">${pTrim!==null?pTrim+'%':'—'}</span>
       </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#f9f9f9;">
+          <th style="padding:5px 8px;font-size:10px;text-align:left;color:var(--tx3);font-weight:600;">MES</th>
+          <th style="padding:5px 8px;font-size:10px;text-align:center;color:${grn};font-weight:700;">≤30d</th>
+          <th style="padding:5px 8px;font-size:10px;text-align:center;color:${red};font-weight:700;">>30d</th>
+          <th style="padding:5px 8px;font-size:10px;text-align:center;color:var(--tx3);font-weight:600;">Total</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:${bg};border-top:2px solid ${bg==='#fafafa'?'#e0e0e0':clr+'66'};">
+          <td style="padding:5px 8px;font-size:12px;font-weight:700;color:var(--tx);">Total</td>
+          <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;color:${grn};">${okTrim.length||'—'}</td>
+          <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;color:${red};">${noOkTrim.length||'—'}</td>
+          <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;color:${clr};">${osTrim.length||'—'}</td>
+        </tr></tfoot>
+      </table>
     </div>`;
-  }
+  }).join('');
 
-  // ── Tabla helper ─────────────────────────────────────────────────────────
+  // Desglose OS
+  const osDesglose=_os34TrimDetail!==null?osF.filter(r=>OS34_TRIMS[_os34TrimDetail].idx.includes(r.mes)):osF;
+  const desglLbl=_os34TrimDetail!==null?OS34_TRIMS[_os34TrimDetail].label+' · '+OS34_TRIMS[_os34TrimDetail].meses:'Todos los trimestres';
   const diasChip=r=>{
     if(!r.terminada)return`<span style="font-size:10px;background:#f5f5f5;color:#999;padding:2px 7px;border-radius:8px;">En proceso</span>`;
     if(r.diasRes===null)return`<span style="font-size:10px;background:#fff3e0;color:${org};padding:2px 7px;border-radius:8px;">Sin fecha</span>`;
     const c=r.diasRes<=30?grn:r.diasRes<=45?org:red;
     return`<span style="font-size:10px;background:${r.diasRes<=30?'#e8f5e9':r.diasRes<=45?'#fff3e0':'#ffebee'};color:${c};font-weight:700;padding:2px 7px;border-radius:8px;">${r.diasRes}d</span>`;
   };
-  const thead=`<thead><tr style="background:#f5f5f5;">
-    <th style="padding:6px;font-size:10px;color:var(--tx3);font-weight:700;">Fecha</th>
-    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Sucursal</th>
-    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Cliente</th>
-    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Tipo</th>
-    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;"># OS</th>
-    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Técnico</th>
-    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:center;">Días res.</th>
-  </tr></thead>`;
-  const makeTabla=rows=>{
-    if(!rows.length)return`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS en este período.</td></tr>`;
-    return rows.map(r=>`<tr style="border-bottom:1px solid #f0f0f0;">
-      <td style="padding:5px 6px;font-size:10px;color:var(--tx3);">${r.fecha?r.fecha.slice(0,7):'-'}</td>
-      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(r.sucursal)}</td>
-      <td style="padding:5px 8px;font-size:11px;font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.cliente)}</td>
-      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(r.tipo)}</td>
-      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${r.os}</td>
-      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.tecnico)}</td>
-      <td style="padding:5px 8px;text-align:center;">${diasChip(r)}</td>
-    </tr>`).join('');
-  };
+  const osRows=osDesglose.length?osDesglose.map((r,i)=>`<tr style="border-bottom:1px solid #f5f5f5;${i%2?'background:#fafafa':''}">
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${i+1}</td>
+    <td style="padding:5px 8px;font-size:12px;font-weight:700;color:var(--tx);">${r.os||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.cliente)||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.sucursal)||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.tecnico)||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${r.fecha||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${r.fechaTerm||'—'}</td>
+    <td style="padding:5px 8px;text-align:center;">${diasChip(r)}</td>
+  </tr>`).join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS con los filtros seleccionados</td></tr>`;
 
-  const selQRecs=selQ!==null?all.filter(r=>QTRS[selQ].months.includes(r.mes)):[];
-  const sq=_os34Search.toLowerCase();
-  const filtered=sq?all.filter(r=>r.cliente.toLowerCase().includes(sq)||r.os.includes(sq)||r.sucursal.toLowerCase().includes(sq)||r.tecnico.toLowerCase().includes(sq)):all;
-
-  const uploadBtn=`<label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
-    📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
-  </label>`;
-  const limpiarBtn=`<button onclick="if(confirm('¿Borrar todos los datos de OS 3.4?')){getOS34().os=[];saveData();renderMain(CT);}" style="font-size:11px;background:#ffebee;color:#c62828;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;border:1px solid #ef9a9a;">🗑 Limpiar</button>`;
-
-  return`<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--tx);">⏱ Tiempo de Resolución · KPI 3.4</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${all.length} OS registradas${d.updatedAt?' · Actualizado: '+d.updatedAt:''}</div>
+  const desEnT=osDesglose.filter(r=>r.cumple).length;
+  const desNoT=osDesglose.filter(r=>r.terminada&&!r.cumple).length;
+  const osTable=`<details id="os34-desglose" style="margin-top:16px;" ${_os34TrimDetail!==null?'open':''}>
+    <summary style="cursor:pointer;padding:8px 12px;border-radius:8px;background:#f5f9f6;border:1px solid var(--brd);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+      <span style="font-size:12px;font-weight:700;color:var(--tx);">📋 Desglose OS · ${desglLbl}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:var(--tx3);">${osDesglose.length} OS · ${desEnT} en tiempo · ${desNoT} fuera de tiempo</span>
+        ${_os34TrimDetail!==null?`<button onclick="event.stopPropagation();_os34TrimDetail=null;renderMain(CT)" style="padding:3px 8px;background:#fff;border:1px solid var(--brd);border-radius:6px;font-size:11px;cursor:pointer;">✕ Ver todos</button>`:''}
       </div>
-      <div style="display:flex;gap:8px;">${limpiarBtn}${uploadBtn}</div>
+    </summary>
+    <div style="overflow-x:auto;border-radius:0 0 8px 8px;border:1px solid var(--brd);border-top:none;margin-top:-1px;">
+      <table style="width:100%;border-collapse:collapse;min-width:640px;">
+        <thead><tr style="background:#f5f9f6;">
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);">#</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">OS</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Cliente</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Sucursal</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Técnico</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);">Fecha Alta</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);">Fecha Term.</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Días</th>
+        </tr></thead>
+        <tbody>${osRows}</tbody>
+      </table>
     </div>
-    ${cards}
-    ${svgChart}
-    ${selQ!==null?`<div id="os34-desglose" style="margin-bottom:14px;border:2px solid #90caf9;border-radius:10px;overflow:hidden;">
-      <div style="background:#e3f2fd;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:13px;font-weight:700;color:#1565c0;">📊 Desglose ${QTRS[selQ].label} — ${QTRS[selQ].sub} · ${selQRecs.length} OS</span>
-        <button onclick="_os34SelQ=null;renderMain(CT);" style="background:none;border:none;cursor:pointer;font-size:16px;color:#1565c0;">✕</button>
-      </div>
-      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">${thead}<tbody>${makeTabla(selQRecs)}</tbody></table></div>
-    </div>`:''}
-    ${all.length>0?`<div style="margin-bottom:8px;">
-      <input class="fc" value="${esc(_os34Search)}" placeholder="🔍 Buscar cliente, OS, técnico o sucursal…" style="font-size:12px;width:100%;box-sizing:border-box;" oninput="_os34Search=this.value;renderMain(CT);"/>
-    </div>
-    <details style="border:1px solid var(--brd);border-radius:10px;overflow:hidden;">
-      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);list-style:none;outline:none;font-size:13px;font-weight:700;color:var(--tx);">📋 Todas las OS · ${filtered.length} registros${filtered.length<all.length?' (filtrado)':''}</summary>
-      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">${thead}<tbody>${makeTabla(filtered.slice(0,150))}</tbody></table>
-        ${filtered.length>150?`<div style="padding:8px 14px;font-size:11px;color:var(--tx3);">Mostrando 150 de ${filtered.length}. Usa el buscador para filtrar.</div>`:''}
-      </div>
-    </details>`:`<div style="padding:30px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;">Carga el Excel exportado del SQL para ver los datos.</div>`}
+  </details>`;
+
+  return`<div class="card" style="margin-top:10px;">
+    <div class="card-title">⏱ Visor Tiempo de Resolución · KPI 3.4</div>
+    ${filtroBar}
+    ${anualBar}
+    ${osF.length>0?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">${trimCards}</div>${osTable}`:''}
   </div>`;
 }
 function uploadPdfEnc31(input,osId){
