@@ -776,7 +776,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():'';
+  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='1.1'?renderVisorAuditoria11():'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -1406,6 +1406,214 @@ const enc31={
     {label:'Esperanza del Valle · Tijuana',file:'encuestas/enc-esperanza-tij3.pdf'},
   ]
 };
+function renderVisorAuditoria11(){
+  const ORG='MTY'; // Este visor aplica a zona MTY
+  // Datos históricos 2025 por mes
+  const hist25=[
+    {mes:'Ene',herr:12,totH:62,auto:5,totA:62},
+    {mes:'Feb',herr:17,totH:64,auto:14,totA:64},
+    {mes:'Mar',herr:33,totH:108,auto:28,totA:108},
+    {mes:'Abr',herr:56,totH:108,auto:56,totA:108},
+    {mes:'May',herr:57,totH:110,auto:49,totA:110},
+    {mes:'Jun',herr:35,totH:65,auto:37,totA:65},
+    {mes:'Jul',herr:29,totH:60,auto:28,totA:60},
+    {mes:'Ago',herr:22,totH:60,auto:17,totA:60},
+    {mes:'Sep',herr:19,totH:60,auto:11,totA:60},
+    {mes:'Oct',herr:19,totH:60,auto:18,totA:60},
+    {mes:'Nov',herr:24,totH:60,auto:23,totA:60},
+    {mes:'Dic',herr:24,totH:58,auto:0,totA:0},
+  ];
+  // Datos 2026
+  const hist26=[
+    {mes:'Ene',herr:23,totH:51,auto:22,totA:55},
+  ];
+  const pct=(n,d)=>d>0?Math.round(n/d*100):0;
+  const hist=(CY===2026?hist26:hist25).map(d=>({...d,pH:pct(d.herr,d.totH),pA:pct(d.auto,d.totA)}));
+  const last=hist[hist.length-1];
+  // Segmentos 2026 ENE
+  const segs2026=[
+    {seg:'HEB AT CORREC',total:12,herr:0,auto:0},
+    {seg:'MEXICO',total:11,herr:9,auto:9},
+    {seg:'HEB PREV',total:8,herr:1,auto:1},
+    {seg:'Corporativo',total:7,herr:0,auto:0},
+    {seg:'CD JUAREZ',total:6,herr:6,auto:6},
+    {seg:'QUERETARO',total:5,herr:4,auto:4},
+    {seg:'Guadalajara',total:4,herr:1,auto:0},
+    {seg:'CI MTY',total:3,herr:0,auto:0},
+    {seg:'LOS CABOS',total:2,herr:0,auto:0},
+    {seg:'SURESTE',total:2,herr:0,auto:0},
+    {seg:'HEB QUERETARO',total:2,herr:1,auto:1},
+    {seg:'Chihuahua',total:1,herr:1,auto:1},
+  ];
+  const tecns2026=[
+    {n:'Gaspar Aragon',seg:'Corporativo',h:'-',a:'-',m:''},
+    {n:'Enrique Estrada',seg:'Corporativo',h:'-',a:'-',m:''},
+    {n:'Rodrigo Malpica',seg:'Corporativo',h:'-',a:'-',m:''},
+    {n:'Leonel Muños',seg:'LOS CABOS',h:'No',a:'No',m:''},
+    {n:'Pedro Higuera',seg:'LOS CABOS',h:'No',a:'No',m:''},
+    {n:'Jaime May',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
+    {n:'Armin Chan',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
+    {n:'Israel Jimenez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Julio Solis',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Cristofer Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Martin Rentaria',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Juan Pablo Silva',seg:'HEB AT CORREC',h:'-',a:'-',m:''},
+    {n:'Abraham Rubio',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'David Guzman',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Job Torres',seg:'HEB PREV',h:'-',a:'-',m:'BAJA'},
+    {n:'Fabian Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Eduardo Almaraz',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Anderson Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Raymundo Valente',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Pablo Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
+    {n:'Jacob Figueroa',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Juan Izquierdo',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Alejandro Escobedo',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Angel Menchaca',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Cesar Tapia',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Genaro Hernandez',seg:'HEB PREV',h:'No',a:'No',m:''},
+    {n:'Said Osmar Fraga',seg:'HEB PREV',h:'Si',a:'Si',m:''},
+    {n:'Garardo Ruelas',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Echavarria Lopez Heriberto',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Cumplido Hernandez Pablo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Salas Valadez Gerardo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Martin Solis Rios',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Isaac Enrique Parra',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Jesus Antonio García',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
+    {n:'Brayan Eduardo Ramirez',seg:'Chihuahua',h:'Si',a:'Si',m:''},
+    {n:'Jose Ramirez',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Fernando Mendez',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Cervantes Aguilar Gabriel',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Gabriel Becerril',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Cesar Amed Flores',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Agustin Velazquez',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Angel Guzman Ledezma',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Gabriel Raul Balderas',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'José Angel Mendoza',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Juan Sanchez Victoria',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'José Guadalupe Castillo',seg:'MEXICO',h:'Si',a:'Si',m:''},
+    {n:'Noe Peña Bailon',seg:'MEXICO',h:'No',a:'No',m:''},
+    {n:'Mayra Sanchez',seg:'MEXICO',h:'No',a:'No',m:''},
+    {n:'Polo Velazco',seg:'Corporativo',h:'No',a:'No',m:''},
+    {n:'Carlos Cruz',seg:'CI MTY',h:'No',a:'No',m:''},
+    {n:'Angel Lara',seg:'CI MTY',h:'No',a:'No',m:''},
+    {n:'Jose Conrrado',seg:'CI MTY',h:'No',a:'No',m:''},
+    {n:'Dayan Sagrero',seg:'QUERETARO',h:'No',a:'No',m:''},
+    {n:'Raul Gallegos',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Victor Hugo Leon',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Daniel Trevilla',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Carlos Vazquez',seg:'QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Elena Joo',seg:'HEB QUERETARO',h:'No',a:'No',m:''},
+    {n:'Leonardo Santander',seg:'HEB QUERETARO',h:'Si',a:'Si',m:''},
+    {n:'Cristhian Rodriguez',seg:'Guadalajara',h:'No',a:'No',m:''},
+    {n:'Carlos Pérez',seg:'Guadalajara',h:'Si',a:'No',m:''},
+    {n:'Espinoza Medina Carlos',seg:'Guadalajara',h:'No',a:'No',m:''},
+    {n:'Jose Martin Gallegos',seg:'Guadalajara',h:'No',a:'No',m:''},
+  ];
+
+  // Colores
+  const grn='#2e7d32',org='#e65100',gry='#888';
+  const clrH=pct(last.herr,last.totH)>=80?grn:pct(last.herr,last.totH)>=50?org:org;
+  const clrA=pct(last.auto,last.totA)>=80?grn:pct(last.auto,last.totA)>=50?org:org;
+
+  // SVG gráfica tendencia
+  const W=520,H=130,pad=32,bw=Math.floor((W-pad*2)/hist.length)-3;
+  const barH=p=>Math.round(p/100*(H-20));
+  const svgBars=hist.map((d,i)=>{
+    const x=pad+i*(bw+3);
+    const hH=barH(d.pH),aH=barH(d.pA);
+    const isLast=i===hist.length-1;
+    return`<g>
+      <rect x="${x}" y="${H-hH-15}" width="${Math.floor(bw*0.48)}" height="${hH}" fill="${grn}" opacity="${isLast?1:0.7}" rx="2"/>
+      <rect x="${x+Math.floor(bw*0.52)}" y="${H-aH-15}" width="${Math.floor(bw*0.48)}" height="${aH}" fill="#1565c0" opacity="${isLast?1:0.7}" rx="2"/>
+      <text x="${x+bw/2}" y="${H-2}" text-anchor="middle" font-size="8" fill="var(--tx3)" font-family="sans-serif">${d.mes}</text>
+    </g>`;
+  }).join('');
+  const svgChart=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="margin:8px 0;">
+    <line x1="${pad}" y1="${H-15}" x2="${W-10}" y2="${H-15}" stroke="var(--brd)" stroke-width="0.5"/>
+    ${svgBars}
+    <rect x="10" y="4" width="10" height="8" fill="${grn}" rx="2"/><text x="23" y="12" font-size="9" fill="var(--tx3)" font-family="sans-serif">Herramienta</text>
+    <rect x="90" y="4" width="10" height="8" fill="#1565c0" rx="2"/><text x="103" y="12" font-size="9" fill="var(--tx3)" font-family="sans-serif">Automóvil</text>
+  </svg>`;
+
+  // Tabla segmentos
+  const segRows=(CY===2026?segs2026:[]).map(s=>{
+    const pH=pct(s.herr,s.total),pA=pct(s.auto,s.total);
+    const dot=p=>p===100?'🟢':p>0?'🟡':'🔴';
+    return`<tr style="border-bottom:1px solid var(--brd);font-size:11px;">
+      <td style="padding:4px 8px;color:var(--tx);font-weight:600;">${s.seg}</td>
+      <td style="padding:4px 8px;text-align:center;">${s.total}</td>
+      <td style="padding:4px 8px;text-align:center;">${dot(pH)} ${s.herr}/${s.total} <span style="color:var(--tx3)">(${pH}%)</span></td>
+      <td style="padding:4px 8px;text-align:center;">${dot(pA)} ${s.auto}/${s.total} <span style="color:var(--tx3)">(${pA}%)</span></td>
+    </tr>`;
+  }).join('');
+
+  // Tabla técnicos
+  const tecRows=(CY===2026?tecns2026:[]).map(t=>{
+    const baja=t.m==='BAJA';
+    const ok=v=>v==='Si'?'<span style="color:'+grn+';font-weight:700;">✓</span>':v==='-'?'<span style="color:'+gry+';">—</span>':'<span style="color:'+org+';font-weight:700;">✗</span>';
+    return`<tr style="border-bottom:1px solid #f0f0f0;font-size:11px;${baja?'opacity:.5':''}">
+      <td style="padding:3px 8px;color:var(--tx);">${t.n}${baja?' <span style="font-size:9px;color:'+gry+';">BAJA</span>':''}</td>
+      <td style="padding:3px 8px;color:var(--tx3);font-size:10px;">${t.seg}</td>
+      <td style="padding:3px 8px;text-align:center;">${ok(t.h)}</td>
+      <td style="padding:3px 8px;text-align:center;">${ok(t.a)}</td>
+    </tr>`;
+  }).join('');
+
+  const mesLabel=CY===2026?'Enero 2026':'Diciembre 2025';
+  const pctH=pct(last.herr,last.totH),pctA=pct(last.auto,last.totA);
+  const meta=80;
+  const badge=(p)=>p>=meta?`<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">✓ Meta</span>`:`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:700;">⚠ Bajo meta</span>`;
+
+  return`<div class="card" style="margin-bottom:10px;">
+    <div class="card-title">🔧 Auditorías Técnicas · KPI 1.1 <span style="font-size:10px;color:var(--tx3);font-weight:400;">${mesLabel}</span></div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;">Verificación mensual de herramienta y automóvil por técnico · Meta ≥ ${meta}%</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;">
+        <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Herramienta presentada</div>
+        <div style="font-size:36px;font-weight:900;color:${clrH};line-height:1.1;">${pctH}%</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${last.herr} / ${last.totH} técnicos ${badge(pctH)}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;">
+        <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Automóvil presentado</div>
+        <div style="font-size:36px;font-weight:900;color:${clrA};line-height:1.1;">${pctA}%</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${last.auto} / ${last.totA} técnicos ${badge(pctA)}</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Tendencia mensual ${CY}</div>
+    ${svgChart}
+
+    ${CY===2026&&segRows?`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px;">Por segmento · ${mesLabel}</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="background:var(--bg2);font-size:10px;color:var(--tx3);">
+        <th style="padding:6px 8px;text-align:left;font-weight:700;">Segmento</th>
+        <th style="padding:6px 8px;text-align:center;font-weight:700;">Total</th>
+        <th style="padding:6px 8px;text-align:center;font-weight:700;">Herramienta</th>
+        <th style="padding:6px 8px;text-align:center;font-weight:700;">Automóvil</th>
+      </tr></thead>
+      <tbody>${segRows}</tbody>
+    </table></div>`:''}
+
+    ${CY===2026&&tecRows?`<details style="margin-top:12px;">
+      <summary style="cursor:pointer;font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:6px 0;">
+        ▶ Detalle por técnico · ${mesLabel} (${tecns2026.length} personas)
+      </summary>
+      <div style="overflow-x:auto;margin-top:6px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:var(--bg2);font-size:10px;color:var(--tx3);">
+          <th style="padding:5px 8px;text-align:left;font-weight:700;">Técnico</th>
+          <th style="padding:5px 8px;text-align:left;font-weight:700;">Segmento</th>
+          <th style="padding:5px 8px;text-align:center;font-weight:700;">Herramienta</th>
+          <th style="padding:5px 8px;text-align:center;font-weight:700;">Automóvil</th>
+        </tr></thead>
+        <tbody>${tecRows}</tbody>
+      </table></div>
+    </details>`:''}
+  </div>`;
+}
 function renderEncuestas31(){
   const docs=enc31[CZ]||[];
   const pill=CZ==='MTY'?'background:#e3f0ff;color:#1565c0;':'background:#f3e8ff;color:#6a1b9a;';
