@@ -654,9 +654,9 @@ function renderMain(tab){
   CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   let h=`<div style="margin-bottom:10px;">${a.proc_obj?`<p style="font-size:12px;color:var(--tx2);line-height:1.6;">${esc(a.proc_obj)}</p>`:''}</div>`;
   const isR1=(CA==='1.1'||CA==='1.2');
-  const kpiActive=tab==='kpi'||tab==='kpi-herr'||tab==='kpi-gas';
+  const kpiActive=tab==='kpi'||tab==='kpi-herr'||tab==='kpi-gas'||tab==='kpi-cap';
   if(isR1){
-    h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi-herr'?'on':''}" onclick="renderMain('kpi-herr')">🔧 KPI Herramienta</button><button class="mod-tab ${tab==='kpi-gas'?'on':''}" onclick="renderMain('kpi-gas')">🔬 KPI Analizador Gas</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
+    h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi-herr'?'on':''}" onclick="renderMain('kpi-herr')">🔧 KPI Herramienta</button><button class="mod-tab ${tab==='kpi-gas'?'on':''}" onclick="renderMain('kpi-gas')">🔬 KPI Analizador Gas</button><button class="mod-tab ${tab==='kpi-cap'?'on':''}" onclick="renderMain('kpi-cap')">🎓 KPI Capacitación</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
   } else {
     h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${kpiActive?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
   }
@@ -816,7 +816,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():(CA==='1.1'||CA==='1.2')?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
+  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():(CA==='1.1'||CA==='1.2')?(CT==='kpi-cap'?renderVisorCapacitacion13():CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -1783,6 +1783,245 @@ function uploadCertM12(input,idx){
     catch(ex){m.instrumentos[idx].certs.shift();toast('❌ No se pudo guardar — archivo demasiado grande');}
   };
   reader.readAsDataURL(file);
+}
+// ── KPI 1.3 Capacitación ────────────────────────────────────────────────────
+function getM13Cap(){
+  const zd=gzd();
+  if(!zd.m13cap)zd.m13cap={tecnicos:[]};
+  zd.m13cap.tecnicos.forEach(t=>{if(!t.certs)t.certs=[];});
+  return zd.m13cap;
+}
+function saveM13Tec(idx,field,val){const m=getM13Cap();if(m.tecnicos[idx])m.tecnicos[idx][field]=val;saveData();}
+function saveM13TecR(idx,field,val){saveM13Tec(idx,field,val);renderMain(CT);}
+function addM13Tec(){const m=getM13Cap();m.tecnicos.push({nombre:'',sucursal:'',curso:'',fechaCaducidad:'',certs:[]});saveData();renderMain(CT);}
+function delM13Tec(idx){if(!confirm('¿Eliminar este técnico?'))return;const m=getM13Cap();m.tecnicos.splice(idx,1);saveData();renderMain(CT);}
+function delCertCap13(tecIdx,certId){if(!confirm('¿Eliminar este certificado?'))return;const m=getM13Cap();const t=m.tecnicos[tecIdx];if(t)t.certs=(t.certs||[]).filter(c=>c.id!==certId);saveData();renderMain(CT);}
+function uploadCertCap13(input,idx){
+  const file=input.files[0];if(!file)return;
+  if(file.size>3*1024*1024){toast('❌ Archivo muy grande — máximo 3 MB');return;}
+  const nombre=file.name;const fecha=new Date().toISOString().slice(0,10);
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const m=getM13Cap();if(!m.tecnicos[idx])return;
+    if(!m.tecnicos[idx].certs)m.tecnicos[idx].certs=[];
+    m.tecnicos[idx].certs.unshift({id:Date.now(),fecha,nombre,data:e.target.result});
+    try{saveData();toast('✅ Certificado guardado');renderMain(CT);}
+    catch(ex){m.tecnicos[idx].certs.shift();toast('❌ No se pudo guardar — archivo demasiado grande');}
+  };
+  reader.readAsDataURL(file);
+}
+function loadExcelCap13(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const m=getM13Cap();
+      // Buscar primera hoja con datos de capacitación
+      const name=wb.SheetNames[0];
+      const ws=wb.Sheets[name];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(rows.length<2){toast('⚠ Excel sin datos');return;}
+      // Fila 0: headers — buscar columnas
+      const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
+      const colNom=hdr.findIndex(h=>h.includes('nombre'));
+      const colCurso=hdr.findIndex(h=>h.includes('curso'));
+      const colFecha=hdr.findIndex(h=>h.includes('caduca')||h.includes('fecha'));
+      const colSuc=hdr.findIndex(h=>h.includes('sucursal'));
+      let importados=0,omitidos=0;
+      for(let i=1;i<rows.length;i++){
+        const r=rows[i];
+        const nombre=String(r[colNom>=0?colNom:1]||'').trim();
+        if(!nombre)continue;
+        // Convertir fecha: puede ser serial Excel o string "DD.MM.YYYY HH:MM"
+        let fechaCaducidad='';
+        const rawFecha=r[colFecha>=0?colFecha:3];
+        if(rawFecha){
+          if(typeof rawFecha==='number'&&rawFecha>40000){
+            // Serial Excel → ISO
+            const d=new Date(Math.round((rawFecha-25569)*86400*1000));
+            fechaCaducidad=d.toISOString().slice(0,10);
+          } else {
+            const s=String(rawFecha).trim();
+            // "DD.MM.YYYY HH:MM" o "DD.MM.YYYY"
+            const m2=s.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+            if(m2)fechaCaducidad=`${m2[3]}-${m2[2]}-${m2[1]}`;
+            else if(s.match(/^\d{4}-\d{2}-\d{2}/))fechaCaducidad=s.slice(0,10);
+          }
+        }
+        const curso=String(r[colCurso>=0?colCurso:2]||'').trim();
+        const sucursal=String(r[colSuc>=0?colSuc:4]||'').trim();
+        // Si ya existe el técnico, actualizar fechaCaducidad y curso; si no, agregar
+        const existing=m.tecnicos.find(t=>t.nombre.toLowerCase()===nombre.toLowerCase());
+        if(existing){
+          if(fechaCaducidad)existing.fechaCaducidad=fechaCaducidad;
+          if(curso)existing.curso=curso;
+          if(sucursal&&!existing.sucursal)existing.sucursal=sucursal;
+          omitidos++;
+        } else {
+          m.tecnicos.push({nombre,sucursal,curso,fechaCaducidad,certs:[]});
+          importados++;
+        }
+      }
+      saveData();
+      toast(`✅ Importados ${importados} técnicos, ${omitidos} actualizados`);
+      renderMain(CT);
+    }catch(ex){toast('❌ Error al leer Excel: '+ex.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function renderVisorCapacitacion13(){
+  const m=getM13Cap();
+  const tecs=m.tecnicos||[];
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const grn='#2e7d32',org='#e65100',red='#c62828';
+  const meta=80;
+
+  const tecData=tecs.map((t,idx)=>{
+    const fd=t.fechaCaducidad?new Date(t.fechaCaducidad):null;
+    if(fd)fd.setHours(0,0,0,0);
+    const vigente=fd?(hoy<=fd):null;
+    const dias=fd?Math.ceil((fd-hoy)/86400000):null;
+    const porVencer=vigente&&dias!==null&&dias<=90;
+    return{...t,idx,fd,vigente,dias,porVencer,certs:t.certs||[]};
+  });
+
+  const total=tecData.length;
+  const nVig=tecData.filter(d=>d.vigente===true).length;
+  const nVenc=tecData.filter(d=>d.vigente===false).length;
+  const nSin=tecData.filter(d=>d.vigente===null).length;
+  const kpiPct=total>0?Math.round(nVig/total*100):0;
+  const clrKpi=kpiPct>=meta?grn:kpiPct>=meta*0.8?org:red;
+
+  const badge=d=>{
+    if(d.vigente===null)return`<span style="font-size:10px;background:#f5f5f5;color:#888;padding:2px 8px;border-radius:10px;">Sin fecha</span>`;
+    if(d.vigente&&!d.porVencer)return`<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">✓ Vigente</span>`;
+    if(d.vigente&&d.porVencer)return`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:700;">⚠ Por vencer</span>`;
+    return`<span style="font-size:10px;background:#ffebee;color:#c62828;padding:2px 8px;border-radius:10px;font-weight:700;">✗ Vencido</span>`;
+  };
+
+  const diasBar=d=>{
+    if(!d.fd||!d.vigente===null)return'';
+    const ref=new Date(d.fd);ref.setFullYear(ref.getFullYear()-1);
+    const totalDias=Math.max(1,Math.ceil((d.fd-ref)/86400000));
+    const elapsed=Math.ceil((hoy-ref)/86400000);
+    const p=Math.min(100,Math.max(0,Math.round(elapsed/totalDias*100)));
+    const clr=d.vigente===false?red:d.porVencer?org:grn;
+    const txt=d.vigente?(d.dias===0?'Vence hoy':`${d.dias} días restantes`):`Venció hace ${Math.abs(d.dias)} días`;
+    return`<div style="margin-top:6px;">
+      <div style="height:6px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${p}%;background:${clr};border-radius:4px;transition:width .4s;"></div>
+      </div>
+      <div style="font-size:9px;color:${clr};margin-top:2px;font-weight:700;">${txt}${d.fd?' · Caduca: '+d.fd.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):''}</div>
+    </div>`;
+  };
+
+  const tecCards=tecData.map(d=>{
+    const i=d.idx;
+    const borderClr=d.vigente===null?'var(--brd)':d.vigente===false?'#ffcdd2':d.porVencer?'#ffe0b2':'#c8e6c9';
+    return`<div style="border:1.5px solid ${borderClr};border-radius:12px;padding:14px 16px;background:var(--bg2);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:20px;">👤</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:800;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(d.nombre)||'<span style="color:var(--tx3);">Sin nombre</span>'}</div>
+          <div style="font-size:10px;color:var(--tx3);">${esc(d.sucursal)||'—'}</div>
+        </div>
+        ${badge(d)}
+        <button onclick="delM13Tec(${i})" style="font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;cursor:pointer;flex-shrink:0;">🗑</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px;">
+        <div style="grid-column:1/-1;"><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Nombre completo</label>
+          <input class="fc" value="${esc(d.nombre)}" placeholder="Nombre del técnico" style="font-size:11px;" onblur="saveM13Tec(${i},'nombre',this.value);this.closest('div[style]').querySelector('div').querySelector('div').textContent=this.value||'Sin nombre'"/></div>
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Sucursal</label>
+          <input class="fc" value="${esc(d.sucursal)}" placeholder="Ej. Noreste" style="font-size:11px;" onblur="saveM13Tec(${i},'sucursal',this.value)"/></div>
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Curso / Certificación</label>
+          <input class="fc" value="${esc(d.curso)}" placeholder="Ej. iCombi MEX" style="font-size:11px;" onblur="saveM13Tec(${i},'curso',this.value)"/></div>
+        <div style="grid-column:1/-1;"><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Fecha de caducidad</label>
+          <input type="date" class="fc" value="${d.fechaCaducidad||''}" style="font-size:11px;" onchange="saveM13TecR(${i},'fechaCaducidad',this.value)"/></div>
+      </div>
+      ${diasBar(d)}
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--brd);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;">Certificados de capacitación</span>
+          <label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;">
+            📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertCap13(this,${i})"/>
+          </label>
+        </div>
+        ${d.certs.length>0
+          ?d.certs.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
+              <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
+              <a href="${c.data}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
+              <button onclick="delCertCap13(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
+            </div>`).join('')
+          :`<div style="font-size:11px;color:var(--tx3);padding:4px 0;">Sin certificados aún.</div>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Resumen tabla
+  const resumenRows=tecData.length>0?[...tecData].sort((a,b)=>{
+    const ord=v=>v===false?0:v===null?1:2;return ord(a.vigente)-ord(b.vigente);
+  }).map((d,i)=>`<tr style="border-bottom:1px solid #f0f0f0;">
+    <td style="padding:5px 6px;text-align:center;font-size:10px;color:var(--tx3);">${i+1}</td>
+    <td style="padding:5px 8px;font-size:11px;font-weight:600;">${esc(d.nombre)}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(d.sucursal)}</td>
+    <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.curso)}</td>
+    <td style="padding:5px 8px;font-size:11px;">${d.fd?d.fd.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):'-'}</td>
+    <td style="padding:5px 8px;">${badge(d)}</td>
+  </tr>`).join('')
+  :`<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Sin técnicos registrados. Agrega uno o importa el Excel.</td></tr>`;
+
+  return`<div class="card" style="margin-bottom:10px;">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <div style="flex:1;min-width:0;">
+        <div class="card-title" style="margin-bottom:2px;">🎓 Capacitación Técnica · KPI 1.3</div>
+        <div style="font-size:11px;color:var(--tx3);">Técnicos con certificación Rational vigente · Meta ≥ ${meta}%</div>
+      </div>
+      <label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
+        📤 Importar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCap13(this)"/>
+      </label>
+      <button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">+ Agregar técnico</button>
+    </div>
+
+    ${total>0?`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;min-width:100px;">
+        <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">KPI Vigentes</div>
+        <div style="font-size:36px;font-weight:900;color:${clrKpi};line-height:1.1;">${kpiPct}%</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${nVig} / ${total} técnicos</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;justify-content:center;">
+        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#c8e6c9;border-radius:2px;margin-right:4px;"></span>Vigentes: <strong>${nVig}</strong></div>
+        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#ffe0b2;border-radius:2px;margin-right:4px;"></span>Por vencer (≤90d): <strong>${tecData.filter(d=>d.porVencer).length}</strong></div>
+        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#ffcdd2;border-radius:2px;margin-right:4px;"></span>Vencidos: <strong>${nVenc}</strong></div>
+        <div style="font-size:11px;"><span style="display:inline-block;width:10px;height:10px;background:#f5f5f5;border-radius:2px;margin-right:4px;"></span>Sin fecha: <strong>${nSin}</strong></div>
+      </div>
+    </div>`:''}
+
+    <details style="margin-bottom:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;" ${total>0?'open':''}>
+      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);display:flex;align-items:center;gap:8px;list-style:none;outline:none;">
+        <span style="font-size:13px;font-weight:700;color:var(--tx);">📋 Resumen · ${total} técnicos</span>
+      </summary>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f5f5f5;">
+            <th style="padding:6px;font-size:10px;color:var(--tx3);font-weight:700;">#</th>
+            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Nombre</th>
+            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Sucursal</th>
+            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Curso</th>
+            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Caduca</th>
+            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Estado</th>
+          </tr></thead>
+          <tbody>${resumenRows}</tbody>
+        </table>
+      </div>
+    </details>
+
+    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Tarjetas de técnicos</div>
+    ${tecCards||`<div style="padding:30px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;">Sin técnicos registrados. Importa el Excel o agrega manualmente.</div>`}
+    <div style="margin-top:12px;text-align:right;">
+      <button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;">+ Agregar técnico</button>
+    </div>
+  </div>`;
 }
 function renderVisorMedicion12(){
   const m=getM12();
