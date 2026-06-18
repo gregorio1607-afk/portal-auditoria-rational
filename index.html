@@ -658,7 +658,7 @@ function renderMain(tab){
   const isR11=(CA==='1.1');
   const kpiActive=tab==='kpi'||tab==='kpi-herr'||tab==='kpi-gas'||tab==='kpi-cap';
   if(isR11){
-    h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi-herr'?'on':''}" onclick="renderMain('kpi-herr')">🔧 KPI Herramienta</button><button class="mod-tab ${tab==='kpi-gas'?'on':''}" onclick="renderMain('kpi-gas')">🔬 KPI Analizador Gas</button><button class="mod-tab ${tab==='kpi-cap'?'on':''}" onclick="renderMain('kpi-cap')">🎓 KPI Capacitación</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
+    h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi-herr'?'on':''}" onclick="renderMain('kpi-herr')">🔧 KPI Herramienta</button><button class="mod-tab ${tab==='kpi-gas'?'on':''}" onclick="renderMain('kpi-gas')">🔬 KPI Analizador Gas</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
   } else {
     h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${kpiActive?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
   }
