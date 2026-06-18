@@ -801,6 +801,8 @@ const FTF_TRIMS=[
 // Auditoría 1.1 — sessionStorage
 let _aud11SelQ=null;
 function setAud11Q(qi){_aud11SelQ=(_aud11SelQ===qi?null:qi);renderMain(CT);}
+function getAud11F(){const ftv=getFtv();if(!ftv.aud11f)ftv.aud11f={suc:'',año:0};return ftv.aud11f;}
+function setAud11F(field,val){const f=getAud11F();f[field]=(field==='año'?Number(val):val);saveData();_aud11SelQ=null;renderMain(CT);}
 function _aud11Key(){return'aud11_'+CZ;}
 function getAud11(){try{const r=sessionStorage.getItem(_aud11Key());return r?JSON.parse(r):[]; }catch(e){return[];}}
 function setAud11(arr){try{sessionStorage.setItem(_aud11Key(),JSON.stringify(arr));}catch(e){}}
@@ -1502,8 +1504,17 @@ function renderVisorAuditoria11(){
   const rawData=getAud11();
   const hasRaw=rawData.length>0;
   const updAt=ftv.aud11UpdatedAt||'';
+  const filtros=getAud11F();
 
-  // Hardcoded 2025 monthly → quarterly averages as fallback
+  // Años y sucursales disponibles en el Excel
+  const añosDisp=hasRaw?[...new Set(rawData.map(r=>r.año))].sort((a,b)=>b-a):[];
+  const sucDisp=hasRaw?[...new Set(rawData.map(r=>r.subUbic||r.segmento).filter(Boolean))].sort():[];
+
+  // Año activo: filtro guardado, o el más reciente disponible, o CY
+  const añoActivo=filtros.año&&añosDisp.includes(filtros.año)?filtros.año:(añosDisp[0]||CY);
+  const sucActiva=filtros.suc||'';
+
+  // Hardcoded 2025 quarterly fallback
   const hist25m=[19,27,31,52,52,54,48,37,32,32,40,41];
 
   let histQ=[];
@@ -1512,20 +1523,21 @@ function renderVisorAuditoria11(){
   let selQIdx=null;
 
   if(hasRaw){
-    const byYear=rawData.filter(r=>r.año===CY);
+    let data=rawData.filter(r=>r.año===añoActivo);
+    if(sucActiva)data=data.filter(r=>(r.subUbic||r.segmento)===sucActiva);
+
     histQ=QTRS.map((q,qi)=>{
-      const recs=byYear.filter(r=>q.months.includes(r.mes));
+      const recs=data.filter(r=>q.months.includes(r.mes));
       const aud=recs.filter(r=>r.herr!=='-');
       const ph=pct(aud.filter(r=>r.presHerr==='Si').length,aud.length);
       return{label:q.label,sub:q.sub,pH:ph,count:aud.length,qi};
     }).filter(q=>q.count>0);
 
-    // Determine which quarter to show in desglose
     const validSel=_aud11SelQ!==null&&histQ.some(q=>q.qi===_aud11SelQ);
     selQIdx=validSel?_aud11SelQ:(histQ.length>0?histQ[histQ.length-1].qi:null);
     if(selQIdx!==null){
-      curRecords=byYear.filter(r=>QTRS[selQIdx].months.includes(r.mes));
-      selQLabel=QTRS[selQIdx].label+' ('+QTRS[selQIdx].sub+') '+CY;
+      curRecords=data.filter(r=>QTRS[selQIdx].months.includes(r.mes));
+      selQLabel=QTRS[selQIdx].label+' ('+QTRS[selQIdx].sub+') '+añoActivo;
     }
   } else {
     histQ=QTRS.map((q,qi)=>({
@@ -1534,7 +1546,7 @@ function renderVisorAuditoria11(){
     }));
   }
 
-  // Metrics for selected quarter
+  // Metrics
   const auditables=curRecords.filter(r=>r.herr!=='-');
   const presHerr=auditables.filter(r=>r.presHerr==='Si').length;
   const totH=auditables.length;
@@ -1543,7 +1555,7 @@ function renderVisorAuditoria11(){
   const presAuto=autoRecs.filter(r=>r.presAuto==='Si').length;
   const totA=autoRecs.length;
 
-  // SVG quarterly chart — clickable bars
+  // SVG quarterly chart
   const W=340,H=140,pad=30,bw=52,gap=16;
   const barH=p=>Math.max(2,Math.round(p/100*(H-28)));
   const metaY=H-18-barH(meta);
@@ -1571,30 +1583,44 @@ function renderVisorAuditoria11(){
 
   const badge=(p)=>p>=meta?`<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">✓ Meta</span>`:`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:700;">⚠ Bajo meta</span>`;
 
-  // Por segmento
-  const segMap={};
-  curRecords.forEach(r=>{
-    const s=r.segmento||'Sin segmento';
-    if(!segMap[s])segMap[s]={total:0,herr:0};
-    segMap[s].total++;
-    if(r.presHerr==='Si')segMap[s].herr++;
-  });
-  const segRows=Object.entries(segMap).sort((a,b)=>b[1].total-a[1].total).map(([s,v])=>{
-    const pH=pct(v.herr,v.total);
-    const dot=p=>p===100?'🟢':p>0?'🟡':'🔴';
-    return`<tr style="border-bottom:1px solid var(--brd);font-size:11px;">
-      <td style="padding:4px 8px;color:var(--tx);font-weight:600;">${s}</td>
-      <td style="padding:4px 8px;text-align:center;">${v.total}</td>
-      <td style="padding:4px 8px;text-align:center;">${dot(pH)} ${v.herr}/${v.total} <span style="color:var(--tx3);">(${pH}%)</span></td>
-    </tr>`;
-  }).join('');
+  // Filtros UI
+  const filtrosUI=hasRaw?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:var(--bg2);border-radius:8px;margin-bottom:12px;">
+    <span style="font-size:11px;font-weight:700;color:var(--tx3);">Filtros:</span>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <label style="font-size:10px;color:var(--tx3);font-weight:700;">AÑO</label>
+      <select onchange="setAud11F('año',this.value)" style="padding:3px 6px;border:1px solid var(--brd);border-radius:6px;font-size:11px;background:#fff;">
+        ${añosDisp.map(a=>`<option value="${a}" ${a===añoActivo?'selected':''}>${a}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <label style="font-size:10px;color:var(--tx3);font-weight:700;">SUCURSAL</label>
+      <select onchange="setAud11F('suc',this.value)" style="padding:3px 6px;border:1px solid var(--brd);border-radius:6px;font-size:11px;background:#fff;">
+        <option value="" ${!sucActiva?'selected':''}>Todas</option>
+        ${sucDisp.map(s=>`<option value="${esc(s)}" ${s===sucActiva?'selected':''}>${esc(s)}</option>`).join('')}
+      </select>
+    </div>
+    ${sucActiva?`<button onclick="setAud11F('suc','')" style="padding:2px 8px;font-size:10px;border:1px solid var(--brd);border-radius:5px;background:#fff;cursor:pointer;color:var(--tx3);">✕ Limpiar filtro</button>`:''}
+  </div>`:'';
 
   const uploadBtn=`<div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-    <button onclick="(function(){try{sessionStorage.removeItem(_aud11Key());}catch(e){}const ftv=getFtv();ftv.aud11UpdatedAt='';_aud11SelQ=null;saveData();renderMain(CT);toast('🗑 Datos borrados — carga el Excel de nuevo');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>
+    <button onclick="(function(){try{sessionStorage.removeItem(_aud11Key());}catch(e){}const ftv=getFtv();ftv.aud11UpdatedAt='';_aud11SelQ=null;saveData();renderMain(CT);toast('🗑 Datos borrados');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>
     <label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--grn);color:#fff;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">
       📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelAuditoria11(this)"/>
     </label>
   </div>`;
+
+  // Desglose rows
+  const chip=v=>v==='Si'?`<span style="background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✓ Sí</span>`:v==='-'?`<span style="font-size:11px;color:var(--tx3);">—</span>`:`<span style="background:#ffebee;color:#c62828;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✗ No</span>`;
+  const desgRows=curRecords.length>0?curRecords.map((t,i)=>{
+    const baja=t.motivo==='BAJA';
+    return`<tr style="border-bottom:1px solid #f0f0f0;${baja?'opacity:.45':''}">
+      <td style="padding:5px 6px;text-align:center;font-size:10px;color:var(--tx3);">${i+1}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx);">${esc(t.subUbic||t.segmento)}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx);font-weight:600;">${esc(t.nombre)}</td>
+      <td style="padding:5px 8px;text-align:center;">${chip(t.presHerr)}</td>
+      <td style="padding:5px 8px;text-align:center;">${baja?`<span style="font-size:9px;background:#f5f5f5;color:#888;padding:2px 6px;border-radius:8px;">BAJA</span>`:''}${t.motivo&&t.motivo!=='BAJA'?`<span style="font-size:9px;color:var(--tx3);">${esc(t.motivo)}</span>`:''}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="5" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Carga el Excel para ver el desglose.</td></tr>`;
 
   return`<div class="card" style="margin-bottom:10px;">
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
@@ -1604,6 +1630,7 @@ function renderVisorAuditoria11(){
       </div>
       ${uploadBtn}
     </div>
+    ${filtrosUI}
 
     ${hasRaw&&totH>0?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;">
@@ -1619,49 +1646,29 @@ function renderVisorAuditoria11(){
     </div>`:`<div style="padding:14px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;margin-bottom:12px;">Carga el Excel de Auditorías para ver los datos</div>`}
 
     <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">
-      Tendencia trimestral ${CY} <span style="font-size:10px;font-weight:400;color:var(--tx3);">— clic en barra para ver desglose</span>
+      Tendencia trimestral ${añoActivo} <span style="font-size:10px;font-weight:400;">— clic en barra para ver desglose</span>
     </div>
     ${svgChart}
 
-    ${hasRaw&&segRows?`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px;">Por segmento · ${selQLabel}</div>
-    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
-      <thead><tr style="background:var(--bg2);font-size:10px;color:var(--tx3);">
-        <th style="padding:5px 8px;text-align:left;font-weight:700;">Segmento</th>
-        <th style="padding:5px 8px;text-align:center;font-weight:700;">Total</th>
-        <th style="padding:5px 8px;text-align:center;font-weight:700;">Herramienta</th>
-      </tr></thead>
-      <tbody>${segRows}</tbody>
-    </table></div>`:''}
-  </div>
-
-  <div class="card" style="margin-top:10px;">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-      <div style="font-size:13px;font-weight:700;color:var(--tx);">📋 Desglose · ${selQLabel||'—'}</div>
-      ${hasRaw&&totH>0?`<span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#e8f5e9;color:#2e7d32;">${presHerr} Presentaron</span>
-      <span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#ffebee;color:#c62828;">${totH-presHerr} No presentaron</span>
-      <button onclick="descargarAuditoria11()" style="margin-left:auto;padding:5px 14px;border:1px solid var(--brd);border-radius:8px;background:#fff;font-size:12px;cursor:pointer;font-weight:600;">⬇ Descargar</button>`:''}
-    </div>
-    <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;min-width:480px;">
-      <thead><tr style="background:#f5f9f6;border-bottom:2px solid var(--brd);">
-        <th style="padding:6px;font-size:10px;color:var(--tx3);text-align:center;">#</th>
-        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Sucursal</th>
-        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Nombre</th>
-        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Presentó herramienta</th>
-        <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Nota</th>
-      </tr></thead>
-      <tbody>${curRecords.length>0?curRecords.map((t,i)=>{
-        const baja=t.motivo==='BAJA';
-        const chip=v=>v==='Si'?`<span style="background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✓ Sí</span>`:v==='-'?`<span style="font-size:11px;color:var(--tx3);">—</span>`:`<span style="background:#ffebee;color:#c62828;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✗ No</span>`;
-        return`<tr style="border-bottom:1px solid #f0f0f0;${baja?'opacity:.45':''}">
-          <td style="padding:5px 6px;text-align:center;font-size:10px;color:var(--tx3);">${i+1}</td>
-          <td style="padding:5px 8px;font-size:11px;color:var(--tx);">${esc(t.subUbic||t.segmento)}</td>
-          <td style="padding:5px 8px;font-size:11px;color:var(--tx);font-weight:600;">${esc(t.nombre)}</td>
-          <td style="padding:5px 8px;text-align:center;">${chip(t.presHerr)}</td>
-          <td style="padding:5px 8px;text-align:center;">${baja?`<span style="font-size:9px;background:#f5f5f5;color:#888;padding:2px 6px;border-radius:8px;">BAJA</span>`:''}${t.motivo&&t.motivo!=='BAJA'?`<span style="font-size:9px;color:var(--tx3);">${esc(t.motivo)}</span>`:''}</td>
-        </tr>`;
-      }).join(''):`<tr><td colspan="5" style="padding:40px;text-align:center;color:var(--tx3);font-size:12px;">Carga el Excel de Auditorías para ver el desglose.</td></tr>`}</tbody>
-    </table></div>
+    <details style="margin-top:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;" ${selQIdx!==null?'open':''}>
+      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);display:flex;align-items:center;gap:10px;list-style:none;outline:none;">
+        <span style="font-size:13px;font-weight:700;color:var(--tx);">📋 Desglose · ${selQLabel||'—'}</span>
+        ${hasRaw&&totH>0?`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;">${presHerr} Sí</span>
+        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#ffebee;color:#c62828;">${totH-presHerr} No</span>
+        <button onclick="event.preventDefault();descargarAuditoria11()" style="margin-left:auto;padding:4px 12px;border:1px solid var(--brd);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;font-weight:600;">⬇ Descargar</button>`:''}
+      </summary>
+      <div style="overflow-x:auto;padding:0;">
+      <table style="width:100%;border-collapse:collapse;min-width:480px;">
+        <thead><tr style="background:#f5f9f6;border-bottom:2px solid var(--brd);">
+          <th style="padding:6px;font-size:10px;color:var(--tx3);text-align:center;">#</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Sucursal</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Nombre</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Presentó herramienta</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Nota</th>
+        </tr></thead>
+        <tbody>${desgRows}</tbody>
+      </table></div>
+    </details>
   </div>`;
 }
 // ── KPI 1.2 · Analizador de Gas ──────────────────────────────────────────────
