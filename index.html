@@ -834,7 +834,7 @@ const FTF_TRIMS=[
 ];
 // Auditoría 1.1 — sessionStorage
 let _aud11SelQ=null;
-function setAud11Q(qi){_aud11SelQ=(_aud11SelQ===qi?null:qi);renderMain(CT);}
+function setAud11Q(qi){_aud11SelQ=(_aud11SelQ===qi?null:qi);renderMain(CT);setTimeout(()=>{const el=document.getElementById('aud11-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);}
 function getAud11F(){const ftv=getFtv();if(!ftv.aud11f)ftv.aud11f={sucs:[],año:0};if(!ftv.aud11f.sucs)ftv.aud11f.sucs=[];return ftv.aud11f;}
 function setAud11Año(val){const f=getAud11F();f.año=Number(val);saveData();_aud11SelQ=null;renderMain(CT);}
 function toggleAud11Suc(suc,checked){
@@ -1706,7 +1706,7 @@ function renderVisorAuditoria11(){
     </div>
     ${svgChart}
 
-    <details style="margin-top:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;" ${selQIdx!==null?'open':''}>
+    <details id="aud11-desglose" style="margin-top:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;" ${selQIdx!==null?'open':''}>
       <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);display:flex;align-items:center;gap:10px;list-style:none;outline:none;">
         <span style="font-size:13px;font-weight:700;color:var(--tx);">📋 Desglose · ${selQLabel||'—'}</span>
         ${hasRaw&&totH>0?`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;">${presHerr} Sí</span>
