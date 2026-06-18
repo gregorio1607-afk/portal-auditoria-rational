@@ -1277,7 +1277,9 @@ function loadExcelFTF(input){
       const tiposU=[...new Set(osData.map(r=>r.tipoServicio))].filter(Boolean);
       const marcaRat=marcasU.find(m=>/rational/i.test(m))||marcasU[0]||'Todos';
       const tipoGar=tiposU.find(t=>/garant/i.test(t))||'Todos';
-      ftv.filtros={año:años[0]||CY,marca:marcaRat,tipoServicio:tipoGar,sucursales:[]};
+      // Año: si hay solo un año en el Excel usar ese, sino Todos para ver todo
+      const añoDef=años.length===1?años[0]:'Todos';
+      ftv.filtros={año:añoDef,marca:marcaRat,tipoServicio:tipoGar,sucursales:[]};
       ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
       saveData();
       const ftfCount=osData.filter(r=>r.tipoServicio===tipoGar&&r.ftf==='F.T.F.').length;
