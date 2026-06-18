@@ -1272,21 +1272,20 @@ function loadExcelFTF(input){
 
       const ftv=getFtv();
       setFtfOS(osData);
-      // Resetear filtros al cargar nuevo Excel
       const años=[...new Set(osData.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a);
       const marcasU=[...new Set(osData.map(r=>r.marca))].filter(Boolean);
       const tiposU=[...new Set(osData.map(r=>r.tipoServicio))].filter(Boolean);
-      // Auto-detectar el filtro más probable
       const marcaRat=marcasU.find(m=>/rational/i.test(m))||marcasU[0]||'Todos';
-      const tipoGar=tiposU.find(t=>/garant/i.test(t))||tiposU[0]||'Todos';
-      ftv.filtros={año:años[0]||CY,marca:marcaRat,tipoServicio:tipoGar,sucursal:'Todos'};
+      // Default Todos para ver toda la info, el usuario filtra después
+      ftv.filtros={año:años[0]||CY,marca:marcaRat,tipoServicio:'Todos',sucursales:[]};
       ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
       saveData();
+      // Toast diagnóstico: distribución por trimestre y valor raw columna P
       const tDist=[0,1,2,3].map(ti=>osData.filter(r=>r.trim===ti).length);
-      const trimInfo=' · T1:'+tDist[0]+' T2:'+tDist[1]+' T3:'+tDist[2]+' T4:'+tDist[3];
-      const colPInfo=ci.trimCol>=0?' · ColP='+ci.trimCol:'';
-      toast('✅ '+proc+' OS cargadas'+trimInfo+(skip?' ('+skip+' omitidas)':''));
-      console.log('FTF load — headers:',hdr,'trimCol:',ci.trimCol,'sample trimVals:',osData.slice(0,5).map(r=>r.trim));
+      const colPHeader=hdr[ci.trimCol]||'(ninguno)';
+      const rawColP=osData.length>0?String(rows[hdrIdx+1]&&rows[hdrIdx+1][ci.trimCol]):'—';
+      const diag='T1:'+tDist[0]+' T2:'+tDist[1]+' T3:'+tDist[2]+' T4:'+tDist[3]+' | ColP('+ci.trimCol+')="'+colPHeader+'" val="'+rawColP+'"';
+      toast('✅ '+proc+' OS · '+diag+(skip?' · '+skip+' omitidas':''),6000);
       ftfTrimDetail=null;
       renderMain('kpi');
     }catch(err){
@@ -1473,7 +1472,7 @@ function svDoc(){if(!SD[CA])SD[CA]={};const prev=SD[CA].doc||{};const ver=(prev.
 function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd.kpi.source=v('ks');zd.kpi.freq=v('kf');zd.kpi.notes=v('kn');saveData();renderAcc();toast('KPI guardado — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};const ver=(zd.action.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});const snap={version:ver,fechaGuardado,responsable:v('a_rsp'),estadoA3:v('a_est'),fechaInicio:v('a_fi'),fechaFin:v('a_ff'),actual:v('a_act'),meta:v('a_met'),brecha:v('a_bre'),situacion:v('a_sit'),estrategia:v('a_est2'),fechaSeg:v('a_fseg'),resultadoMedido:v('a_rmed'),lecciones:v('a_lec'),causas:[...(zd.action.causas||[])],rows:[...(zd.action.rows||[])]};const history=[...(zd.action.history||[]),snap];zd.action={...snap,saved:true,history};saveData();renderAcc();renderMain('action');toast('A3 guardado V'+String(ver).padStart(2,'0')+' — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
-function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function toast(msg,dur){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2500);}
 function applySession(idx,isAdmin){
   if(!isAdmin){
     activeUserId=idx;
