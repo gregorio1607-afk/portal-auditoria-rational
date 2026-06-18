@@ -819,6 +819,17 @@ function toggleSucursal(suc){
   if(idx>=0)arr.splice(idx,1);else arr.push(suc);
   saveData();renderMain('kpi');
 }
+function toggleSucursalSave(suc){
+  // Solo guarda, no re-renderiza (para dropdown persistente)
+  const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
+  const arr=ftv.filtros.sucursales;
+  const idx=arr.indexOf(suc);
+  if(idx>=0)arr.splice(idx,1);else arr.push(suc);
+  saveData();
+}
+function setSucTodasSave(){
+  const ftv=getFtv();ftv.filtros.sucursales=[];saveData();
+}
 function setSucursalZona(zona,sucucursalesEnZona,checked){
   const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
   const arr=ftv.filtros.sucursales;
@@ -968,14 +979,26 @@ function renderVisorFTF(){
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MARCA</span>${mkSel('marca',marcas,f.marca)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipoServicio',tipos,f.tipoServicio)}</div>
-    <div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">SUCURSAL</span>${(()=>{
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">SUCURSAL</span>${(()=>{
       const sels=f.sucursales&&f.sucursales.length>0?f.sucursales:null;
-      const chipSt=(act)=>`padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--grn);white-space:nowrap;${act?'background:var(--grn);color:#fff;':'background:#fff;color:var(--grn);'}`;
-      const chips=[
-        `<button style="${chipSt(sels===null)}" onclick="(function(){const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');})()">Todas</button>`,
-        ...sucursales.map(s=>`<button style="${chipSt(sels&&sels.includes(s))}" onclick="toggleSucursal('${s}')">${s}</button>`)
+      const selLbl=sels===null?'Todas ('+sucursales.length+')':'Sel. '+sels.length+' / '+sucursales.length;
+      const items=[
+        `<label style="display:flex;align-items:center;gap:6px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;font-weight:700;">
+          <input type="checkbox" ${sels===null?'checked':''} onchange="setSucTodasSave()" style="accent-color:var(--grn);cursor:pointer;"/>Todas</label>`,
+        ...sucursales.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 14px;cursor:pointer;font-size:11px;color:var(--tx);white-space:nowrap;">
+          <input type="checkbox" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursalSave('${s}')" style="accent-color:var(--grn);cursor:pointer;"/>${s}</label>`)
       ].join('');
-      return`<div style="display:flex;gap:4px;flex-wrap:wrap;">${chips}</div>`;
+      return`<details style="position:relative;" onmouseleave="this.removeAttribute('open')">
+        <summary style="list-style:none;padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;cursor:pointer;min-width:150px;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <span>${selLbl}</span><span style="font-size:10px;color:var(--tx3);">▾</span>
+        </summary>
+        <div style="position:absolute;z-index:99;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px #0002;min-width:200px;max-height:280px;overflow-y:auto;margin-top:2px;">
+          ${items}
+          <div style="padding:6px 8px;border-top:1px solid #f0f0f0;">
+            <button style="width:100%;padding:5px;border-radius:6px;background:var(--grn);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;" onclick="renderMain('kpi')">✔ Aplicar</button>
+          </div>
+        </div>
+      </details>`;
     })()}</div>
     <label style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
       📤 Cargar Excel
@@ -1259,7 +1282,11 @@ function loadExcelFTF(input){
       ftv.filtros={año:años[0]||CY,marca:marcaRat,tipoServicio:tipoGar,sucursal:'Todos'};
       ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
       saveData();
-      toast('✅ '+proc+' OS cargadas · '+sheetName+(skip?' ('+skip+' sin fecha)':''));
+      const tDist=[0,1,2,3].map(ti=>osData.filter(r=>r.trim===ti).length);
+      const trimInfo=' · T1:'+tDist[0]+' T2:'+tDist[1]+' T3:'+tDist[2]+' T4:'+tDist[3];
+      const colPInfo=ci.trimCol>=0?' · ColP='+ci.trimCol:'';
+      toast('✅ '+proc+' OS cargadas'+trimInfo+(skip?' ('+skip+' omitidas)':''));
+      console.log('FTF load — headers:',hdr,'trimCol:',ci.trimCol,'sample trimVals:',osData.slice(0,5).map(r=>r.trim));
       ftfTrimDetail=null;
       renderMain('kpi');
     }catch(err){
