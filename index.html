@@ -1340,16 +1340,16 @@ function renderA3KPI(id){
     </div>`;
   };
   let cards='';
-  [2025,2026].forEach(y=>{['MTY','CDMX'].forEach(z=>{
-    const ac=YZD[y]&&YZD[y][z]&&YZD[y][z][id]&&YZD[y][z][id].action&&YZD[y][z][id].action.saved?YZD[y][z][id].action:null;
-    if(!ac)return;
+  // Solo mostrar A3 de la zona y año activos
+  const y=CY,z=CZ;
+  const ac=YZD[y]&&YZD[y][z]&&YZD[y][z][id]&&YZD[y][z][id].action&&YZD[y][z][id].action.saved?YZD[y][z][id].action:null;
+  if(ac){
     const history=ac.history||[{...ac}];
-    const isCurrent=y===CY&&z===CZ;
     const zLabel=z==='MTY'?'Monterrey':'CDMX';
     cards+=`<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">${zLabel} · Ciclo ${y} — ${history.length} versión${history.length>1?'es':''}</div>`;
-    [...history].reverse().forEach((snap,i)=>{ cards+=verCard(snap,isCurrent,z,y,i===0); });
+    [...history].reverse().forEach((snap,i)=>{ cards+=verCard(snap,true,z,y,i===0); });
     cards+='</div>';
-  });});
+  }
   if(!cards)return'';
   return`<div class="card" style="margin-top:10px;"><div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">📋 Historial de A3 guardados</div>${cards}</div>`;
 }
