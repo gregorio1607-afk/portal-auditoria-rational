@@ -791,11 +791,22 @@ const FTF_TRIMS=[
   {label:'3er Trimestre',meses:'Jul · Ago · Sep',idx:[6,7,8]},
   {label:'4to Trimestre',meses:'Oct · Nov · Dic',idx:[9,10,11]}
 ];
+function _ftfOsKey(){return'ftfOS_'+CZ;}
+function getFtfOS(){try{const raw=sessionStorage.getItem(_ftfOsKey());return raw?JSON.parse(raw):[];}catch(e){return[];}}
+function setFtfOS(arr){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr));}catch(e){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr.slice(0,500)));}catch(e2){}}}
 function getFtv(){
   const zd=gzd();
-  if(!zd.ftv)zd.ftv={meses:{},osData:[],filtros:{},updatedAt:''};
-  if(!zd.ftv.osData)zd.ftv.osData=[];
+  if(!zd.ftv)zd.ftv={filtros:{},updatedAt:'',osCount:0};
   if(!zd.ftv.filtros)zd.ftv.filtros={};
+  // Limpiar osData del localStorage si quedó de versión anterior
+  if(Object.prototype.hasOwnProperty.call(zd.ftv,'osData')&&!zd.ftv.osData.__isProxy){
+    delete zd.ftv.osData;
+  }
+  // osData vive en sessionStorage, no en localStorage
+  const desc=Object.getOwnPropertyDescriptor(zd.ftv,'osData');
+  if(!desc||!desc.get){
+    Object.defineProperty(zd.ftv,'osData',{get:getFtfOS,set:setFtfOS,configurable:true,enumerable:false});
+  }
   return zd.ftv;
 }
 function setFtfFiltro(k,v){
