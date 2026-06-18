@@ -2018,6 +2018,7 @@ function renderVisorCapacitacion13(){
         📤 Importar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCap13(this)"/>
       </label>
       <button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">+ Agregar</button>
+      <button onclick="(function(){if(!YZD[CY][CZ]['2.1'])return;const m=YZD[CY][CZ]['2.1'].m13cap;if(!m)return;const a=m.tecnicos.length;m.tecnicos=m.tecnicos.filter(t=>t.nombre&&t.nombre.trim()!=='');saveData();renderMain(CT);toast('🗑 '+(a-m.tecnicos.length)+' técnicos sin nombre eliminados');})()" style="font-size:11px;background:#fff;color:#e53935;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid #e53935;cursor:pointer;">🗑 Limpiar</button>
     </div>
 
     ${total>0?`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
