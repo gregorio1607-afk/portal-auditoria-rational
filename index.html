@@ -809,7 +809,7 @@ function makeFtfBarChart(mData,trimIdx){
   });
   return`<svg width="${W}" height="${H}" style="overflow:visible;display:block;margin:auto;"><line x1="${pl}" y1="${pt}" x2="${pl}" y2="${pt+cH}" stroke="#e0e6e2"/><line x1="${pl}" y1="${pt+cH}" x2="${W-pr}" y2="${pt+cH}" stroke="#e0e6e2"/><text x="${pl-3}" y="${pt+3}" text-anchor="end" font-size="8" fill="#bbb">100%</text><text x="${pl-3}" y="${pt+cH}" text-anchor="end" font-size="8" fill="#bbb">0%</text><line x1="${pl}" y1="${metaY}" x2="${W-pr}" y2="${metaY}" stroke="#4CAF7D" stroke-width="1.5" stroke-dasharray="3 3"/><text x="${W-pr}" y="${metaY-3}" text-anchor="end" font-size="8" fill="#4CAF7D" font-weight="600">meta</text>${bars}</svg>`;
 }
-function showFTFDetalle(ti){ftfTrimDetail=ti;renderMain('kpi');}
+function showFTFDetalle(ti){ftfTrimDetail=ti;renderMain('kpi');setTimeout(()=>{const el=document.getElementById('ftf-detalle');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);}
 function hideFTFDetalle(){ftfTrimDetail=null;renderMain('kpi');}
 function renderFTFDetalleOS(){
   const ftv=getFtv();const t=FTF_TRIMS[ftfTrimDetail];
@@ -831,7 +831,7 @@ function renderFTFDetalleOS(){
       <td style="padding:5px 8px;text-align:center;"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${isFtf?'#e8f5ee':'#ffebee'};color:${isFtf?'#2e7d52':'#c62828'};">${r.ftf}</span></td>
     </tr>`;
   }).join('');
-  return`<div class="card" style="margin-top:10px;">
+  return`<div id="ftf-detalle" class="card" style="margin-top:10px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
       <button onclick="hideFTFDetalle()" style="padding:5px 14px;border:1px solid var(--brd);border-radius:8px;background:#fff;font-size:12px;cursor:pointer;font-weight:600;">← Volver</button>
       <div style="font-size:13px;font-weight:700;color:var(--tx);">📋 Desglose OS · ${t.label} · ${t.meses}</div>
