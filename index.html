@@ -1783,7 +1783,7 @@ function renderVisorMedicion12(){
     const dias=fp?Math.ceil((fp-hoy)/86400000):null;
     const porVencer=vigente&&dias!==null&&dias<=90;
     const certs=inst.certs||[];
-    return{...inst,idx,fp,fc,vigente,dias,porVencer,cert};
+    return{...inst,idx,fp,fc,vigente,dias,porVencer,certs};
   });
 
   const total=instData.length;
