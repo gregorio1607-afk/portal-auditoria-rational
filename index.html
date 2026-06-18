@@ -1574,8 +1574,16 @@ function renderVisorAuditoria11(){
     histQ=QTRS.map((q,qi)=>{
       const recs=data.filter(r=>q.months.includes(r.mes));
       const aud=recs.filter(r=>r.herr!=='-');
-      const ph=pct(aud.filter(r=>r.presHerr==='Si').length,aud.length);
-      return{label:q.label,sub:q.sub,pH:ph,count:aud.length,qi};
+      if(aud.length>0){
+        const ph=pct(aud.filter(r=>r.presHerr==='Si').length,aud.length);
+        return{label:q.label,sub:q.sub,pH:ph,count:aud.length,qi,real:true};
+      }
+      // Sin datos Excel: usar fallback 2025 si aplica
+      if(añoActivo===2025){
+        const ph=Math.round(q.months.reduce((s,m)=>s+hist25m[m],0)/3);
+        return{label:q.label,sub:q.sub,pH:ph,count:0,qi,real:false};
+      }
+      return{label:q.label,sub:q.sub,pH:0,count:0,qi,real:false};
     });
 
     const validSel=_aud11SelQ!==null&&histQ.some(q=>q.qi===_aud11SelQ);
@@ -1609,11 +1617,12 @@ function renderVisorAuditoria11(){
     const hH=barH(d.pH);
     const clr=d.pH>=meta?grn:org;
     const isSel=hasRaw&&selQIdx===d.qi;
-    return`<g style="cursor:pointer;" onclick="setAud11Q(${d.qi})">
+    const opacity=d.real===false?'0.35':(isSel?'1':'0.75');
+    return`<g style="cursor:${d.count>0?'pointer':'default'};" ${d.count>0?`onclick="setAud11Q(${d.qi})"`:''}>
       <rect x="${x-2}" y="0" width="${bw+4}" height="${H}" fill="${isSel?'rgba(0,0,0,0.04)':'none'}" rx="6"/>
-      <rect x="${x}" y="${H-hH-18}" width="${bw}" height="${hH}" fill="${clr}" opacity="${isSel?'1':'0.65'}" rx="4"/>
+      <rect x="${x}" y="${H-hH-18}" width="${bw}" height="${hH}" fill="${clr}" opacity="${opacity}" rx="4" ${d.real===false?`stroke-dasharray="3,2" stroke="${clr}" stroke-width="1"`:''}/>
       ${isSel?`<rect x="${x-1}" y="${H-hH-19}" width="${bw+2}" height="${hH+2}" fill="none" stroke="${clr}" stroke-width="1.5" rx="4"/>`:''}
-      <text x="${x+bw/2}" y="${H-hH-21}" text-anchor="middle" font-size="10" fill="${clr}" font-weight="700" font-family="sans-serif">${d.pH}%</text>
+      <text x="${x+bw/2}" y="${H-hH-21}" text-anchor="middle" font-size="10" fill="${clr}" font-weight="700" font-family="sans-serif" opacity="${d.real===false?'0.5':'1'}">${d.pH}%</text>
       <text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="${isSel?clr:'var(--tx3)'}" font-weight="${isSel?'700':'400'}" font-family="sans-serif">${d.label}</text>
       <text x="${x+bw/2}" y="${H+8}" text-anchor="middle" font-size="8" fill="var(--tx3)" font-family="sans-serif">${d.sub}</text>
     </g>`;
