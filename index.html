@@ -649,7 +649,7 @@ function saveMember(){const nom=v('m_nom');if(!nom){toast('Ingresa el nombre');r
 function editMember(i){editingMember=i;renderDocView('integrantes');}
 function delMember(i){if(confirm('¿Eliminar a '+members[i].nombre+'?')){members.splice(i,1);editingMember=null;saveData();}renderDocView('integrantes');}
 function cancelEdit(){editingMember=null;renderDocView('integrantes');}
-function openArea(id){if(!hasPerm('kpi_'+id)){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess(id+' · '+(CAO?.name||'KPI'));return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();const defTab=id==='1.1'?'kpi-herr':id==='1.2'?'kpi-gas':'kpi';renderMain(CT&&CT!=='kpi'?CT:defTab);}
+function openArea(id){if(!hasPerm('kpi_'+id)){VM='area';CA=id;CAO=areas.find(a=>a.id===id);renderAcc();noAccess(id+' · '+(CAO?.name||'KPI'));return;}VM='area';CA=id;CAO=areas.find(a=>a.id===id);initArea(id);document.getElementById('tbT').textContent=id+' · '+CAO.name;document.getElementById('tbS').textContent=CAO.area+' · Ciclo '+CY;renderAcc();const defTab=id==='1.1'?'kpi-herr':id==='1.2'?'kpi-gas':'kpi';CT=defTab;renderMain(defTab);}
 function renderMain(tab){
   CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   let h=`<div style="margin-bottom:10px;">${a.proc_obj?`<p style="font-size:12px;color:var(--tx2);line-height:1.6;">${esc(a.proc_obj)}</p>`:''}</div>`;
