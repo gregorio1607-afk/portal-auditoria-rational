@@ -822,7 +822,6 @@ function toggleSucursal(suc){
 function toggleSucursalSave(suc,checked){
   const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
   if(ftv.filtros.sucursales.length===0&&!checked){
-    // Estaban todas — excluir esta usando la lista completa del Excel
     const allSucs=[...new Set(getFtfOS().map(r=>r.sucursal).filter(Boolean))];
     ftv.filtros.sucursales=allSucs.filter(x=>x!==suc);
   } else {
@@ -830,12 +829,15 @@ function toggleSucursalSave(suc,checked){
     const idx=arr.indexOf(suc);
     if(checked&&idx<0)arr.push(suc);
     if(!checked&&idx>=0)arr.splice(idx,1);
-    if(arr.length===0)ftv.filtros.sucursales=[]; // vacío = todas
+    if(arr.length===0)ftv.filtros.sucursales=[];
   }
-  saveData(); // NO renderMain aquí — solo guarda; Aplicar hace el render
+  saveData();renderMain('kpi');
+  // Re-abrir dropdown después del re-render
+  setTimeout(()=>{const d=document.getElementById('suc-details');if(d)d.setAttribute('open','');},20);
 }
 function setSucTodasSave(){
-  const ftv=getFtv();ftv.filtros.sucursales=[];saveData();
+  const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');
+  setTimeout(()=>{const d=document.getElementById('suc-details');if(d)d.setAttribute('open','');},20);
 }
 function setSucursalZona(zona,sucucursalesEnZona,checked){
   const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
@@ -1009,7 +1011,7 @@ function renderVisorFTF(){
         ...sucursales.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 14px;cursor:pointer;font-size:11px;color:var(--tx);white-space:nowrap;">
           <input type="checkbox" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursalSave('${s}',this.checked)" style="accent-color:var(--grn);cursor:pointer;"/>${s}</label>`)
       ].join('');
-      return`<details style="position:relative;" onmouseleave="this.removeAttribute('open')">
+      return`<details id="suc-details" style="position:relative;" onmouseleave="this.removeAttribute('open')">
         <summary style="list-style:none;padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;cursor:pointer;min-width:150px;display:flex;justify-content:space-between;align-items:center;gap:6px;">
           <span>${selLbl}</span><span style="font-size:10px;color:var(--tx3);">▾</span>
         </summary>
