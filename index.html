@@ -1677,16 +1677,32 @@ function renderVisorAuditoria11(){
     </label>
   </div>`;
 
-  // Desglose rows
-  const chip=v=>v==='Si'?`<span style="background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✓ Sí</span>`:v==='-'?`<span style="font-size:11px;color:var(--tx3);">—</span>`:`<span style="background:#ffebee;color:#c62828;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✗ No</span>`;
-  const desgRows=curRecords.length>0?curRecords.map((t,i)=>{
-    const baja=t.motivo==='BAJA';
-    return`<tr style="border-bottom:1px solid #f0f0f0;${baja?'opacity:.45':''}">
+  // Desglose: agrupar por persona (una fila por técnico, chips por mes del trimestre)
+  const chip=v=>v==='Si'?`<span style="background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;">✓</span>`:`<span style="background:#ffebee;color:#c62828;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;">✗</span>`;
+  const MES_CORTO=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const qMeses=selQIdx!==null?QTRS[selQIdx].months:[];
+  // Agrupar registros por nombre+sucursal
+  const personMap={};
+  curRecords.forEach(r=>{
+    const key=(r.subUbic||r.segmento||'')+'||'+r.nombre;
+    if(!personMap[key])personMap[key]={nombre:r.nombre,suc:r.subUbic||r.segmento||'',meses:{}};
+    personMap[key].meses[r.mes]=r.presHerr;
+  });
+  const personas=Object.values(personMap);
+  const desgRows=personas.length>0?personas.map((p,i)=>{
+    const mesChips=qMeses.map(m=>{
+      const v=p.meses[m];
+      if(!v)return`<span style="font-size:9px;color:#bbb;padding:2px 4px;">${MES_CORTO[m]}</span>`;
+      return`<span style="font-size:9px;font-weight:700;margin-right:2px;">${MES_CORTO[m]} ${chip(v)}</span>`;
+    }).join('');
+    const siCnt=qMeses.filter(m=>p.meses[m]==='Si').length;
+    const totCnt=qMeses.filter(m=>p.meses[m]).length;
+    return`<tr style="border-bottom:1px solid #f0f0f0;">
       <td style="padding:5px 6px;text-align:center;font-size:10px;color:var(--tx3);">${i+1}</td>
-      <td style="padding:5px 8px;font-size:11px;color:var(--tx);">${esc(t.subUbic||t.segmento)}</td>
-      <td style="padding:5px 8px;font-size:11px;color:var(--tx);font-weight:600;">${esc(t.nombre)}</td>
-      <td style="padding:5px 8px;text-align:center;">${chip(t.presHerr)}</td>
-      <td style="padding:5px 8px;text-align:center;">${baja?`<span style="font-size:9px;background:#f5f5f5;color:#888;padding:2px 6px;border-radius:8px;">BAJA</span>`:''}${t.motivo&&t.motivo!=='BAJA'?`<span style="font-size:9px;color:var(--tx3);">${esc(t.motivo)}</span>`:''}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx);">${esc(p.suc)}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx);font-weight:600;">${esc(p.nombre)}</td>
+      <td style="padding:5px 8px;">${mesChips}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:700;color:${siCnt===totCnt&&totCnt>0?'#2e7d32':siCnt===0?'#c62828':'#e65100'};">${siCnt}/${totCnt}</td>
     </tr>`;
   }).join(''):`<tr><td colspan="5" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Carga el Excel para ver el desglose.</td></tr>`;
 
