@@ -1031,10 +1031,11 @@ function renderVisorFTF(){
     </div>
   </div>`:'';
 
-  // Datos por trimestre para gráfica horizontal
+  // Datos por trimestre — usar r.trim (columna P Kepler) para agrupar correctamente
   const trimData=FTF_TRIMS.map((t,ti)=>{
-    const tFtf=t.idx.reduce((a,i)=>a+meses[i].ftf,0);
-    const tNo=t.idx.reduce((a,i)=>a+meses[i].noFtf,0);
+    const osTrim=osF.filter(r=>r.trim===ti);
+    const tFtf=osTrim.filter(r=>r.ftf==='F.T.F.').length;
+    const tNo=osTrim.filter(r=>r.ftf==='NO F.T.F.').length;
     const tTot=tFtf+tNo;
     return{label:t.label.replace('Trimestre','TRIM.'),pct:pct(tFtf,tTot),ftf:tFtf,tot:tTot,noFtf:tNo};
   });
@@ -1045,11 +1046,15 @@ function renderVisorFTF(){
     const clr=d.pct===null?'#9e9e9e':d.pct>=85?'#2e7d52':d.pct>=70?'#b8690a':'#c62828';
     const bg=d.pct===null?'#fafafa':d.pct>=85?'#f0fbf5':d.pct>=70?'#fffde7':'#fff5f5';
     const rows=t.idx.map(i=>{
-      const md=meses[i];const tot=md.ftf+md.noFtf;
+      // Contar desde osF filtrando por trim (col P) y mes para mantener consistencia
+      const osMes=osF.filter(r=>r.trim===ti&&r.mes===i);
+      const ftfM=osMes.filter(r=>r.ftf==='F.T.F.').length;
+      const noFtfM=osMes.filter(r=>r.ftf==='NO F.T.F.').length;
+      const tot=ftfM+noFtfM;
       return`<tr style="border-bottom:1px solid #f0f0f0;">
         <td style="padding:4px 8px;font-size:12px;text-transform:capitalize;color:var(--tx2);">${FTF_MESES[i]}</td>
-        <td style="padding:4px 8px;font-size:12px;text-align:center;color:#2e7d52;font-weight:700;">${md.ftf||'—'}</td>
-        <td style="padding:4px 8px;font-size:12px;text-align:center;color:#c62828;font-weight:700;">${md.noFtf||'—'}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;color:#2e7d52;font-weight:700;">${ftfM||'—'}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;color:#c62828;font-weight:700;">${noFtfM||'—'}</td>
         <td style="padding:4px 8px;font-size:12px;text-align:center;font-weight:700;color:var(--tx);">${tot||'—'}</td>
       </tr>`;
     }).join('');
@@ -1215,7 +1220,7 @@ function loadExcelFTF(input){
         tipo:     hdr.findIndex(h=>h.includes('tipo')),
         fechaAlta:hdr.findIndex(h=>norm(h).replace(/\s/g,'').includes('fechaalta')),
         cantRep:  hdr.findIndex(h=>h.includes('cant')&&h.includes('rep')),
-        trimCol:  hdr.findIndex(h=>h.includes('trim')),  // columna P Kepler
+        trimCol:  (()=>{const i=hdr.findIndex(h=>h.includes('trim'));return i>=0?i:15;})(),  // columna P Kepler
       };
       const missing=[['marca',ci.marca],['tipo',ci.tipo],['fechaAlta',ci.fechaAlta],['cantRep',ci.cantRep]].filter(([,v])=>v<0).map(([k])=>k);
       if(missing.length){toast('Columnas no encontradas: '+missing.join(', '));console.warn('Headers:',hdr);return;}
