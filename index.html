@@ -1672,19 +1672,31 @@ function renderVisorAuditoria11(){
   </div>`;
 }
 // ── KPI 1.2 · Analizador de Gas ──────────────────────────────────────────────
-function getM12(){const zd=gzd();if(!zd.m12)zd.m12={instrumentos:[],bitacora:[]};return zd.m12;}
+function getM12(){
+  const zd=gzd();if(!zd.m12)zd.m12={instrumentos:[],bitacora:[]};
+  // Migrar certs de clave separada al objeto principal
+  let migrated=false;
+  zd.m12.instrumentos.forEach(inst=>{
+    if(!inst.cert&&inst.serie){const old=localStorage.getItem('cert12_'+inst.serie);if(old){inst.cert=old;try{localStorage.removeItem('cert12_'+inst.serie);}catch(e){}migrated=true;}}
+  });
+  if(migrated)saveData();
+  return zd.m12;
+}
 function saveM12Bit(entry){const m=getM12();m.bitacora.unshift(entry);saveData();renderMain(CT);}
 function delM12Bit(id){const m=getM12();m.bitacora=m.bitacora.filter(e=>e.id!==id);saveData();renderMain(CT);}
 function saveM12Inst(idx,field,val){const m=getM12();if(m.instrumentos[idx])m.instrumentos[idx][field]=val;saveData();}
 function saveM12InstR(idx,field,val){saveM12Inst(idx,field,val);renderMain(CT);}
 function addM12Inst(){const m=getM12();m.instrumentos.push({serie:'',marca:'',modelo:'',unidad:'',responsable:'',fechaCal:'',fechaPlaneada:'',cert:''});saveData();renderMain(CT);}
-function delM12Inst(idx){if(!confirm('¿Eliminar este analizador?'))return;const m=getM12();const s=m.instrumentos[idx]?.serie;if(s)try{localStorage.removeItem('cert12_'+s);}catch(e){}m.instrumentos.splice(idx,1);saveData();renderMain(CT);}
-function uploadCertM12(input,serie){
+function delM12Inst(idx){if(!confirm('¿Eliminar este analizador?'))return;const m=getM12();m.instrumentos.splice(idx,1);saveData();renderMain(CT);}
+function uploadCertM12(input,idx){
   const file=input.files[0];if(!file)return;
+  if(file.size>3*1024*1024){toast('❌ Archivo muy grande — máximo 3 MB');return;}
   const reader=new FileReader();
   reader.onload=e=>{
-    try{localStorage.setItem('cert12_'+serie,e.target.result);toast('✅ Certificado guardado');renderMain(CT);}
-    catch(ex){toast('❌ Archivo muy grande para almacenar');}
+    const m=getM12();if(!m.instrumentos[idx])return;
+    m.instrumentos[idx].cert=e.target.result;
+    try{saveData();toast('✅ Certificado guardado');renderMain(CT);}
+    catch(ex){m.instrumentos[idx].cert='';toast('❌ No se pudo guardar — archivo demasiado grande');}
   };
   reader.readAsDataURL(file);
 }
@@ -1702,7 +1714,7 @@ function renderVisorMedicion12(){
     const vigente=fp?(hoy<=fp):null;
     const dias=fp?Math.ceil((fp-hoy)/86400000):null;
     const porVencer=vigente&&dias!==null&&dias<=90;
-    const cert=localStorage.getItem('cert12_'+inst.serie)||'';
+    const cert=inst.cert||'';
     return{...inst,idx,fp,fc,vigente,dias,porVencer,cert};
   });
 
@@ -1765,9 +1777,9 @@ function renderVisorMedicion12(){
         <span style="font-size:10px;font-weight:700;color:var(--tx3);">CERTIFICADO:</span>
         ${d.cert
           ?`<a href="${d.cert}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;">📄 Ver PDF</a>
-             <button onclick="localStorage.removeItem('cert12_${d.serie}');renderMain(CT);" style="font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕ Quitar</button>`
+             <button onclick="saveM12Inst(${i},'cert','');renderMain(CT);" style="font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕ Quitar</button>`
           :`<label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-              📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertM12(this,'${d.serie}')"/>
+              📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertM12(this,${i})"/>
             </label>`}
       </div>
     </div>`;
