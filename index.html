@@ -849,12 +849,13 @@ function selZonaOnly(zona,todasSucursales){
 }
 function getFtfFiltered(){
   const f=(getFtv().filtros)||{};
-  const nc=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  // nc: normaliza acentos Y convierte ¡→i para manejar encoding roto de Kepler
+  const nc=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/¡/g,'i');
   const sels=f.sucursales&&f.sucursales.length>0?f.sucursales:null;
   return getFtfOS().filter(r=>{
     if(f.año&&f.año!=='Todos'&&r.año!==parseInt(f.año))return false;
     if(f.marca&&f.marca!=='Todos'&&nc(r.marca)!==nc(f.marca))return false;
-    if(f.tipoServicio&&f.tipoServicio!=='Todos'&&r.tipoServicio.trim()!==f.tipoServicio.trim())return false;
+    if(f.tipoServicio&&f.tipoServicio!=='Todos'&&nc(r.tipoServicio)!==nc(f.tipoServicio))return false;
     if(sels&&!sels.includes(r.sucursal))return false;
     return true;
   });
