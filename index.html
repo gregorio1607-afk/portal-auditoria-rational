@@ -819,7 +819,7 @@ function toggleSucursal(suc){
   if(idx>=0)arr.splice(idx,1);else arr.push(suc);
   saveData();renderMain('kpi');
 }
-function toggleSucursalSave(suc,checked,todas){
+function toggleSucursalSave(suc,checked){
   const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
   if(ftv.filtros.sucursales.length===0&&!checked){
     // Estaban todas — excluir esta usando la lista completa del Excel
@@ -832,10 +832,10 @@ function toggleSucursalSave(suc,checked,todas){
     if(!checked&&idx>=0)arr.splice(idx,1);
     if(arr.length===0)ftv.filtros.sucursales=[]; // vacío = todas
   }
-  saveData();renderMain('kpi');
+  saveData(); // NO renderMain aquí — solo guarda; Aplicar hace el render
 }
 function setSucTodasSave(){
-  const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');
+  const ftv=getFtv();ftv.filtros.sucursales=[];saveData();
 }
 function setSucursalZona(zona,sucucursalesEnZona,checked){
   const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
@@ -1007,7 +1007,7 @@ function renderVisorFTF(){
         `<label style="display:flex;align-items:center;gap:6px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;font-weight:700;">
           <input type="checkbox" ${sels===null?'checked':''} onchange="setSucTodasSave()" style="accent-color:var(--grn);cursor:pointer;"/>Todas</label>`,
         ...sucursales.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 14px;cursor:pointer;font-size:11px;color:var(--tx);white-space:nowrap;">
-          <input type="checkbox" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursalSave('${s}',this.checked,${JSON.stringify(sucursales)});renderMain('kpi')" style="accent-color:var(--grn);cursor:pointer;"/>${s}</label>`)
+          <input type="checkbox" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursalSave('${s}',this.checked)" style="accent-color:var(--grn);cursor:pointer;"/>${s}</label>`)
       ].join('');
       return`<details style="position:relative;" onmouseleave="this.removeAttribute('open')">
         <summary style="list-style:none;padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;cursor:pointer;min-width:150px;display:flex;justify-content:space-between;align-items:center;gap:6px;">
@@ -1016,7 +1016,7 @@ function renderVisorFTF(){
         <div style="position:absolute;z-index:99;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px #0002;min-width:200px;max-height:280px;overflow-y:auto;margin-top:2px;">
           ${items}
           <div style="padding:6px 8px;border-top:1px solid #f0f0f0;">
-            <button style="width:100%;padding:5px;border-radius:6px;background:var(--grn);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;" onclick="renderMain('kpi')">✔ Aplicar</button>
+            <button style="width:100%;padding:5px;border-radius:6px;background:var(--grn);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;" onclick="this.closest('details').removeAttribute('open');renderMain('kpi')">✔ Aplicar</button>
           </div>
         </div>
       </details>`;
