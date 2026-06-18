@@ -158,6 +158,8 @@ textarea.fc{resize:vertical;line-height:1.5;}
 @media(max-width:768px){.sb{width:190px;}.fr,.fr3{grid-template-columns:1fr;}.mad-grid{grid-template-columns:repeat(3,1fr);}}
 </style>
 <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="portal">
@@ -245,6 +247,38 @@ textarea.fc{resize:vertical;line-height:1.5;}
   </div>
 </div>
 <script>
+// ── Firebase sync ────────────────────────────────────────────────────────────
+firebase.initializeApp({apiKey:"AIzaSyAiuFRHr0oWjbpSnQyELUygJdbE4rF3KZY",authDomain:"portal-auditoria-rational.firebaseapp.com",databaseURL:"https://portal-auditoria-rational-default-rtdb.firebaseio.com",projectId:"portal-auditoria-rational",storageBucket:"portal-auditoria-rational.firebasestorage.app",messagingSenderId:"929257938224",appId:"1:929257938224:web:1dec97c0a15705b496fcf5"});
+const _db=firebase.database();
+let _fbSyncTimer=null;
+function _fbSync(){
+  clearTimeout(_fbSyncTimer);
+  _fbSyncTimer=setTimeout(()=>{
+    try{
+      _db.ref('v1/yzd').set(JSON.stringify(YZD));
+      _db.ref('v1/users').set(JSON.stringify(appUsers));
+      _db.ref('v1/sd').set(JSON.stringify(SD));
+      _db.ref('v1/mad').set(JSON.stringify(madData));
+      _db.ref('v1/members').set(JSON.stringify(members));
+      _db.ref('v1/ts').set(Date.now());
+    }catch(e){console.warn('FB sync error',e);}
+  },800);
+}
+async function _fbLoad(){
+  try{
+    const snap=await _db.ref('v1').get();
+    if(!snap.exists())return;
+    const d=snap.val();
+    if(d.yzd){const fb=JSON.parse(d.yzd);[2025,2026].forEach(y=>['MTY','CDMX'].forEach(z=>{if(fb[y]&&fb[y][z])YZD[y][z]=fb[y][z];}));localStorage.setItem('appYZD',d.yzd);}
+    if(d.users){const fb=JSON.parse(d.users);appUsers.splice(0,appUsers.length,...fb);localStorage.setItem('appUsers',d.users);}
+    if(d.sd){const fb=JSON.parse(d.sd);Object.keys(fb).forEach(k=>SD[k]=fb[k]);localStorage.setItem('appSD',d.sd);}
+    if(d.mad){const fb=JSON.parse(d.mad);Object.assign(madData,fb);localStorage.setItem('appMad',d.mad);}
+    if(d.members){const fb=JSON.parse(d.members);members.splice(0,members.length,...fb);localStorage.setItem('appMembers',d.members);}
+    renderAcc();if(VM==='area'&&CA)renderMain(CT);
+    toast('☁ Datos sincronizados');
+  }catch(e){console.warn('FB load error',e);}
+}
+// ─────────────────────────────────────────────────────────────────────────────
 const areas=[
   {id:'1.1',g:'1',name:'Herramientas de trabajo',area:'Control Activos',aC:'#B5D4F4',aT:'#0C447C',aL:'CA',opt:false,flow_owner:'Control de Activos / Gerente / Supervisor Técnico',flow_freq:'Trimestral',flow_steps:'1. Asegurar formato de asignación y reglamento de herramienta (Control de Activos)\n2. Entregar herramienta completa y ordenada al técnico\n3. Verificar que la herramienta está completa y ordenada (Técnico firma formato)\n4. Llevar a cabo revisión de herramienta de trabajo (Control de Activos)\n¿Detecta herramienta faltante?\n   - SÍ: Realizar formato de acuerdo y reposición de herramienta\n   - NO: Registrar información en tablero\n5. Registrar información en tablero con calificaciones individuales y promedio general\n6. Subir información de revisión al tablero de control (Data Studio)\n7. Avisar al gerente la carga de información\n¿KPI es ≥ al 9.5?\n   - SÍ: Mantener el mismo método de trabajo\n   - NO: Elaborar hoja A3 de análisis y mejora\n8. Ejecutar plan de acción',flow_tools:'App de control de activos, Data Studio, formato de asignación de herramienta, formato de acuerdo, formato de solicitud de herramienta, Hoja A3',flow_file:'DF-SERV-021',proc_code:'AUDRTN-UN-PR-1.1',proc_ver:'004 — 26/08/2025',proc_approver:'Gregorio González (Dirección General)',proc_obj:'Asegurar que los equipos de nuestros clientes son correctamente intervenidos y que se utilizan las herramientas de trabajo.',proc_scope:'A nivel nacional.',proc_resp:'Control de Activos: asignar herramienta, auditar trimestralmente y aplicar descuentos. Gerente/Supervisor Técnico: garantizar cumplimiento del indicador y solicitar reposición. Técnico: mantener herramienta completa y ordenada y asistir a auditorías.',proc_body:'1. Control de Activos asegura lista de asignación y reglamento de uso de herramienta (POPRT-UDN-PO-66-001).\n2. Se entrega herramienta completa al técnico según su línea (Rational, Fríos, Calientes).\n3. El técnico verifica y firma el formato de asignación; reporta faltantes de inmediato.\n4. Control de Activos realiza revisión trimestral; si detecta faltante genera formato de acuerdo y solicitud de reposición (posible impacto económico al técnico por negligencia o extravío).\n5. Los resultados se registran en tablero de control y se comparten con Gerente/Supervisor para retroalimentación.'},
   {id:'1.2',g:'1',name:'Oficina y planificación',area:'Sucursales de Servicio',aC:'#A5D6A7',aT:'#1B5E20',aL:'SS',opt:false,flow_owner:'Gerente de Unidad de Negocio',flow_freq:'Trimestral',flow_steps:'1. Asistente operativo/comercial avisa al gerente el tipo de servicio a realizar\n2. Recopilar datos del cliente\n3. Gestionar OS con supervisor técnico\n4. Programar servicio (fecha, accesos, cotización si aplica)\n5. Técnico realiza el servicio\n6. Técnico entrega documentos de servicio al supervisor\n7. Recopilar información de: Tiempo de Resolución, Cuestionario de Satisfacción Online y First Time Fix\n8. Condensar información y analizar porcentajes para resultado final\n¿KPI ≥ 85%?\n   - NO: Elaborar hoja A3 de análisis y mejora\n   - SÍ: Mantener el mismo método de trabajo\n9. Ejecutar plan de acción',flow_tools:'Kepler ERP, Drive, plataforma SI (visores), Hoja A3',flow_file:'DF-SERV-017',proc_code:'AUDRTN-UN-PR-1.2',proc_ver:'004 — 20/08/2025',proc_approver:'Gregorio González (Dirección General)',proc_obj:'Asegurar la correcta planeación y coordinación de las operaciones y el apoyo desde la oficina con los equipos en campo.',proc_scope:'A nivel nacional.',proc_resp:'Gerente: asegurar cumplimiento del indicador, elaborar planes de acción e informar a Rational el tipo de servicio realizado.',proc_body:'1. Se recopila información de tres KPIs subordinados: Tiempo de Resolución, Cuestionario de Satisfacción Online y First Time Fix.\n2. El gerente condensa y analiza los porcentajes para obtener un resultado final de planeación.\n3. Se miden las OS dadas de alta y atendidas por la fuerza técnica cada 3 meses.\n4. Si el KPI es < 85%, se elabora hoja A3 y se ejecutan planes de acción.\n5. Se informan a Rational los tipos de servicio realizados (garantías por correo).'},
@@ -280,10 +314,10 @@ const madData=Object.assign({2025:{},2026:{}},JSON.parse(localStorage.getItem('a
 const members=JSON.parse(localStorage.getItem('appMembers')||'[]');
 const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
 const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:{MTY:[null,null,null,null],CDMX:[null,null,null,null]}};
-function saveData(){localStorage.setItem('appSD',JSON.stringify(SD));localStorage.setItem('appYZD',JSON.stringify(YZD));localStorage.setItem('appMad',JSON.stringify(madData));localStorage.setItem('appMembers',JSON.stringify(members));}
+function saveData(){localStorage.setItem('appSD',JSON.stringify(SD));localStorage.setItem('appYZD',JSON.stringify(YZD));localStorage.setItem('appMad',JSON.stringify(madData));localStorage.setItem('appMembers',JSON.stringify(members));_fbSync();}
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
 const appUsers=JSON.parse(localStorage.getItem('appUsers')||'[]');let activeUserId=null,usuarioFiltro='',editingUserId=null;
-function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));}
+function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));_fbSync();}
 function toggleAllKpis(check){areas.forEach(a=>{const el=document.getElementById('up_kpi_'+a.id.replace('.','_'));if(el)el.checked=check;});}
 function getFormPermisos(){
   const mods=['a3','madurez','resultados','usuarios'].filter(k=>document.getElementById('up_'+k)?.checked);
@@ -2067,7 +2101,7 @@ function portalLogin(){
 function deactivateUser(){activeUserId=null;sessionStorage.removeItem('portalSession');updateZonaLock();renderDocView('usuarios');toast('Sesión cerrada');}
 function portalLogout(){sessionStorage.removeItem('portalSession');location.reload();}
 function updateSbUser(){const el=document.getElementById('sb-user-info');if(!el)return;if(activeUserId===null){el.textContent='👤 Administrador';}else if(activeUserId!==null&&appUsers[activeUserId]){el.textContent='👤 '+appUsers[activeUserId].nombre;}else{el.textContent='';} }
-checkPortalLogin();
+checkPortalLogin();_fbLoad();
 </script>
 </body>
 </html>
