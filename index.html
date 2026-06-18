@@ -835,8 +835,18 @@ const FTF_TRIMS=[
 // Auditoría 1.1 — sessionStorage
 let _aud11SelQ=null;
 function setAud11Q(qi){_aud11SelQ=(_aud11SelQ===qi?null:qi);renderMain(CT);}
-function getAud11F(){const ftv=getFtv();if(!ftv.aud11f)ftv.aud11f={suc:'',año:0};return ftv.aud11f;}
-function setAud11F(field,val){const f=getAud11F();f[field]=(field==='año'?Number(val):val);saveData();_aud11SelQ=null;renderMain(CT);}
+function getAud11F(){const ftv=getFtv();if(!ftv.aud11f)ftv.aud11f={sucs:[],año:0};if(!ftv.aud11f.sucs)ftv.aud11f.sucs=[];return ftv.aud11f;}
+function setAud11Año(val){const f=getAud11F();f.año=Number(val);saveData();_aud11SelQ=null;renderMain(CT);}
+function toggleAud11Suc(suc,checked){
+  const f=getAud11F();
+  if(!checked){if(!f.sucs.includes(suc))f.sucs.push(suc);}
+  else{f.sucs=f.sucs.filter(s=>s!==suc);}
+  saveData();_aud11SelQ=null;renderMain(CT);
+  setTimeout(()=>{const d=document.getElementById('aud11-suc-det');if(d)d.setAttribute('open','');},20);
+}
+function setAud11SucTodas(){const f=getAud11F();f.sucs=[];saveData();_aud11SelQ=null;renderMain(CT);
+  setTimeout(()=>{const d=document.getElementById('aud11-suc-det');if(d)d.setAttribute('open','');},20);
+}
 function _aud11Key(){return'aud11_'+CZ;}
 function getAud11(){try{const r=sessionStorage.getItem(_aud11Key());return r?JSON.parse(r):[]; }catch(e){return[];}}
 function setAud11(arr){try{sessionStorage.setItem(_aud11Key(),JSON.stringify(arr));}catch(e){}}
@@ -1546,7 +1556,8 @@ function renderVisorAuditoria11(){
 
   // Año activo: filtro guardado, o el más reciente disponible, o CY
   const añoActivo=filtros.año&&añosDisp.includes(filtros.año)?filtros.año:(añosDisp[0]||CY);
-  const sucActiva=filtros.suc||'';
+  const sucsExcluidas=filtros.sucs||[];
+  const todasSucs=sucsExcluidas.length===0;
 
   // Hardcoded 2025 quarterly fallback
   const hist25m=[19,27,31,52,52,54,48,37,32,32,40,41];
@@ -1558,7 +1569,7 @@ function renderVisorAuditoria11(){
 
   if(hasRaw){
     let data=rawData.filter(r=>r.año===añoActivo);
-    if(sucActiva)data=data.filter(r=>(r.subUbic||r.segmento)===sucActiva);
+    if(!todasSucs)data=data.filter(r=>!sucsExcluidas.includes(r.subUbic||r.segmento));
 
     histQ=QTRS.map((q,qi)=>{
       const recs=data.filter(r=>q.months.includes(r.mes));
@@ -1618,22 +1629,31 @@ function renderVisorAuditoria11(){
   const badge=(p)=>p>=meta?`<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">✓ Meta</span>`:`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:700;">⚠ Bajo meta</span>`;
 
   // Filtros UI
+  const sucLabel=todasSucs?`Todas (${sucDisp.length})`:`${sucDisp.length-sucsExcluidas.length} de ${sucDisp.length}`;
   const filtrosUI=hasRaw?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:var(--bg2);border-radius:8px;margin-bottom:12px;">
     <span style="font-size:11px;font-weight:700;color:var(--tx3);">Filtros:</span>
     <div style="display:flex;align-items:center;gap:4px;">
       <label style="font-size:10px;color:var(--tx3);font-weight:700;">AÑO</label>
-      <select onchange="setAud11F('año',this.value)" style="padding:3px 6px;border:1px solid var(--brd);border-radius:6px;font-size:11px;background:#fff;">
+      <select onchange="setAud11Año(this.value)" style="padding:3px 6px;border:1px solid var(--brd);border-radius:6px;font-size:11px;background:#fff;">
         ${añosDisp.map(a=>`<option value="${a}" ${a===añoActivo?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
-    <div style="display:flex;align-items:center;gap:4px;">
-      <label style="font-size:10px;color:var(--tx3);font-weight:700;">SUCURSAL</label>
-      <select onchange="setAud11F('suc',this.value)" style="padding:3px 6px;border:1px solid var(--brd);border-radius:6px;font-size:11px;background:#fff;">
-        <option value="" ${!sucActiva?'selected':''}>Todas</option>
-        ${sucDisp.map(s=>`<option value="${esc(s)}" ${s===sucActiva?'selected':''}>${esc(s)}</option>`).join('')}
-      </select>
-    </div>
-    ${sucActiva?`<button onclick="setAud11F('suc','')" style="padding:2px 8px;font-size:10px;border:1px solid var(--brd);border-radius:5px;background:#fff;cursor:pointer;color:var(--tx3);">✕ Limpiar filtro</button>`:''}
+    <details id="aud11-suc-det" style="position:relative;" onmouseleave="this.removeAttribute('open')">
+      <summary style="list-style:none;padding:4px 10px;border:1px solid var(--brd);border-radius:6px;background:#fff;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:6px;outline:none;">
+        <span style="font-size:10px;font-weight:700;color:var(--tx3);">SUCURSAL</span>
+        <span style="font-weight:600;color:var(--tx);">${sucLabel}</span>
+        <span style="font-size:9px;color:var(--tx3);">▾</span>
+      </summary>
+      <div style="position:absolute;top:100%;left:0;z-index:99;background:#fff;border:1px solid var(--brd);border-radius:8px;padding:8px;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.12);margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:7px;padding:4px 6px;font-size:11px;cursor:pointer;border-bottom:1px solid #f0f0f0;margin-bottom:4px;">
+          <input type="checkbox" ${todasSucs?'checked':''} onchange="setAud11SucTodas()" style="accent-color:var(--grn);"/> <strong>Todas</strong>
+        </label>
+        ${sucDisp.map(s=>`<label style="display:flex;align-items:center;gap:7px;padding:3px 6px;font-size:11px;cursor:pointer;">
+          <input type="checkbox" ${!sucsExcluidas.includes(s)?'checked':''} onchange="toggleAud11Suc('${esc(s)}',this.checked)" style="accent-color:var(--grn);"/> ${esc(s)}
+        </label>`).join('')}
+        <button onclick="this.closest('details').removeAttribute('open');renderMain(CT)" style="margin-top:6px;width:100%;padding:4px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:700;">✔ Aplicar</button>
+      </div>
+    </details>
   </div>`:'';
 
   const uploadBtn=`<div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
