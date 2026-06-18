@@ -2243,6 +2243,7 @@ function renderVisorMedicion12(){
 }
 // ── KPI 3.1 Encuestas de Satisfacción ───────────────────────────────────────
 let _enc31Search='';
+let _enc31SelQ=null;
 function getEnc31(){
   if(!YZD[CY][CZ]['3.1'])YZD[CY][CZ]['3.1']={};
   const zd=YZD[CY][CZ]['3.1'];
@@ -2349,43 +2350,53 @@ function renderEncuestas31(){
   const pctRec=nEnc>0?Math.round(recomienda/nEnc*100):null;
   const recClr=pctRec===null?'#888':pctRec>=80?grn:pctRec>=60?org:red;
 
-  // Gráfica mensual OS totales vs encuestados
-  const mesesData={};
-  all.forEach(r=>{if(r.mes<0||r.año!==CY)return;const k=r.mes;if(!mesesData[k])mesesData[k]={total:0,enc:0};mesesData[k].total++;if(r.encuestado)mesesData[k].enc++;});
-  const mesesKeys=Object.keys(mesesData).map(Number).sort((a,b)=>a-b);
+  // ── Gráfica trimestral ────────────────────────────────────────────────────
+  const QTRS31=[{label:'Q1',sub:'Ene–Mar',months:[0,1,2]},{label:'Q2',sub:'Abr–Jun',months:[3,4,5]},{label:'Q3',sub:'Jul–Sep',months:[6,7,8]},{label:'Q4',sub:'Oct–Dic',months:[9,10,11]}];
+  const qData=QTRS31.map((q,qi)=>{
+    const recs=all.filter(r=>r.año===CY&&q.months.includes(r.mes));
+    const enc=recs.filter(r=>r.encuestado);
+    const prom=enc.filter(r=>r.nps==='Promotor').length;
+    const det=enc.filter(r=>r.nps==='Detractor').length;
+    const nps=enc.length>0?Math.round((prom-det)/enc.length*100):null;
+    return{...q,qi,total:recs.length,enc:enc.length,nps,prom,det};
+  });
+  const selQ=_enc31SelQ;
   let svgChart='';
-  if(mesesKeys.length>0){
-    const maxV=Math.max(...mesesKeys.map(k=>mesesData[k].total),1);
-    const bw=28,gap=8,pad=30,svgH=120,labelH=20;
-    const chartW=pad*2+mesesKeys.length*(bw+gap)-gap;
-    const bars=mesesKeys.map((k,i)=>{
-      const d=mesesData[k];
+  if(qData.some(q=>q.total>0)){
+    const maxV=Math.max(...qData.map(q=>q.total),1);
+    const bw=56,gap=14,pad=20,svgH=130,labelH=36;
+    const chartW=pad*2+4*(bw+gap)-gap;
+    const bars=qData.map((q,i)=>{
       const x=pad+i*(bw+gap);
-      const hT=Math.round(d.total/maxV*(svgH-labelH-10));
-      const hE=Math.round(d.enc/maxV*(svgH-labelH-10));
+      const isSel=selQ===i;
+      const hT=Math.round(q.total/maxV*(svgH-labelH-14));
+      const hE=q.enc>0?Math.round(q.enc/maxV*(svgH-labelH-14)):0;
       const yT=svgH-labelH-hT;const yE=svgH-labelH-hE;
-      return`<g>
-        <rect x="${x}" y="${yT}" width="${bw}" height="${hT}" rx="3" fill="#b0bec5" opacity=".7"/>
-        ${hE>0?`<rect x="${x+4}" y="${yE}" width="${bw-8}" height="${hE}" rx="2" fill="${grn}" opacity=".85"/>`:''}
-        <text x="${x+bw/2}" y="${svgH-labelH+13}" text-anchor="middle" font-size="9" fill="var(--tx3)" font-family="sans-serif">${MES_CORTO[k]}</text>
-        <text x="${x+bw/2}" y="${yT-3}" text-anchor="middle" font-size="9" fill="var(--tx3)" font-family="sans-serif">${d.total}</text>
+      const clrBg=isSel?'#90caf9':'#b0bec5';
+      const npsClrQ=q.nps===null?'#888':q.nps>=50?grn:q.nps>=0?org:red;
+      return`<g style="cursor:${q.total>0?'pointer':'default'};" ${q.total>0?`onclick="_enc31SelQ=(_enc31SelQ===${i}?null:${i});renderMain(CT);setTimeout(()=>{const el=document.getElementById('enc31-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);"`:''}">
+        <rect x="${x}" y="${yT}" width="${bw}" height="${hT}" rx="4" fill="${clrBg}" opacity="${isSel?'1':'0.75'}"/>
+        ${hE>0?`<rect x="${x+6}" y="${yE}" width="${bw-12}" height="${hE}" rx="3" fill="${grn}" opacity=".85"/>`:''}
+        <text x="${x+bw/2}" y="${svgH-labelH+14}" text-anchor="middle" font-size="12" font-weight="700" fill="${isSel?'#1565c0':'var(--tx)'}" font-family="sans-serif">${q.label}</text>
+        <text x="${x+bw/2}" y="${svgH-labelH+26}" text-anchor="middle" font-size="9" fill="var(--tx3)" font-family="sans-serif">${q.sub}</text>
+        ${q.total>0?`<text x="${x+bw/2}" y="${yT-4}" text-anchor="middle" font-size="10" fill="var(--tx3)" font-family="sans-serif">${q.total}</text>`:''}
+        ${q.nps!==null?`<text x="${x+bw/2}" y="${Math.max(yT-16,8)}" text-anchor="middle" font-size="10" font-weight="700" fill="${npsClrQ}" font-family="sans-serif">NPS${q.nps>0?'+':''}${q.nps}</text>`:''}
       </g>`;
     }).join('');
-    svgChart=`<details style="margin-bottom:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;" open>
-      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);list-style:none;outline:none;font-size:13px;font-weight:700;color:var(--tx);">📊 OS por mes · ${CY}</summary>
-      <div style="overflow-x:auto;padding:10px 14px;">
-        <svg viewBox="0 0 ${chartW} ${svgH}" width="100%" style="max-width:${chartW}px;display:block;">${bars}</svg>
-        <div style="display:flex;gap:14px;margin-top:4px;">
-          <span style="font-size:10px;color:#b0bec5;font-weight:700;">■ Total OS</span>
-          <span style="font-size:10px;color:${grn};font-weight:700;">■ Encuestadas</span>
-        </div>
+    svgChart=`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">
+      Tendencia trimestral ${CY} <span style="font-size:10px;font-weight:400;">— clic en barra para ver desglose</span>
+    </div>
+    <div style="overflow-x:auto;margin-bottom:14px;">
+      <svg viewBox="0 0 ${chartW} ${svgH}" width="100%" style="max-width:${chartW}px;display:block;">${bars}</svg>
+      <div style="display:flex;gap:14px;margin-top:2px;">
+        <span style="font-size:10px;color:#b0bec5;font-weight:700;">■ Total OS</span>
+        <span style="font-size:10px;color:${grn};font-weight:700;">■ Encuestadas</span>
       </div>
-    </details>`;
+    </div>`;
   }
 
-  // Tabla OS filtrada
-  const q=_enc31Search.toLowerCase();
-  const filtered=q?all.filter(r=>r.cliente.toLowerCase().includes(q)||r.os.includes(q)||r.sucursal.toLowerCase().includes(q)):all;
+  // ── Desglose del trimestre seleccionado ───────────────────────────────────
+  const selQRecs=selQ!==null?all.filter(r=>r.año===CY&&QTRS31[selQ].months.includes(r.mes)):[];
   const npsChip=r=>{
     if(!r.encuestado)return`<span style="font-size:10px;background:#f5f5f5;color:#999;padding:2px 7px;border-radius:8px;">Pendiente</span>`;
     if(r.nps==='Promotor')return`<span style="font-size:10px;background:#e8f5e9;color:${grn};font-weight:700;padding:2px 7px;border-radius:8px;">😊 Promotor</span>`;
@@ -2393,16 +2404,32 @@ function renderEncuestas31(){
     if(r.nps==='Detractor')return`<span style="font-size:10px;background:#ffebee;color:${red};font-weight:700;padding:2px 7px;border-radius:8px;">😟 Detractor</span>`;
     return'';
   };
-  const tablaRows=filtered.slice(0,100).map((r,i)=>`<tr style="border-bottom:1px solid #f0f0f0;">
-    <td style="padding:5px 6px;font-size:10px;color:var(--tx3);text-align:center;">${r.fecha?r.fecha.slice(0,7):'-'}</td>
-    <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(r.sucursal)}</td>
-    <td style="padding:5px 8px;font-size:11px;font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.cliente)}</td>
-    <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(r.tipo)}</td>
-    <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${r.os}</td>
-    <td style="padding:5px 8px;">${npsChip(r)}</td>
-    <td style="padding:5px 8px;font-size:11px;text-align:center;">${r.satScore!==null?r.satScore:'-'}</td>
-    <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.comentarios||r.satEscrito)}</td>
-  </tr>`).join('');
+  const makeTabla=rows=>{
+    if(!rows.length)return`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS en este período.</td></tr>`;
+    return rows.map(r=>`<tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:5px 6px;font-size:10px;color:var(--tx3);">${r.fecha?r.fecha.slice(0,7):'-'}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(r.sucursal)}</td>
+      <td style="padding:5px 8px;font-size:11px;font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.cliente)}</td>
+      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(r.tipo)}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${r.os}</td>
+      <td style="padding:5px 8px;">${npsChip(r)}</td>
+      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.comentarios||r.satEscrito)}</td>
+    </tr>`).join('');
+  };
+  const thead=`<thead><tr style="background:#f5f5f5;">
+    <th style="padding:6px;font-size:10px;color:var(--tx3);font-weight:700;">Mes</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Sucursal</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Cliente</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Tipo</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;"># OS</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;">NPS</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Comentario</th>
+  </tr></thead>`;
+
+  // Tabla buscador (todos)
+  const sq=_enc31Search.toLowerCase();
+  const filtered=sq?all.filter(r=>r.cliente.toLowerCase().includes(sq)||r.os.includes(sq)||r.sucursal.toLowerCase().includes(sq)):all;
+  const tablaRows=makeTabla(filtered.slice(0,100));
 
   const uploadBtn=`<label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
     📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelEnc31(this)"/>
@@ -2442,6 +2469,19 @@ function renderEncuestas31(){
 
     ${svgChart}
 
+    ${selQ!==null&&selQRecs.length>=0?`<div id="enc31-desglose" style="margin-bottom:14px;border:2px solid #90caf9;border-radius:10px;overflow:hidden;">
+      <div style="background:#e3f2fd;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:13px;font-weight:700;color:#1565c0;">📊 Desglose ${QTRS31[selQ].label} — ${QTRS31[selQ].sub} · ${selQRecs.length} OS</span>
+        <button onclick="_enc31SelQ=null;renderMain(CT);" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;color:#1565c0;">✕</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          ${thead}
+          <tbody>${makeTabla(selQRecs)}</tbody>
+        </table>
+      </div>
+    </div>`:''}
+
     ${total>0?`<div style="margin-bottom:8px;">
       <input class="fc" value="${esc(_enc31Search)}" placeholder="🔍 Buscar cliente, OS o sucursal…" style="font-size:12px;width:100%;box-sizing:border-box;"
         oninput="_enc31Search=this.value;
@@ -2450,20 +2490,11 @@ function renderEncuestas31(){
             el.style.display=el.dataset.q.includes(q)?'':'none';
           });"/>
     </div>
-    <details style="border:1px solid var(--brd);border-radius:10px;overflow:hidden;" open>
-      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);list-style:none;outline:none;font-size:13px;font-weight:700;color:var(--tx);">📋 Lista de OS · ${filtered.length} registros${filtered.length<all.length?' (filtrado)':''}</summary>
+    <details style="border:1px solid var(--brd);border-radius:10px;overflow:hidden;">
+      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);list-style:none;outline:none;font-size:13px;font-weight:700;color:var(--tx);">📋 Todas las OS · ${filtered.length} registros${filtered.length<all.length?' (filtrado)':''}</summary>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#f5f5f5;">
-            <th style="padding:6px;font-size:10px;color:var(--tx3);font-weight:700;">Mes</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Sucursal</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Cliente</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Tipo</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;"># OS</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;">NPS</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;">Sat.</th>
-            <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Comentario</th>
-          </tr></thead>
+          ${thead}
           <tbody>${tablaRows}</tbody>
         </table>
         ${filtered.length>100?`<div style="padding:8px 14px;font-size:11px;color:var(--tx3);">Mostrando 100 de ${filtered.length}. Usa el buscador para filtrar.</div>`:''}
