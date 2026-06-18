@@ -1232,7 +1232,6 @@ function loadExcelFTF(input){
         tipo:     hdr.findIndex(h=>h.includes('tipo')),
         fechaAlta:hdr.findIndex(h=>norm(h).replace(/\s/g,'').includes('fechaalta')),
         cantRep:  hdr.findIndex(h=>h.includes('cant')&&h.includes('rep')),
-        trimCol:  (()=>{const i=hdr.findIndex(h=>h.includes('trim'));return i>=0?i:15;})(),  // columna P Kepler
       };
       const missing=[['marca',ci.marca],['tipo',ci.tipo],['fechaAlta',ci.fechaAlta],['cantRep',ci.cantRep]].filter(([,v])=>v<0).map(([k])=>k);
       if(missing.length){toast('Columnas no encontradas: '+missing.join(', '));console.warn('Headers:',hdr);return;}
@@ -1254,12 +1253,6 @@ function loadExcelFTF(input){
         const fechaStr=row[ci.fechaAlta] instanceof Date
           ?row[ci.fechaAlta].toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})
           :String(row[ci.fechaAlta]||'').trim();
-        // Trimestre: leer columna P si existe (valor "T1"/"1"/1), si no derivar del mes
-        let trimVal=Math.floor(fecha.mo/3);
-        if(ci.trimCol>=0&&row[ci.trimCol]!=null){
-          const tr=parseInt(String(row[ci.trimCol]).replace(/[^0-9]/g,''));
-          if(tr>=1&&tr<=4)trimVal=tr-1; // normalizar a 0-3
-        }
         osData.push({
           os:          String(row[ci.os]       ||'').trim(),
           prospecto:   String(row[ci.prospecto]||'').trim(),
@@ -1269,7 +1262,7 @@ function loadExcelFTF(input){
           cantRep:     cant,
           ftf:         isFtf?'F.T.F.':'NO F.T.F.',
           mes:         fecha.mo,
-          trim:        trimVal,
+          trim:        Math.floor(fecha.mo/3),
           año:         fecha.yr,
           marca,
           tipoServicio,
@@ -1283,16 +1276,13 @@ function loadExcelFTF(input){
       const marcasU=[...new Set(osData.map(r=>r.marca))].filter(Boolean);
       const tiposU=[...new Set(osData.map(r=>r.tipoServicio))].filter(Boolean);
       const marcaRat=marcasU.find(m=>/rational/i.test(m))||marcasU[0]||'Todos';
-      // Default Todos para ver toda la info, el usuario filtra después
-      ftv.filtros={año:años[0]||CY,marca:marcaRat,tipoServicio:'Todos',sucursales:[]};
+      const tipoGar=tiposU.find(t=>/garant/i.test(t))||'Todos';
+      ftv.filtros={año:años[0]||CY,marca:marcaRat,tipoServicio:tipoGar,sucursales:[]};
       ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
       saveData();
-      // Toast diagnóstico: distribución por trimestre y valor raw columna P
-      const tDist=[0,1,2,3].map(ti=>osData.filter(r=>r.trim===ti).length);
-      const colPHeader=hdr[ci.trimCol]||'(ninguno)';
-      const rawColP=osData.length>0?String(rows[hdrIdx+1]&&rows[hdrIdx+1][ci.trimCol]):'—';
-      const diag='T1:'+tDist[0]+' T2:'+tDist[1]+' T3:'+tDist[2]+' T4:'+tDist[3]+' | ColP('+ci.trimCol+')="'+colPHeader+'" val="'+rawColP+'"';
-      toast('✅ '+proc+' OS · '+diag+(skip?' · '+skip+' omitidas':''),6000);
+      const ftfCount=osData.filter(r=>r.tipoServicio===tipoGar&&r.ftf==='F.T.F.').length;
+      const garCount=osData.filter(r=>r.tipoServicio===tipoGar).length;
+      toast('✅ '+proc+' OS cargadas · '+tipoGar+': '+garCount+' ('+ftfCount+' FTF)'+(skip?' · '+skip+' omitidas':''));
       ftfTrimDetail=null;
       renderMain('kpi');
     }catch(err){
