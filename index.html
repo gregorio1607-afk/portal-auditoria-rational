@@ -816,7 +816,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():(CA==='1.1'||CA==='1.2')?(CT==='kpi-cap'?renderVisorCapacitacion13():CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
+  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():(CA==='1.1'||CA==='1.2')?(CT==='kpi-cap'?renderVisorCapacitacion13():CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -1750,7 +1750,8 @@ function renderVisorAuditoria11(){
 }
 // ── KPI 1.2 · Analizador de Gas ──────────────────────────────────────────────
 function getM12(){
-  const zd=gzd();if(!zd.m12)zd.m12={instrumentos:[],bitacora:[]};
+  if(!YZD[CY][CZ]['1.2'])YZD[CY][CZ]['1.2']={};
+  const zd=YZD[CY][CZ]['1.2'];if(!zd.m12)zd.m12={instrumentos:[],bitacora:[]};
   let migrated=false;
   zd.m12.instrumentos.forEach(inst=>{
     // Migrar cert string → array certs
@@ -1786,7 +1787,8 @@ function uploadCertM12(input,idx){
 }
 // ── KPI 1.3 Capacitación ────────────────────────────────────────────────────
 function getM13Cap(){
-  const zd=gzd();
+  if(!YZD[CY][CZ]['2.1'])YZD[CY][CZ]['2.1']={};
+  const zd=YZD[CY][CZ]['2.1'];
   if(!zd.m13cap)zd.m13cap={tecnicos:[]};
   zd.m13cap.tecnicos.forEach(t=>{if(!t.certs)t.certs=[];});
   return zd.m13cap;
