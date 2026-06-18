@@ -1686,18 +1686,11 @@ function renderVisorAuditoria11(){
     </div>
     ${filtrosUI}
 
-    ${hasRaw&&totH>0?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;">
+    ${hasRaw&&totH>0?`<div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;margin-bottom:14px;max-width:220px;">
         <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Herramienta · ${selQLabel}</div>
         <div style="font-size:36px;font-weight:900;color:${pctH>=meta?grn:org};line-height:1.1;">${pctH}%</div>
         <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${presHerr} / ${totH} técnicos ${badge(pctH)}</div>
-      </div>
-      <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;">
-        <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Automóvil · ${selQLabel}</div>
-        <div style="font-size:36px;font-weight:900;color:${pct(presAuto,totA)>=meta?grn:org};line-height:1.1;">${pct(presAuto,totA)}%</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${presAuto} / ${totA} técnicos ${badge(pct(presAuto,totA))}</div>
-      </div>
-    </div>`:`<div style="padding:14px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;margin-bottom:12px;">Carga el Excel de Auditorías para ver los datos</div>`}
+      </div>`:`<div style="padding:14px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;margin-bottom:12px;">Carga el Excel de Auditorías para ver los datos</div>`}
 
     <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">
       Tendencia trimestral ${añoActivo} <span style="font-size:10px;font-weight:400;">— clic en barra para ver desglose</span>
