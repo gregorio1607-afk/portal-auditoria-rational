@@ -792,6 +792,70 @@ const FTF_TRIMS=[
   {label:'3er Trimestre',meses:'Jul · Ago · Sep',idx:[6,7,8]},
   {label:'4to Trimestre',meses:'Oct · Nov · Dic',idx:[9,10,11]}
 ];
+// Auditoría 1.1 — sessionStorage
+function _aud11Key(){return'aud11_'+CZ;}
+function getAud11(){try{const r=sessionStorage.getItem(_aud11Key());return r?JSON.parse(r):[]; }catch(e){return[];}}
+function setAud11(arr){try{sessionStorage.setItem(_aud11Key(),JSON.stringify(arr));}catch(e){}}
+function loadExcelAuditoria11(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const MES_NUM={'ENERO':0,'FEBRERO':1,'MARZO':2,'ABRIL':3,'MAYO':4,'JUNIO':5,'JULIO':6,'AGOSTO':7,'SEPTIEMBRE':8,'OCTUBRE':9,'NOVIEMBRE':10,'DICIEMBRE':11};
+      const records=[];
+      // Parsear hojas Auditorias YYYY (estructura tabular limpia)
+      wb.SheetNames.filter(n=>/auditorias\s+\d{4}/i.test(n)).forEach(name=>{
+        const ws=wb.Sheets[name];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
+        const ci={
+          nombre:hdr.findIndex(h=>h==='nombre'),
+          puesto:hdr.findIndex(h=>h==='puesto'),
+          seg:hdr.findIndex(h=>h.includes('segmento')),
+          subUbic:hdr.findIndex(h=>h.includes('sub ubic')||h.includes('ubicacion')),
+          herr:hdr.findIndex(h=>h.includes('herramienta')&&!h.includes('presento')),
+          presHerr:hdr.findIndex(h=>h.includes('presento')&&h.includes('herramienta')),
+          auto:hdr.findIndex(h=>h.includes('automovil')&&!h.includes('presento')&&!h.includes('presento')),
+          presAuto:hdr.findIndex(h=>h.includes('presento')&&h.includes('automovil')),
+          motivo:hdr.findIndex(h=>h==='motivo'),
+          mes:hdr.findIndex(h=>h==='mes'),
+        };
+        for(let i=1;i<rows.length;i++){
+          const r=rows[i];
+          const nombre=String(r[ci.nombre]||'').trim();
+          if(!nombre)continue;
+          const mesStr=String(r[ci.mes]||'').toUpperCase().trim();
+          const mesNum=MES_NUM[mesStr]??-1;
+          const añoMatch=name.match(/\d{4}/);
+          const año=añoMatch?parseInt(añoMatch[0]):CY;
+          records.push({
+            nombre,
+            puesto:String(r[ci.puesto]||'').trim(),
+            segmento:String(r[ci.seg]||'').trim(),
+            subUbic:String(r[ci.subUbic]||'').trim(),
+            herr:String(r[ci.herr]||'').trim(),
+            presHerr:String(r[ci.presHerr]||'').trim(),
+            auto:String(r[ci.auto]||'').trim(),
+            presAuto:String(r[ci.presAuto]||'').trim(),
+            motivo:String(r[ci.motivo]||'').trim(),
+            mes:mesNum,
+            mesNombre:mesStr,
+            año
+          });
+        }
+      });
+      if(records.length===0){toast('⚠ No se encontraron hojas "Auditorias YYYY" en el archivo');return;}
+      setAud11(records);
+      const ftv=getFtv();
+      ftv.aud11UpdatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+      saveData();
+      toast('✅ Auditoría cargada · '+records.length+' registros');
+      renderMain('kpi');
+    }catch(ex){toast('❌ Error al leer Excel: '+ex.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
 // osData de FTF vive en sessionStorage (sin límite de cuota)
 function _ftfOsKey(){return'ftfOS_'+CZ;}
 function getFtfOS(){try{const r=sessionStorage.getItem(_ftfOsKey());return r?JSON.parse(r):[];}catch(e){return[];}}
@@ -896,77 +960,14 @@ function makeFtfBarChart(mData,trimIdx){
 function showFTFDetalle(ti){ftfTrimDetail=ti;renderMain('kpi');setTimeout(()=>{const el=document.getElementById('ftf-detalle');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);}
 function hideFTFDetalle(){ftfTrimDetail=null;renderMain('kpi');}
 function descargarAuditoria11(){
-  const tecns=[
-    {n:'Gaspar Aragon',seg:'Corporativo',h:'-',a:'-',m:''},
-    {n:'Enrique Estrada',seg:'Corporativo',h:'-',a:'-',m:''},
-    {n:'Rodrigo Malpica',seg:'Corporativo',h:'-',a:'-',m:''},
-    {n:'Leonel Muños',seg:'LOS CABOS',h:'No',a:'No',m:''},
-    {n:'Pedro Higuera',seg:'LOS CABOS',h:'No',a:'No',m:''},
-    {n:'Jaime May',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
-    {n:'Armin Chan',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
-    {n:'Israel Jimenez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Julio Solis',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Cristofer Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Martin Rentaria',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Juan Pablo Silva',seg:'HEB AT CORREC',h:'-',a:'-',m:''},
-    {n:'Abraham Rubio',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'David Guzman',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Job Torres',seg:'HEB PREV',h:'-',a:'-',m:'BAJA'},
-    {n:'Fabian Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Eduardo Almaraz',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Anderson Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Raymundo Valente',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Pablo Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Jacob Figueroa',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Juan Izquierdo',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Alejandro Escobedo',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Angel Menchaca',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Cesar Tapia',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Genaro Hernandez',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Said Osmar Fraga',seg:'HEB PREV',h:'Si',a:'Si',m:''},
-    {n:'Garardo Ruelas',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Echavarria Lopez Heriberto',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Cumplido Hernandez Pablo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Salas Valadez Gerardo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Martin Solis Rios',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Isaac Enrique Parra',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Jesus Antonio García',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Brayan Eduardo Ramirez',seg:'Chihuahua',h:'Si',a:'Si',m:''},
-    {n:'Jose Ramirez',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Fernando Mendez',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Cervantes Aguilar Gabriel',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Gabriel Becerril',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Cesar Amed Flores',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Agustin Velazquez',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Angel Guzman Ledezma',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Gabriel Raul Balderas',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'José Angel Mendoza',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Juan Sanchez Victoria',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'José Guadalupe Castillo',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Noe Peña Bailon',seg:'MEXICO',h:'No',a:'No',m:''},
-    {n:'Mayra Sanchez',seg:'MEXICO',h:'No',a:'No',m:''},
-    {n:'Polo Velazco',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Carlos Cruz',seg:'CI MTY',h:'No',a:'No',m:''},
-    {n:'Angel Lara',seg:'CI MTY',h:'No',a:'No',m:''},
-    {n:'Jose Conrrado',seg:'CI MTY',h:'No',a:'No',m:''},
-    {n:'Dayan Sagrero',seg:'QUERETARO',h:'No',a:'No',m:''},
-    {n:'Raul Gallegos',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Victor Hugo Leon',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Daniel Trevilla',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Carlos Vazquez',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Elena Joo',seg:'HEB QUERETARO',h:'No',a:'No',m:''},
-    {n:'Leonardo Santander',seg:'HEB QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Cristhian Rodriguez',seg:'Guadalajara',h:'No',a:'No',m:''},
-    {n:'Carlos Pérez',seg:'Guadalajara',h:'Si',a:'No',m:''},
-    {n:'Espinoza Medina Carlos',seg:'Guadalajara',h:'No',a:'No',m:''},
-    {n:'Jose Martin Gallegos',seg:'Guadalajara',h:'No',a:'No',m:''},
-  ];
-  const hdrs=['#','Técnico','Segmento','Herramienta','Automóvil','Nota'];
-  const rows=tecns.map((t,i)=>[i+1,t.n,t.seg,t.h,t.a,t.m]);
+  const data=getAud11();
+  if(!data.length){toast('No hay datos cargados');return;}
+  const hdrs=['#','Técnico','Segmento','Puesto','Herramienta','Presentó Herramienta','Auto','Presentó Auto','Motivo','Mes','Año'];
+  const rows=data.map((t,i)=>[i+1,t.nombre,t.segmento,t.puesto,t.herr,t.presHerr,t.auto,t.presAuto,t.motivo,t.mesNombre,t.año]);
   const csv=[hdrs,...rows].map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='Auditoria_1.1_Enero2026.csv';a.click();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download='Auditoria_1.1_'+CY+'.csv';a.click();URL.revokeObjectURL(url);
 }
 function descargarDesglose(){
   const os=ftfTrimDetail!==null?getFtfFiltered().filter(r=>r.trim===ftfTrimDetail):getFtfFiltered();
@@ -1480,204 +1481,153 @@ const enc31={
   ]
 };
 function renderVisorAuditoria11(){
-  const ORG='MTY'; // Este visor aplica a zona MTY
-  // Datos históricos 2025 por mes
-  const hist25=[
-    {mes:'Ene',herr:12,totH:62,auto:5,totA:62},
-    {mes:'Feb',herr:17,totH:64,auto:14,totA:64},
-    {mes:'Mar',herr:33,totH:108,auto:28,totA:108},
-    {mes:'Abr',herr:56,totH:108,auto:56,totA:108},
-    {mes:'May',herr:57,totH:110,auto:49,totA:110},
-    {mes:'Jun',herr:35,totH:65,auto:37,totA:65},
-    {mes:'Jul',herr:29,totH:60,auto:28,totA:60},
-    {mes:'Ago',herr:22,totH:60,auto:17,totA:60},
-    {mes:'Sep',herr:19,totH:60,auto:11,totA:60},
-    {mes:'Oct',herr:19,totH:60,auto:18,totA:60},
-    {mes:'Nov',herr:24,totH:60,auto:23,totA:60},
-    {mes:'Dic',herr:24,totH:58,auto:0,totA:0},
-  ];
-  // Datos 2026
-  const hist26=[
-    {mes:'Ene',herr:23,totH:51,auto:22,totA:55},
-  ];
   const pct=(n,d)=>d>0?Math.round(n/d*100):0;
-  const hist=(CY===2026?hist26:hist25).map(d=>({...d,pH:pct(d.herr,d.totH),pA:pct(d.auto,d.totA)}));
-  const last=hist[hist.length-1];
-  // Segmentos 2026 ENE
-  const segs2026=[
-    {seg:'HEB AT CORREC',total:12,herr:0,auto:0},
-    {seg:'MEXICO',total:11,herr:9,auto:9},
-    {seg:'HEB PREV',total:8,herr:1,auto:1},
-    {seg:'Corporativo',total:7,herr:0,auto:0},
-    {seg:'CD JUAREZ',total:6,herr:6,auto:6},
-    {seg:'QUERETARO',total:5,herr:4,auto:4},
-    {seg:'Guadalajara',total:4,herr:1,auto:0},
-    {seg:'CI MTY',total:3,herr:0,auto:0},
-    {seg:'LOS CABOS',total:2,herr:0,auto:0},
-    {seg:'SURESTE',total:2,herr:0,auto:0},
-    {seg:'HEB QUERETARO',total:2,herr:1,auto:1},
-    {seg:'Chihuahua',total:1,herr:1,auto:1},
-  ];
-  const tecns2026=[
-    {n:'Gaspar Aragon',seg:'Corporativo',h:'-',a:'-',m:''},
-    {n:'Enrique Estrada',seg:'Corporativo',h:'-',a:'-',m:''},
-    {n:'Rodrigo Malpica',seg:'Corporativo',h:'-',a:'-',m:''},
-    {n:'Leonel Muños',seg:'LOS CABOS',h:'No',a:'No',m:''},
-    {n:'Pedro Higuera',seg:'LOS CABOS',h:'No',a:'No',m:''},
-    {n:'Jaime May',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
-    {n:'Armin Chan',seg:'SURESTE',h:'-',a:'-',m:'BAJA'},
-    {n:'Israel Jimenez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Julio Solis',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Cristofer Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Martin Rentaria',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Juan Pablo Silva',seg:'HEB AT CORREC',h:'-',a:'-',m:''},
-    {n:'Abraham Rubio',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'David Guzman',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Job Torres',seg:'HEB PREV',h:'-',a:'-',m:'BAJA'},
-    {n:'Fabian Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Eduardo Almaraz',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Anderson Salazar',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Raymundo Valente',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Pablo Hernandez',seg:'HEB AT CORREC',h:'No',a:'No',m:''},
-    {n:'Jacob Figueroa',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Juan Izquierdo',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Alejandro Escobedo',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Angel Menchaca',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Cesar Tapia',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Genaro Hernandez',seg:'HEB PREV',h:'No',a:'No',m:''},
-    {n:'Said Osmar Fraga',seg:'HEB PREV',h:'Si',a:'Si',m:''},
-    {n:'Garardo Ruelas',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Echavarria Lopez Heriberto',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Cumplido Hernandez Pablo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Salas Valadez Gerardo',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Martin Solis Rios',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Isaac Enrique Parra',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Jesus Antonio García',seg:'CD JUAREZ',h:'Si',a:'Si',m:''},
-    {n:'Brayan Eduardo Ramirez',seg:'Chihuahua',h:'Si',a:'Si',m:''},
-    {n:'Jose Ramirez',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Fernando Mendez',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Cervantes Aguilar Gabriel',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Gabriel Becerril',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Cesar Amed Flores',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Agustin Velazquez',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Angel Guzman Ledezma',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Gabriel Raul Balderas',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'José Angel Mendoza',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Juan Sanchez Victoria',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'José Guadalupe Castillo',seg:'MEXICO',h:'Si',a:'Si',m:''},
-    {n:'Noe Peña Bailon',seg:'MEXICO',h:'No',a:'No',m:''},
-    {n:'Mayra Sanchez',seg:'MEXICO',h:'No',a:'No',m:''},
-    {n:'Polo Velazco',seg:'Corporativo',h:'No',a:'No',m:''},
-    {n:'Carlos Cruz',seg:'CI MTY',h:'No',a:'No',m:''},
-    {n:'Angel Lara',seg:'CI MTY',h:'No',a:'No',m:''},
-    {n:'Jose Conrrado',seg:'CI MTY',h:'No',a:'No',m:''},
-    {n:'Dayan Sagrero',seg:'QUERETARO',h:'No',a:'No',m:''},
-    {n:'Raul Gallegos',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Victor Hugo Leon',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Daniel Trevilla',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Carlos Vazquez',seg:'QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Elena Joo',seg:'HEB QUERETARO',h:'No',a:'No',m:''},
-    {n:'Leonardo Santander',seg:'HEB QUERETARO',h:'Si',a:'Si',m:''},
-    {n:'Cristhian Rodriguez',seg:'Guadalajara',h:'No',a:'No',m:''},
-    {n:'Carlos Pérez',seg:'Guadalajara',h:'Si',a:'No',m:''},
-    {n:'Espinoza Medina Carlos',seg:'Guadalajara',h:'No',a:'No',m:''},
-    {n:'Jose Martin Gallegos',seg:'Guadalajara',h:'No',a:'No',m:''},
+  const meta=80;
+  const grn='#2e7d32',org='#e65100';
+  const MES_LABEL=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const ftv=getFtv();
+  const rawData=getAud11(); // [{nombre,segmento,presHerr,auto,presAuto,motivo,mes,año,...}]
+  const hasRaw=rawData.length>0;
+  const updAt=ftv.aud11UpdatedAt||'';
+
+  // Datos históricos 2025 hardcoded (tendencia)
+  const hist25=[
+    {mes:'Ene',pH:19},{mes:'Feb',pH:27},{mes:'Mar',pH:31},{mes:'Abr',pH:52},
+    {mes:'May',pH:52},{mes:'Jun',pH:54},{mes:'Jul',pH:48},{mes:'Ago',pH:37},
+    {mes:'Sep',pH:32},{mes:'Oct',pH:32},{mes:'Nov',pH:40},{mes:'Dic',pH:41},
   ];
 
-  // Colores
-  const grn='#2e7d32',org='#e65100',gry='#888';
-  const clrH=pct(last.herr,last.totH)>=80?grn:pct(last.herr,last.totH)>=50?org:org;
-  const clrA=pct(last.auto,last.totA)>=80?grn:pct(last.auto,last.totA)>=50?org:org;
+  // Si hay datos del Excel, calcular tendencia dinámica para el año actual
+  let hist=hist25;
+  let curRecords=[];
+  let curMesLabel='';
+  if(hasRaw){
+    const byYear=rawData.filter(r=>r.año===CY);
+    const mesesDisp=[...new Set(byYear.map(r=>r.mes))].filter(m=>m>=0).sort((a,b)=>a-b);
+    if(CY===2025){
+      // Reemplazar meses disponibles con datos reales
+      hist=hist25.map((h,i)=>{
+        const recs=byYear.filter(r=>r.mes===i);
+        if(recs.length===0)return h;
+        const auditables=recs.filter(r=>r.herr!=='-');
+        const presHerr=auditables.filter(r=>r.presHerr==='Si').length;
+        return{mes:h.mes,pH:pct(presHerr,auditables.length)};
+      });
+    } else {
+      // 2026: construir solo meses presentes en el Excel
+      hist=mesesDisp.map(mi=>{
+        const recs=byYear.filter(r=>r.mes===mi);
+        const auditables=recs.filter(r=>r.herr!=='-');
+        const presHerr=auditables.filter(r=>r.presHerr==='Si').length;
+        return{mes:MES_LABEL[mi]||'M'+mi,pH:pct(presHerr,auditables.length)};
+      });
+    }
+    // Último mes disponible para detalle
+    const lastMes=mesesDisp[mesesDisp.length-1]??-1;
+    curRecords=lastMes>=0?byYear.filter(r=>r.mes===lastMes):byYear;
+    const añoLabel=CY;
+    curMesLabel=lastMes>=0?(MES_LABEL[lastMes]+' '+añoLabel):''+añoLabel;
+  }
 
-  // SVG gráfica tendencia
-  const W=520,H=130,pad=32,bw=Math.floor((W-pad*2)/hist.length)-3;
-  const barH=p=>Math.round(p/100*(H-20));
+  // Métricas del mes actual
+  const auditables=curRecords.filter(r=>r.herr!=='-');
+  const presHerr=auditables.filter(r=>r.presHerr==='Si').length;
+  const totH=auditables.length;
+  const pctH=pct(presHerr,totH);
+  const autoRecs=curRecords.filter(r=>r.auto!=='-');
+  const presAuto=autoRecs.filter(r=>r.presAuto==='Si').length;
+  const totA=autoRecs.length;
+
+  // SVG gráfica
+  const W=520,H=130,pad=28,bw=hist.length>0?Math.floor((W-pad*2)/hist.length)-3:30;
+  const barH=p=>Math.max(2,Math.round(p/100*(H-22)));
+  const metaY=H-15-barH(meta);
   const svgBars=hist.map((d,i)=>{
     const x=pad+i*(bw+3);
     const hH=barH(d.pH);
-    const isLast=i===hist.length-1;
     const clr=d.pH>=meta?grn:org;
     return`<g>
-      <rect x="${x}" y="${H-hH-15}" width="${bw}" height="${hH}" fill="${clr}" opacity="${isLast?1:0.75}" rx="2"/>
-      <text x="${x+bw/2}" y="${H-hH-17}" text-anchor="middle" font-size="8" fill="${clr}" font-family="sans-serif" font-weight="${isLast?'700':'400'}">${d.pH}%</text>
+      <rect x="${x}" y="${H-hH-15}" width="${bw}" height="${hH}" fill="${clr}" opacity="0.82" rx="2"/>
+      <text x="${x+bw/2}" y="${H-hH-17}" text-anchor="middle" font-size="8" fill="${clr}" font-family="sans-serif">${d.pH}%</text>
       <text x="${x+bw/2}" y="${H-2}" text-anchor="middle" font-size="8" fill="var(--tx3)" font-family="sans-serif">${d.mes}</text>
     </g>`;
   }).join('');
-  const metaY=H-15-barH(meta);
-  const svgChart=`<svg width="100%" viewBox="0 0 ${W} ${H+10}" style="margin:8px 0;">
+  const svgChart=`<svg width="100%" viewBox="0 0 ${W} ${H+10}" style="margin:6px 0 10px;">
     <line x1="${pad}" y1="${H-15}" x2="${W-10}" y2="${H-15}" stroke="var(--brd)" stroke-width="0.5"/>
-    <line x1="${pad}" y1="${metaY}" x2="${W-10}" y2="${metaY}" stroke="${grn}" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.6"/>
+    <line x1="${pad}" y1="${metaY}" x2="${W-10}" y2="${metaY}" stroke="${grn}" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.5"/>
     <text x="${W-8}" y="${metaY-2}" text-anchor="end" font-size="8" fill="${grn}" font-family="sans-serif">meta ${meta}%</text>
     ${svgBars}
   </svg>`;
 
-  // Tabla segmentos
-  const segRows=(CY===2026?segs2026:[]).map(s=>{
-    const pH=pct(s.herr,s.total),pA=pct(s.auto,s.total);
-    const dot=p=>p===100?'🟢':p>0?'🟡':'🔴';
-    return`<tr style="border-bottom:1px solid var(--brd);font-size:11px;">
-      <td style="padding:4px 8px;color:var(--tx);font-weight:600;">${s.seg}</td>
-      <td style="padding:4px 8px;text-align:center;">${s.total}</td>
-      <td style="padding:4px 8px;text-align:center;">${dot(pH)} ${s.herr}/${s.total} <span style="color:var(--tx3)">(${pH}%)</span></td>
-      <td style="padding:4px 8px;text-align:center;">${dot(pA)} ${s.auto}/${s.total} <span style="color:var(--tx3)">(${pA}%)</span></td>
-    </tr>`;
-  }).join('');
-
-  // Tabla técnicos
-  const tecRows=(CY===2026?tecns2026:[]).map(t=>{
-    const baja=t.m==='BAJA';
-    const ok=v=>v==='Si'?'<span style="color:'+grn+';font-weight:700;">✓</span>':v==='-'?'<span style="color:'+gry+';">—</span>':'<span style="color:'+org+';font-weight:700;">✗</span>';
-    return`<tr style="border-bottom:1px solid #f0f0f0;font-size:11px;${baja?'opacity:.5':''}">
-      <td style="padding:3px 8px;color:var(--tx);">${t.n}${baja?' <span style="font-size:9px;color:'+gry+';">BAJA</span>':''}</td>
-      <td style="padding:3px 8px;color:var(--tx3);font-size:10px;">${t.seg}</td>
-      <td style="padding:3px 8px;text-align:center;">${ok(t.h)}</td>
-      <td style="padding:3px 8px;text-align:center;">${ok(t.a)}</td>
-    </tr>`;
-  }).join('');
-
-  const mesLabel=CY===2026?'Enero 2026':'Diciembre 2025';
-  const pctH=pct(last.herr,last.totH),pctA=pct(last.auto,last.totA);
-  const meta=80;
   const badge=(p)=>p>=meta?`<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">✓ Meta</span>`:`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:700;">⚠ Bajo meta</span>`;
 
-  return`<div class="card" style="margin-bottom:10px;">
-    <div class="card-title">🔧 Auditorías Técnicas · KPI 1.1 <span style="font-size:10px;color:var(--tx3);font-weight:400;">${mesLabel}</span></div>
-    <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;">Verificación mensual de herramienta y automóvil por técnico · Meta ≥ ${meta}%</div>
+  // Segmentos dinámicos
+  const segMap={};
+  curRecords.forEach(r=>{
+    const s=r.segmento||'Sin segmento';
+    if(!segMap[s])segMap[s]={total:0,herr:0};
+    segMap[s].total++;
+    if(r.presHerr==='Si')segMap[s].herr++;
+  });
+  const segRows=Object.entries(segMap).sort((a,b)=>b[1].total-a[1].total).map(([s,v])=>{
+    const pH=pct(v.herr,v.total);
+    const dot=p=>p===100?'🟢':p>0?'🟡':'🔴';
+    return`<tr style="border-bottom:1px solid var(--brd);font-size:11px;">
+      <td style="padding:4px 8px;color:var(--tx);font-weight:600;">${s}</td>
+      <td style="padding:4px 8px;text-align:center;">${v.total}</td>
+      <td style="padding:4px 8px;text-align:center;">${dot(pH)} ${v.herr}/${v.total} <span style="color:var(--tx3);">(${pH}%)</span></td>
+    </tr>`;
+  }).join('');
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+  // Botón compacto de carga
+  const uploadBtn=`<div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+    ${hasRaw?`<button onclick="(function(){try{sessionStorage.removeItem(_aud11Key());}catch(e){}const ftv=getFtv();ftv.aud11UpdatedAt='';saveData();renderMain('kpi');toast('🗑 Datos borrados');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>`:'' }
+    <label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--grn);color:#fff;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">
+      📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelAuditoria11(this)"/>
+    </label>
+  </div>`;
+
+  return`<div class="card" style="margin-bottom:10px;">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <div>
+        <div class="card-title" style="margin-bottom:2px;">🔧 Auditorías Técnicas · KPI 1.1${curMesLabel?' <span style="font-size:10px;color:var(--tx3);font-weight:400;">'+curMesLabel+'</span>':''}</div>
+        <div style="font-size:11px;color:var(--tx3);">Verificación mensual de herramienta · Meta ≥ ${meta}%${updAt?' · Actualizado: '+updAt:''}</div>
+      </div>
+      ${uploadBtn}
+    </div>
+
+    ${hasRaw?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;">
         <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Herramienta presentada</div>
-        <div style="font-size:36px;font-weight:900;color:${clrH};line-height:1.1;">${pctH}%</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${last.herr} / ${last.totH} técnicos ${badge(pctH)}</div>
+        <div style="font-size:36px;font-weight:900;color:${pctH>=meta?grn:org};line-height:1.1;">${pctH}%</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${presHerr} / ${totH} técnicos ${badge(pctH)}</div>
       </div>
       <div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;">
         <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Automóvil presentado</div>
-        <div style="font-size:36px;font-weight:900;color:${clrA};line-height:1.1;">${pctA}%</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${last.auto} / ${last.totA} técnicos ${badge(pctA)}</div>
+        <div style="font-size:36px;font-weight:900;color:${pct(presAuto,totA)>=meta?grn:org};line-height:1.1;">${pct(presAuto,totA)}%</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${presAuto} / ${totA} técnicos ${badge(pct(presAuto,totA))}</div>
       </div>
-    </div>
+    </div>`:`<div style="padding:14px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;margin-bottom:12px;">Carga el Excel de Auditorías para ver los datos del mes actual</div>`}
 
-    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Tendencia mensual ${CY}</div>
+    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Tendencia mensual ${CY}</div>
     ${svgChart}
 
-    ${CY===2026&&segRows?`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px;">Por segmento · ${mesLabel}</div>
-    <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;">
+    ${hasRaw&&segRows?`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px;">Por segmento · ${curMesLabel}</div>
+    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr style="background:var(--bg2);font-size:10px;color:var(--tx3);">
-        <th style="padding:6px 8px;text-align:left;font-weight:700;">Segmento</th>
-        <th style="padding:6px 8px;text-align:center;font-weight:700;">Total</th>
-        <th style="padding:6px 8px;text-align:center;font-weight:700;">Herramienta</th>
-        <th style="padding:6px 8px;text-align:center;font-weight:700;">Automóvil</th>
+        <th style="padding:5px 8px;text-align:left;font-weight:700;">Segmento</th>
+        <th style="padding:5px 8px;text-align:center;font-weight:700;">Total</th>
+        <th style="padding:5px 8px;text-align:center;font-weight:700;">Herramienta</th>
       </tr></thead>
       <tbody>${segRows}</tbody>
     </table></div>`:''}
-
   </div>
-  ${CY===2026?`<div class="card" style="margin-top:10px;">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-      <div style="font-size:13px;font-weight:700;color:var(--tx);">📋 Desglose por técnico · ${mesLabel}</div>
-      <span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#e8f5e9;color:#2e7d32;">${last.herr} Presentaron</span>
-      <span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#ffebee;color:#c62828;">${last.totH-last.herr} No presentaron</span>
+
+  ${hasRaw?`<div class="card" style="margin-top:10px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:var(--tx);">📋 Desglose por técnico · ${curMesLabel}</div>
+      <span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#e8f5e9;color:#2e7d32;">${presHerr} Presentaron</span>
+      <span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;background:#ffebee;color:#c62828;">${totH-presHerr} No presentaron</span>
       <button onclick="descargarAuditoria11()" style="margin-left:auto;padding:5px 14px;border:1px solid var(--brd);border-radius:8px;background:#fff;font-size:12px;cursor:pointer;font-weight:600;">⬇ Descargar</button>
     </div>
     <div style="overflow-x:auto;">
@@ -1690,16 +1640,16 @@ function renderVisorAuditoria11(){
         <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Automóvil</th>
         <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:center;">Nota</th>
       </tr></thead>
-      <tbody>${(CY===2026?tecns2026:[]).map((t,i)=>{
-        const baja=t.m==='BAJA';
+      <tbody>${curRecords.map((t,i)=>{
+        const baja=t.motivo==='BAJA';
         const chip=v=>v==='Si'?`<span style="background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✓ Sí</span>`:v==='-'?`<span style="font-size:11px;color:var(--tx3);">—</span>`:`<span style="background:#ffebee;color:#c62828;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">✗ No</span>`;
         return`<tr style="border-bottom:1px solid #f0f0f0;${baja?'opacity:.45':''}">
           <td style="padding:5px 6px;text-align:center;font-size:10px;color:var(--tx3);">${i+1}</td>
-          <td style="padding:5px 8px;font-size:11px;color:var(--tx);font-weight:600;">${t.n}</td>
-          <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${t.seg}</td>
-          <td style="padding:5px 8px;text-align:center;">${chip(t.h)}</td>
-          <td style="padding:5px 8px;text-align:center;">${chip(t.a)}</td>
-          <td style="padding:5px 8px;text-align:center;">${baja?`<span style="font-size:9px;background:#f5f5f5;color:#888;padding:2px 6px;border-radius:8px;">BAJA</span>`:''}${t.m&&t.m!=='BAJA'?`<span style="font-size:9px;color:var(--tx3);">${t.m}</span>`:''}</td>
+          <td style="padding:5px 8px;font-size:11px;color:var(--tx);font-weight:600;">${esc(t.nombre)}</td>
+          <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(t.segmento)}</td>
+          <td style="padding:5px 8px;text-align:center;">${chip(t.presHerr)}</td>
+          <td style="padding:5px 8px;text-align:center;">${chip(t.presAuto)}</td>
+          <td style="padding:5px 8px;text-align:center;">${baja?`<span style="font-size:9px;background:#f5f5f5;color:#888;padding:2px 6px;border-radius:8px;">BAJA</span>`:''}${t.motivo&&t.motivo!=='BAJA'?`<span style="font-size:9px;color:var(--tx3);">${esc(t.motivo)}</span>`:''}</td>
         </tr>`;
       }).join('')}</tbody>
     </table></div>
