@@ -1624,11 +1624,6 @@ function renderVisorAuditoria11(){
       curRecords=data.filter(r=>QTRS[selQIdx].months.includes(r.mes));
       selQLabel=QTRS[selQIdx].label+' ('+QTRS[selQIdx].sub+') '+añoActivo;
     }
-  } else {
-    histQ=QTRS.map((q,qi)=>({
-      label:q.label,sub:q.sub,qi,count:1,
-      pH:Math.round(q.months.reduce((s,m)=>s+hist25m[m],0)/3),
-    }));
   }
 
   // Metrics
