@@ -818,7 +818,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
+  const extra=CA==='3.4'?renderVisorOS34():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -2324,6 +2324,234 @@ function loadExcelEnc31(input){
     }catch(ex){toast('❌ Error: '+ex.message);}
   };
   reader.readAsArrayBuffer(file);
+}
+// ── KPI 3.4 Tiempo de Resolución ─────────────────────────────────────────────
+let _os34Search='';
+let _os34SelQ=null;
+function getOS34(){
+  if(!YZD[CY][CZ]['3.4'])YZD[CY][CZ]['3.4']={};
+  const zd=YZD[CY][CZ]['3.4'];
+  if(!zd.os34)zd.os34={os:[],updatedAt:''};
+  return zd.os34;
+}
+function loadExcelOS34(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(rows.length<2){toast('⚠ Excel vacío');return;}
+      const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
+      const ci=k=>hdr.findIndex(h=>h.includes(k));
+      const idx={
+        fecha:ci('fecha')>-1&&!hdr[ci('fecha')].includes('prog')&&!hdr[ci('fecha')].includes('ult')?ci('fecha'):hdr.findIndex(h=>h==='fecha'),
+        os:hdr.findIndex(h=>h==='os'),
+        tipo:ci('tipo_serv')>-1?ci('tipo_serv'):ci('tipo'),
+        status:ci('status'),
+        sucursal:ci('sucursal'),
+        cliente:hdr.findIndex(h=>h==='prosp'),
+        tecnico:ci('tecnico'),
+        marca:ci('marca'),
+        modelo:ci('modelo'),
+        fechaTerm:hdr.findIndex(h=>h.includes('ult_rep_term')||h.includes('rep_term')),
+        fechaProg:hdr.findIndex(h=>h.includes('fecha_programacion')||h.includes('programacion')),
+        estEq:hdr.findIndex(h=>h.includes('estatus_eq')),
+        falla:ci('falla'),
+      };
+      // fallback: fecha es col 0 si sigue sin encontrarse
+      if(idx.fecha<0)idx.fecha=0;
+      if(idx.os<0)idx.os=1;
+      const parseDate=v=>{
+        if(!v)return null;
+        if(typeof v==='number')return new Date(Math.round((v-25569)*86400*1000));
+        const s=String(v).trim();
+        // dd/mm/yyyy
+        const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+        return new Date(s)||null;
+      };
+      const osList=[];
+      rows.slice(1).forEach(r=>{
+        const osNum=String(r[idx.os]||'').trim();if(!osNum||osNum==='0')return;
+        const fechaOS=parseDate(r[idx.fecha]);
+        const fechaTerm=parseDate(r[idx.fechaTerm]);
+        const año=fechaOS?fechaOS.getFullYear():null;
+        const mes=fechaOS?fechaOS.getMonth():-1;
+        const fmtDate=d=>d?d.toISOString().slice(0,10):'';
+        const diasRes=fechaOS&&fechaTerm?Math.round((fechaTerm-fechaOS)/86400000):null;
+        const cumple=diasRes!==null&&diasRes>=0&&diasRes<=30;
+        const terminada=!!r[idx.fechaTerm]||(String(r[idx.status]||'').toLowerCase().includes('rep'));
+        osList.push({
+          os:osNum,
+          fecha:fmtDate(fechaOS),mes,año,
+          fechaTerm:fmtDate(fechaTerm),
+          sucursal:String(r[idx.sucursal]||'').trim(),
+          cliente:String(r[idx.cliente]||'').trim(),
+          tipo:String(r[idx.tipo]||'').trim(),
+          status:String(r[idx.status]||'').trim(),
+          tecnico:String(r[idx.tecnico]||'').trim(),
+          marca:String(r[idx.marca]||'').trim(),
+          modelo:String(r[idx.modelo]||'').trim(),
+          falla:String(r[idx.falla]||'').trim(),
+          diasRes,cumple,terminada,
+        });
+      });
+      if(!osList.length){toast('⚠ No se encontraron OS');return;}
+      const d=getOS34();
+      d.os=osList;
+      d.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+      saveData();toast('✅ '+osList.length+' OS cargadas');renderMain(CT);
+    }catch(ex){toast('❌ Error: '+ex.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function renderVisorOS34(){
+  const d=getOS34();
+  const all=(d.os||[]).filter(r=>r.año===CY);
+  const grn='#2e7d32',org='#e65100',red='#c62828';
+  const meta=85;
+  const terminadas=all.filter(r=>r.terminada);
+  const enTiempo=terminadas.filter(r=>r.cumple);
+  const pctKPI=terminadas.length>0?Math.round(enTiempo.length/terminadas.length*100):null;
+  const kpiClr=pctKPI===null?'#888':pctKPI>=meta?grn:pctKPI>=70?org:red;
+  const avgDias=terminadas.filter(r=>r.diasRes!==null).length>0
+    ?Math.round(terminadas.filter(r=>r.diasRes!==null).reduce((s,r)=>s+r.diasRes,0)/terminadas.filter(r=>r.diasRes!==null).length)
+    :null;
+
+  // ── Tarjetas KPI ──────────────────────────────────────────────────────────
+  const cards=all.length>0?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
+      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">KPI ≤ 30 días</div>
+      <div style="font-size:30px;font-weight:900;color:${kpiClr};line-height:1.1;">${pctKPI!==null?pctKPI+'%':'—'}</div>
+      <div style="font-size:10px;color:var(--tx3);">${enTiempo.length} / ${terminadas.length} OS</div>
+    </div>
+    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
+      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Promedio días</div>
+      <div style="font-size:30px;font-weight:900;color:${avgDias===null?'#888':avgDias<=30?grn:avgDias<=45?org:red};line-height:1.1;">${avgDias!==null?avgDias:'—'}</div>
+      <div style="font-size:10px;color:var(--tx3);">días promedio</div>
+    </div>
+    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
+      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Total OS</div>
+      <div style="font-size:30px;font-weight:900;color:#1565c0;line-height:1.1;">${all.length}</div>
+      <div style="font-size:10px;color:var(--tx3);">${terminadas.length} terminadas</div>
+    </div>
+    <div style="background:var(--bg2);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;">
+      <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Meta</div>
+      <div style="font-size:30px;font-weight:900;color:var(--tx3);line-height:1.1;">${meta}%</div>
+      <div style="font-size:10px;color:${kpiClr};font-weight:700;">${pctKPI!==null?(pctKPI>=meta?'✅ Cumplida':'⚠ Bajo meta'):'Sin datos'}</div>
+    </div>
+  </div>`:'';
+
+  // ── Gráfica trimestral ───────────────────────────────────────────────────
+  const QTRS=[{label:'Q1',sub:'Ene–Mar',months:[0,1,2]},{label:'Q2',sub:'Abr–Jun',months:[3,4,5]},{label:'Q3',sub:'Jul–Sep',months:[6,7,8]},{label:'Q4',sub:'Oct–Dic',months:[9,10,11]}];
+  const qData=QTRS.map((q,i)=>{
+    const recs=all.filter(r=>q.months.includes(r.mes));
+    const term=recs.filter(r=>r.terminada);
+    const ok=term.filter(r=>r.cumple);
+    const pct=term.length>0?Math.round(ok.length/term.length*100):null;
+    return{...q,i,total:recs.length,term:term.length,ok:ok.length,pct};
+  });
+  const selQ=_os34SelQ;
+  let svgChart='';
+  if(qData.some(q=>q.total>0)){
+    const maxV=Math.max(...qData.map(q=>q.total),1);
+    const bw=56,gap=14,pad=20,svgH=130,labelH=36;
+    const chartW=pad*2+4*(bw+gap)-gap;
+    const bars=qData.map((q,i)=>{
+      const isSel=selQ===i;
+      const hT=Math.round(q.total/maxV*(svgH-labelH-14));
+      const hOk=q.ok>0?Math.round(q.ok/maxV*(svgH-labelH-14)):0;
+      const yT=svgH-labelH-hT;const yOk=svgH-labelH-hOk;
+      const clrBg=isSel?'#90caf9':'#b0bec5';
+      const pctClr=q.pct===null?'#888':q.pct>=meta?grn:q.pct>=70?org:red;
+      return`<g style="cursor:${q.total>0?'pointer':'default'};" ${q.total>0?`onclick="_os34SelQ=(_os34SelQ===${i}?null:${i});renderMain(CT);setTimeout(()=>{const el=document.getElementById('os34-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);"`:''}">
+        <rect x="${pad+i*(bw+gap)}" y="${yT}" width="${bw}" height="${hT}" rx="4" fill="${clrBg}" opacity="${isSel?'1':'0.75'}"/>
+        ${hOk>0?`<rect x="${pad+i*(bw+gap)+6}" y="${yOk}" width="${bw-12}" height="${hOk}" rx="3" fill="${grn}" opacity=".85"/>`:''}
+        <text x="${pad+i*(bw+gap)+bw/2}" y="${svgH-labelH+14}" text-anchor="middle" font-size="12" font-weight="700" fill="${isSel?'#1565c0':'var(--tx)'}" font-family="sans-serif">${q.label}</text>
+        <text x="${pad+i*(bw+gap)+bw/2}" y="${svgH-labelH+26}" text-anchor="middle" font-size="9" fill="var(--tx3)" font-family="sans-serif">${q.sub}</text>
+        ${q.total>0?`<text x="${pad+i*(bw+gap)+bw/2}" y="${yT-4}" text-anchor="middle" font-size="10" fill="var(--tx3)" font-family="sans-serif">${q.total}</text>`:''}
+        ${q.pct!==null?`<text x="${pad+i*(bw+gap)+bw/2}" y="${Math.max(yT-16,8)}" text-anchor="middle" font-size="10" font-weight="700" fill="${pctClr}" font-family="sans-serif">${q.pct}%</text>`:''}
+      </g>`;
+    }).join('');
+    svgChart=`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">
+      Tendencia trimestral ${CY} <span style="font-size:10px;font-weight:400;">— clic en barra para ver desglose</span>
+    </div>
+    <div style="overflow-x:auto;margin-bottom:14px;">
+      <svg viewBox="0 0 ${chartW} ${svgH}" width="100%" style="max-width:${chartW}px;display:block;">${bars}</svg>
+      <div style="display:flex;gap:14px;margin-top:2px;">
+        <span style="font-size:10px;color:#b0bec5;font-weight:700;">■ Total OS</span>
+        <span style="font-size:10px;color:${grn};font-weight:700;">■ Cerradas ≤30 días</span>
+      </div>
+    </div>`;
+  }
+
+  // ── Tabla helper ─────────────────────────────────────────────────────────
+  const diasChip=r=>{
+    if(!r.terminada)return`<span style="font-size:10px;background:#f5f5f5;color:#999;padding:2px 7px;border-radius:8px;">En proceso</span>`;
+    if(r.diasRes===null)return`<span style="font-size:10px;background:#fff3e0;color:${org};padding:2px 7px;border-radius:8px;">Sin fecha</span>`;
+    const c=r.diasRes<=30?grn:r.diasRes<=45?org:red;
+    return`<span style="font-size:10px;background:${r.diasRes<=30?'#e8f5e9':r.diasRes<=45?'#fff3e0':'#ffebee'};color:${c};font-weight:700;padding:2px 7px;border-radius:8px;">${r.diasRes}d</span>`;
+  };
+  const thead=`<thead><tr style="background:#f5f5f5;">
+    <th style="padding:6px;font-size:10px;color:var(--tx3);font-weight:700;">Fecha</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Sucursal</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Cliente</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Tipo</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;"># OS</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Técnico</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:center;">Días res.</th>
+  </tr></thead>`;
+  const makeTabla=rows=>{
+    if(!rows.length)return`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS en este período.</td></tr>`;
+    return rows.map(r=>`<tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:5px 6px;font-size:10px;color:var(--tx3);">${r.fecha?r.fecha.slice(0,7):'-'}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(r.sucursal)}</td>
+      <td style="padding:5px 8px;font-size:11px;font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.cliente)}</td>
+      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(r.tipo)}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${r.os}</td>
+      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.tecnico)}</td>
+      <td style="padding:5px 8px;text-align:center;">${diasChip(r)}</td>
+    </tr>`).join('');
+  };
+
+  const selQRecs=selQ!==null?all.filter(r=>QTRS[selQ].months.includes(r.mes)):[];
+  const sq=_os34Search.toLowerCase();
+  const filtered=sq?all.filter(r=>r.cliente.toLowerCase().includes(sq)||r.os.includes(sq)||r.sucursal.toLowerCase().includes(sq)||r.tecnico.toLowerCase().includes(sq)):all;
+
+  const uploadBtn=`<label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
+    📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
+  </label>`;
+  const limpiarBtn=`<button onclick="if(confirm('¿Borrar todos los datos de OS 3.4?')){getOS34().os=[];saveData();renderMain(CT);}" style="font-size:11px;background:#ffebee;color:#c62828;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;border:1px solid #ef9a9a;">🗑 Limpiar</button>`;
+
+  return`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--tx);">⏱ Tiempo de Resolución · KPI 3.4</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${all.length} OS registradas${d.updatedAt?' · Actualizado: '+d.updatedAt:''}</div>
+      </div>
+      <div style="display:flex;gap:8px;">${limpiarBtn}${uploadBtn}</div>
+    </div>
+    ${cards}
+    ${svgChart}
+    ${selQ!==null?`<div id="os34-desglose" style="margin-bottom:14px;border:2px solid #90caf9;border-radius:10px;overflow:hidden;">
+      <div style="background:#e3f2fd;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:13px;font-weight:700;color:#1565c0;">📊 Desglose ${QTRS[selQ].label} — ${QTRS[selQ].sub} · ${selQRecs.length} OS</span>
+        <button onclick="_os34SelQ=null;renderMain(CT);" style="background:none;border:none;cursor:pointer;font-size:16px;color:#1565c0;">✕</button>
+      </div>
+      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">${thead}<tbody>${makeTabla(selQRecs)}</tbody></table></div>
+    </div>`:''}
+    ${all.length>0?`<div style="margin-bottom:8px;">
+      <input class="fc" value="${esc(_os34Search)}" placeholder="🔍 Buscar cliente, OS, técnico o sucursal…" style="font-size:12px;width:100%;box-sizing:border-box;" oninput="_os34Search=this.value;renderMain(CT);"/>
+    </div>
+    <details style="border:1px solid var(--brd);border-radius:10px;overflow:hidden;">
+      <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);list-style:none;outline:none;font-size:13px;font-weight:700;color:var(--tx);">📋 Todas las OS · ${filtered.length} registros${filtered.length<all.length?' (filtrado)':''}</summary>
+      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">${thead}<tbody>${makeTabla(filtered.slice(0,150))}</tbody></table>
+        ${filtered.length>150?`<div style="padding:8px 14px;font-size:11px;color:var(--tx3);">Mostrando 150 de ${filtered.length}. Usa el buscador para filtrar.</div>`:''}
+      </div>
+    </details>`:`<div style="padding:30px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;">Carga el Excel exportado del SQL para ver los datos.</div>`}
+  </div>`;
 }
 function uploadPdfEnc31(input,osId){
   const file=input.files[0];if(!file)return;
