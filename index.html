@@ -678,6 +678,7 @@ function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   <div id="fc-diagram">${renderFlowChart(d.flow_steps)}</div>
   <details style="margin:8px 0;"><summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:4px 0;">✏ Editar pasos del flujo</summary>
     <textarea class="fc" id="fst" rows="6" style="margin-top:6px;" oninput="(function(v){const el=document.getElementById('fc-diagram');if(el)el.innerHTML=renderFlowChart(v);})(this.value)">${esc(d.flow_steps)}</textarea>
+    <button class="btn btn-p" style="margin-top:6px;font-size:11px;padding:5px 12px;" onclick="(function(){const el=document.getElementById('fc-diagram');const ta=document.getElementById('fst');if(el&&ta)el.innerHTML=renderFlowChart(ta.value);})()">🔄 Actualizar diagrama de flujo</button>
   </details>
   <div class="fr"><div class="fg"><label class="fl">Sistemas / herramientas</label><input class="fc" id="ftl" value="${esc(d.flow_tools)}"/></div>
   <div class="fg"><label class="fl">Código diagrama</label><input class="fc" id="ff2" value="${esc(d.flow_file)}"/></div></div>
