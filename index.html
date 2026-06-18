@@ -2370,10 +2370,24 @@ function loadExcelOS34(input){
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
       if(rows.length<2){toast('⚠ Excel vacío');return;}
-      // Índices confirmados del Excel real (TS.xlsx)
-      // A=0 FECHA, B=1 OS, C=2 TIPO_SERV, D=3 STATUS, F=5 PROSP(cliente)
-      // H=7 SUCURSAL, I=8 MARCA, J=9 TECNICO, U=20 FECHA_ULT_REP_TERM
-      // col 31=MES#, col 33=AÑO (pre-calculados en el Excel)
+      // Detectar columnas por nombre de encabezado (robusto ante cualquier orden de columnas)
+      const hdrs=rows[0].map(h=>String(h||'').trim().toUpperCase());
+      const col=name=>{
+        const variants=Array.isArray(name)?name:[name];
+        for(const v of variants){const i=hdrs.indexOf(v.toUpperCase());if(i>=0)return i;}
+        return -1;
+      };
+      const cFecha=col('FECHA');
+      const cOS=col(['OS','ORDEN','FOLIO']);
+      const cTipo=col('TIPO_SERV');
+      const cStatus=col('STATUS');
+      const cProsp=col(['PROSP','CLIENTE','PROSPECTO']);
+      const cSucursal=col('SUCURSAL');
+      const cMarca=col('MARCA');
+      const cTecnico=col('TECNICO');
+      const cFechaTerm=col('FECHA_ULT_REP_TERM');
+      const cFalla=col('FALLA');
+      if(cOS<0||cFecha<0){toast('⚠ No se encontraron columnas FECHA / OS en el Excel');return;}
       const parseDate=v=>{
         if(!v||v==='')return null;
         if(v instanceof Date)return isNaN(v)?null:v;
@@ -2388,31 +2402,30 @@ function loadExcelOS34(input){
       const fmtDate=d=>d instanceof Date&&!isNaN(d)?d.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
       const osList=[];
       rows.slice(1).forEach(r=>{
-        const osNum=String(r[1]||'').trim();if(!osNum||osNum==='0'||osNum==='')return;
-        const fechaOS=parseDate(r[0]);
-        const fechaTerm=parseDate(r[20]);
-        // Usar AÑO y MES pre-calculados del Excel si existen, si no derivar de la fecha
-        const año=r[33]?+r[33]:(fechaOS?fechaOS.getFullYear():CY);
-        const mes=r[31]!==''?+r[31]-1:(fechaOS?fechaOS.getMonth():-1);
+        const osNum=String(r[cOS]||'').trim();if(!osNum||osNum==='0')return;
+        const fechaOS=parseDate(r[cFecha]);
+        const fechaTerm=cFechaTerm>=0?parseDate(r[cFechaTerm]):null;
+        const año=fechaOS?fechaOS.getFullYear():CY;
+        const mes=fechaOS?fechaOS.getMonth():-1;
         const diasRes=fechaOS&&fechaTerm?Math.round((fechaTerm-fechaOS)/86400000):null;
         const cumple=diasRes!==null&&diasRes>=0&&diasRes<=30;
-        const statusVal=String(r[3]||'').trim().toLowerCase();
-        const terminada=!!(r[20]&&r[20]!=='')||statusVal.includes('terminado')||statusVal.includes('rep');
+        const statusVal=String(cStatus>=0?r[cStatus]:'').trim().toLowerCase();
+        const terminada=!!(cFechaTerm>=0&&r[cFechaTerm]&&r[cFechaTerm]!=='')||statusVal.includes('terminado')||statusVal.includes('rep');
         osList.push({
           os:osNum,
           fecha:fmtDate(fechaOS),mes,año,
           fechaTerm:fmtDate(fechaTerm),
-          sucursal:String(r[7]||'').trim(),
-          cliente:String(r[5]||'').trim(),
-          tipo:String(r[2]||'').trim(),
-          status:String(r[3]||'').trim(),
-          tecnico:String(r[9]||'').trim(),
-          marca:String(r[8]||'').trim(),
-          falla:String(r[14]||'').trim(),
+          sucursal:String(cSucursal>=0?r[cSucursal]:'').trim(),
+          cliente:String(cProsp>=0?r[cProsp]:'').trim(),
+          tipo:String(cTipo>=0?r[cTipo]:'').trim(),
+          status:String(cStatus>=0?r[cStatus]:'').trim(),
+          tecnico:String(cTecnico>=0?r[cTecnico]:'').trim(),
+          marca:String(cMarca>=0?r[cMarca]:'').trim(),
+          falla:String(cFalla>=0?r[cFalla]:'').trim(),
           diasRes,cumple,terminada,
         });
       });
-      if(!osList.length){toast('⚠ No se encontraron OS');return;}
+      if(!osList.length){toast('⚠ No se encontraron OS en el Excel');return;}
       const d=getOS34();
       d.os=osList;
       d.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
