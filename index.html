@@ -2339,15 +2339,15 @@ function loadExcelOS34(input){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
       if(rows.length<2){toast('⚠ Excel vacío');return;}
       const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
       const ci=k=>hdr.findIndex(h=>h.includes(k));
       const idx={
-        fecha:0,        // columna A — nueva orden
-        os:1,           // columna B
+        fecha:0,        // columna A — fecha nueva orden
+        os:1,           // columna B — número OS
         tipo:ci('tipo_serv')>-1?ci('tipo_serv'):ci('tipo'),
         status:ci('status'),
         sucursal:ci('sucursal'),
@@ -2359,20 +2359,27 @@ function loadExcelOS34(input){
         falla:ci('falla'),
       };
       const parseDate=v=>{
-        if(!v)return null;
+        if(!v||v==='')return null;
+        if(v instanceof Date)return isNaN(v)?null:v;
         if(typeof v==='number')return new Date(Math.round((v-25569)*86400*1000));
         const s=String(v).trim();
         // dd/mm/yyyy
-        const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         if(m)return new Date(+m[3],+m[2]-1,+m[1]);
-        return new Date(s)||null;
+        // yyyy-mm-dd
+        m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+        // mm/dd/yyyy
+        m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if(m)return new Date(+m[3],+m[1]-1,+m[2]);
+        const d=new Date(s);return isNaN(d)?null:d;
       };
       const osList=[];
       rows.slice(1).forEach(r=>{
-        const osNum=String(r[idx.os]||'').trim();if(!osNum||osNum==='0')return;
+        const osNum=String(r[idx.os]||'').trim();if(!osNum||osNum==='0'||osNum==='')return;
         const fechaOS=parseDate(r[idx.fecha]);
         const fechaTerm=parseDate(r[idx.fechaTerm]);
-        const año=fechaOS?fechaOS.getFullYear():null;
+        const año=fechaOS?fechaOS.getFullYear():CY;
         const mes=fechaOS?fechaOS.getMonth():-1;
         const fmtDate=d=>d?d.toISOString().slice(0,10):'';
         const diasRes=fechaOS&&fechaTerm?Math.round((fechaTerm-fechaOS)/86400000):null;
