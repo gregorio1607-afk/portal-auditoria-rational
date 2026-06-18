@@ -828,7 +828,7 @@ function toggleSucursalSave(suc){
   saveData();
 }
 function setSucTodasSave(){
-  const ftv=getFtv();ftv.filtros.sucursales=[];saveData();
+  const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');
 }
 function setSucursalZona(zona,sucucursalesEnZona,checked){
   const ftv=getFtv();if(!ftv.filtros.sucursales)ftv.filtros.sucursales=[];
