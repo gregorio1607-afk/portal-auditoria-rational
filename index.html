@@ -1665,18 +1665,18 @@ function renderVisorAuditoria11(){
   </div>`;
 }
 // ── KPI 1.2 · Analizador de Gas ──────────────────────────────────────────────
-function getM12(){const zd=gzd();if(!zd.m12)zd.m12={instrumentos:[
-  {serie:'15060143',marca:'BACHARACH',modelo:'',unidad:'México',responsable:'Ana Montemayor',fechaCal:'2025-07-22',fechaPlaneada:'2026-04-22',cert:''},
-  {serie:'17043495',marca:'BACHARACH',modelo:'',unidad:'Norte',responsable:'Ana Montemayor',fechaCal:'2026-04-17',fechaPlaneada:'2027-01-17',cert:''},
-],bitacora:[]};return zd.m12;}
-function saveM12Bit(entry){const m=getM12();m.bitacora.unshift(entry);saveData();renderMain('kpi');}
-function delM12Bit(id){const m=getM12();m.bitacora=m.bitacora.filter(e=>e.id!==id);saveData();renderMain('kpi');}
-function saveM12Inst(idx,field,val){const m=getM12();if(m.instrumentos[idx])m.instrumentos[idx][field]=val;saveData();renderMain('kpi');}
+function getM12(){const zd=gzd();if(!zd.m12)zd.m12={instrumentos:[],bitacora:[]};return zd.m12;}
+function saveM12Bit(entry){const m=getM12();m.bitacora.unshift(entry);saveData();renderMain(CT);}
+function delM12Bit(id){const m=getM12();m.bitacora=m.bitacora.filter(e=>e.id!==id);saveData();renderMain(CT);}
+function saveM12Inst(idx,field,val){const m=getM12();if(m.instrumentos[idx])m.instrumentos[idx][field]=val;saveData();}
+function saveM12InstR(idx,field,val){saveM12Inst(idx,field,val);renderMain(CT);}
+function addM12Inst(){const m=getM12();m.instrumentos.push({serie:'',marca:'',modelo:'',unidad:'',responsable:'',fechaCal:'',fechaPlaneada:'',cert:''});saveData();renderMain(CT);}
+function delM12Inst(idx){if(!confirm('¿Eliminar este analizador?'))return;const m=getM12();const s=m.instrumentos[idx]?.serie;if(s)try{localStorage.removeItem('cert12_'+s);}catch(e){}m.instrumentos.splice(idx,1);saveData();renderMain(CT);}
 function uploadCertM12(input,serie){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
-    try{localStorage.setItem('cert12_'+serie,e.target.result);toast('✅ Certificado guardado');renderMain('kpi');}
+    try{localStorage.setItem('cert12_'+serie,e.target.result);toast('✅ Certificado guardado');renderMain(CT);}
     catch(ex){toast('❌ Archivo muy grande para almacenar');}
   };
   reader.readAsDataURL(file);
@@ -1685,100 +1685,118 @@ function renderVisorMedicion12(){
   const m=getM12();
   const insts=m.instrumentos||[];
   const bit=m.bitacora||[];
-  const grn='#2e7d32',org='#e65100';
+  const grn='#2e7d32',org='#e65100',red='#c62828';
+  const hoy=new Date();hoy.setHours(0,0,0,0);
 
-  // Meses Jul2025–Jun2026
-  const MESES=[
-    {label:'Jul',año:2025,mi:6},{label:'Ago',año:2025,mi:7},{label:'Sep',año:2025,mi:8},
-    {label:'Oct',año:2025,mi:9},{label:'Nov',año:2025,mi:10},{label:'Dic',año:2025,mi:11},
-    {label:'Ene',año:2026,mi:0},{label:'Feb',año:2026,mi:1},{label:'Mar',año:2026,mi:2},
-    {label:'Abr',año:2026,mi:3},{label:'May',año:2026,mi:4},{label:'Jun',año:2026,mi:5},
-  ];
+  // Enriquecer datos de cada instrumento
+  const instData=insts.map((inst,idx)=>{
+    const fp=inst.fechaPlaneada?new Date(inst.fechaPlaneada):null;
+    const fc=inst.fechaCal?new Date(inst.fechaCal):null;
+    const vigente=fp?(hoy<=fp):null;
+    const dias=fp?Math.ceil((fp-hoy)/86400000):null;
+    const porVencer=vigente&&dias!==null&&dias<=90;
+    const cert=localStorage.getItem('cert12_'+inst.serie)||'';
+    return{...inst,idx,fp,fc,vigente,dias,porVencer,cert};
+  });
 
-  // Cumplimiento por instrumento: SI si ese mes <= fechaPlaneada
-  const cumple=(inst,m)=>{
-    if(!inst.fechaPlaneada)return false;
-    const fp=new Date(inst.fechaPlaneada);
-    const mesDate=new Date(m.año,m.mi+1,0); // último día del mes
-    return mesDate<=fp;
+  const total=instData.length;
+  const nVig=instData.filter(d=>d.vigente===true).length;
+  const nVenc=instData.filter(d=>d.vigente===false).length;
+  const nSinFecha=instData.filter(d=>d.vigente===null).length;
+  const kpiPct=total>0?Math.round(nVig/total*100):0;
+
+  // Badge por estado
+  const badge=d=>{
+    if(d.vigente===null)return`<span style="font-size:10px;background:#f5f5f5;color:#888;padding:2px 8px;border-radius:10px;">Sin fecha</span>`;
+    if(d.vigente&&!d.porVencer)return`<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">✓ Vigente</span>`;
+    if(d.vigente&&d.porVencer)return`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:700;">⚠ Por vencer</span>`;
+    return`<span style="font-size:10px;background:#ffebee;color:#c62828;padding:2px 8px;border-radius:10px;font-weight:700;">✗ Vencido</span>`;
   };
 
-  // SVG gráfica cumplimiento
-  const W=520,H=120,pad=28,bw=Math.floor((W-pad*2)/MESES.length)-4;
-  const colors=['#1565c0','#e65100'];
-  const svgBars=MESES.map((mes,i)=>{
-    const x=pad+i*(bw+4);
-    return insts.map((inst,j)=>{
-      const ok=cumple(inst,mes);
-      const bh=ok?70:20;
-      const y=H-bh-15;
-      const clr=ok?grn:org;
-      const offset=j*(Math.floor(bw/2)+1);
-      return`<rect x="${x+offset}" y="${y}" width="${Math.floor(bw/2)-1}" height="${bh}" fill="${clr}" opacity="0.8" rx="2"/>`;
-    }).join('')+`<text x="${x+bw/2}" y="${H-2}" text-anchor="middle" font-size="8" fill="var(--tx3)" font-family="sans-serif">${mes.label}</text>`;
-  }).join('');
-  const svgChart=`<svg width="100%" viewBox="0 0 ${W} ${H+8}" style="margin:6px 0 10px;">
-    <line x1="${pad}" y1="${H-15}" x2="${W-10}" y2="${H-15}" stroke="var(--brd)" stroke-width="0.5"/>
-    ${svgBars}
-    <rect x="10" y="4" width="8" height="8" fill="${grn}" rx="1"/><text x="21" y="12" font-size="8" fill="var(--tx3)" font-family="sans-serif">Calibrado</text>
-    <rect x="80" y="4" width="8" height="8" fill="${org}" rx="1"/><text x="91" y="12" font-size="8" fill="var(--tx3)" font-family="sans-serif">Vencido</text>
-    <text x="${W-10}" y="12" text-anchor="end" font-size="8" fill="var(--tx3)" font-family="sans-serif">■ Azul=México ■ Naranja=Norte</text>
-  </svg>`;
+  // Barra de progreso de vigencia
+  const diasBar=d=>{
+    if(!d.fp||!d.fc)return'';
+    const totalDias=Math.max(1,Math.ceil((d.fp-d.fc)/86400000));
+    const elapsed=Math.ceil((hoy-d.fc)/86400000);
+    const pct=Math.min(100,Math.max(0,Math.round(elapsed/totalDias*100)));
+    const clr=d.vigente===false?red:d.porVencer?org:grn;
+    const diasTxt=d.vigente?`${d.dias} días restantes`:`Venció hace ${Math.abs(d.dias)} días`;
+    return`<div style="margin-top:8px;">
+      <div style="height:7px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${clr};border-radius:4px;"></div>
+      </div>
+      <div style="font-size:9px;color:${clr};margin-top:3px;font-weight:700;">${diasTxt}</div>
+    </div>`;
+  };
 
-  // Cards de instrumentos
-  const instCards=insts.map((inst,idx)=>{
-    const fp=inst.fechaPlaneada?new Date(inst.fechaPlaneada):null;
-    const hoy=new Date();
-    const vigente=fp&&hoy<=fp;
-    const cert=localStorage.getItem('cert12_'+inst.serie)||'';
-    const diasRestantes=fp?Math.ceil((fp-hoy)/(1000*60*60*24)):null;
-    return`<div style="background:var(--bg2);border-radius:10px;padding:12px 16px;flex:1;min-width:240px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="font-size:12px;font-weight:800;color:var(--tx);">Serie ${esc(inst.serie)}</span>
-        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;${vigente?'background:#e8f5e9;color:#2e7d32':'background:#ffebee;color:#c62828'};">${vigente?'✓ Vigente':'✗ Vencido'}</span>
+  // Cards editables de instrumentos
+  const instCards=instData.map(d=>{
+    const i=d.idx;
+    const borderClr=d.vigente===null?'var(--brd)':d.vigente===false?'#ffcdd2':d.porVencer?'#ffe0b2':'#c8e6c9';
+    return`<div style="border:1.5px solid ${borderClr};border-radius:12px;padding:14px 16px;background:var(--bg2);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:800;color:var(--tx);">Analizador ${i+1}</span>
+        ${badge(d)}
+        <button onclick="delM12Inst(${i})" style="margin-left:auto;font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;cursor:pointer;">🗑</button>
       </div>
-      <div style="font-size:11px;color:var(--tx3);line-height:1.8;">
-        <span style="font-weight:600;color:var(--tx);">UN:</span> ${esc(inst.unidad)} &nbsp;
-        <span style="font-weight:600;color:var(--tx);">Marca:</span> ${esc(inst.marca)}<br/>
-        <span style="font-weight:600;color:var(--tx);">Últ. calibración:</span> ${inst.fechaCal||'—'} &nbsp;
-        <span style="font-weight:600;color:var(--tx);">Próxima:</span> ${inst.fechaPlaneada||'—'}
-        ${diasRestantes!==null?`<br/><span style="color:${vigente&&diasRestantes<=90?org:vigente?grn:'#c62828'};font-weight:600;">${vigente?diasRestantes+' días para vencer':'Venció hace '+Math.abs(diasRestantes)+' días'}</span>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px;">
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">No. de Serie</label>
+          <input class="fc" value="${esc(d.serie)}" placeholder="Número de serie" style="font-size:11px;" onblur="saveM12Inst(${i},'serie',this.value)"/></div>
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Marca / Modelo</label>
+          <input class="fc" value="${esc((d.marca+(d.modelo?' '+d.modelo:'')).trim())}" placeholder="Ej. Bacharach ECA450" style="font-size:11px;" onblur="saveM12Inst(${i},'marca',this.value)"/></div>
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Unidad / Ubicación</label>
+          <input class="fc" value="${esc(d.unidad)}" placeholder="Ej. MTY Norte" style="font-size:11px;" onblur="saveM12Inst(${i},'unidad',this.value)"/></div>
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Responsable</label>
+          <input class="fc" value="${esc(d.responsable)}" placeholder="Nombre del responsable" style="font-size:11px;" onblur="saveM12Inst(${i},'responsable',this.value)"/></div>
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Fecha última calibración</label>
+          <input type="date" class="fc" value="${d.fechaCal||''}" style="font-size:11px;" onchange="saveM12InstR(${i},'fechaCal',this.value)"/></div>
+        <div><label style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:2px;">Fecha próxima calibración</label>
+          <input type="date" class="fc" value="${d.fechaPlaneada||''}" style="font-size:11px;" onchange="saveM12InstR(${i},'fechaPlaneada',this.value)"/></div>
       </div>
-      <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        ${cert?`<a href="${cert}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;">📄 Ver certificado</a>
-          <button onclick="localStorage.removeItem('cert12_${inst.serie}');renderMain('kpi');" style="font-size:10px;padding:2px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕ Eliminar</button>`
-          :`<label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;">📎 Subir certificado PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertM12(this,'${inst.serie}')"/></label>`}
+      ${diasBar(d)}
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--brd);">
+        <span style="font-size:10px;font-weight:700;color:var(--tx3);">CERTIFICADO:</span>
+        ${d.cert
+          ?`<a href="${d.cert}" target="_blank" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;">📄 Ver PDF</a>
+             <button onclick="localStorage.removeItem('cert12_${d.serie}');renderMain(CT);" style="font-size:10px;padding:2px 8px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕ Quitar</button>`
+          :`<label style="font-size:11px;color:var(--grn);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              📎 Subir PDF<input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="uploadCertM12(this,'${d.serie}')"/>
+            </label>`}
       </div>
     </div>`;
   }).join('');
 
-  // Form nueva entrada bitácora
-  const formBit=`<div style="background:#f8fdf9;border:1.5px solid #c8e6c9;border-radius:10px;padding:14px;margin-bottom:14px;" id="m12-form">
+  // Bitácora form
+  const serieOpts=insts.length>0
+    ?insts.map(i=>`<option value="${esc(i.serie)}">${esc(i.serie||'Sin serie')}${i.unidad?' ('+esc(i.unidad)+')':''}</option>`).join('')
+    :`<option value="">— Sin analizadores —</option>`;
+
+  const formBit=`<div style="background:#f8fdf9;border:1.5px solid #c8e6c9;border-radius:10px;padding:14px;margin-bottom:14px;">
     <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;">➕ Registrar préstamo</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;">FECHA</label>
-        <input type="date" id="m12f_fecha" style="width:100%;padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;" value="${new Date().toISOString().slice(0,10)}"/></div>
-      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;">SERIE</label>
-        <select id="m12f_serie" style="width:100%;padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;">
-          ${insts.map(i=>`<option value="${i.serie}">${i.serie} (${i.unidad})</option>`).join('')}
-        </select></div>
-      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;">REVISÓ</label>
-        <input type="text" id="m12f_reviso" placeholder="Nombre" style="width:100%;padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;box-sizing:border-box;"/></div>
+      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;display:block;margin-bottom:2px;">FECHA</label>
+        <input type="date" id="m12f_fecha" class="fc" style="font-size:11px;" value="${new Date().toISOString().slice(0,10)}"/></div>
+      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;display:block;margin-bottom:2px;">ANALIZADOR</label>
+        <select id="m12f_serie" class="ssel" style="font-size:11px;">${serieOpts}</select></div>
+      <div><label style="font-size:10px;color:var(--tx3);font-weight:700;display:block;margin-bottom:2px;">REVISÓ</label>
+        <input type="text" id="m12f_reviso" placeholder="Nombre" class="fc" style="font-size:11px;"/></div>
     </div>
-    <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+    <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_filtro" style="accent-color:var(--grn);"/> Filtro</label>
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_sonda" style="accent-color:var(--grn);"/> Sonda</label>
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_funda" style="accent-color:var(--grn);"/> Funda</label>
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_equipo" style="accent-color:var(--grn);"/> Equipo</label>
-      <div style="margin-left:auto;"><label style="font-size:10px;color:var(--tx3);font-weight:700;">FIRMA</label>
-        <input type="text" id="m12f_firma" placeholder="Nombre quien recibe" style="padding:5px;border:1px solid var(--brd);border-radius:6px;font-size:11px;width:160px;"/></div>
+      <div style="margin-left:auto;display:flex;flex-direction:column;gap:2px;">
+        <label style="font-size:10px;color:var(--tx3);font-weight:700;">FIRMA (quien recibe)</label>
+        <input type="text" id="m12f_firma" placeholder="Nombre" class="fc" style="font-size:11px;width:160px;"/>
+      </div>
     </div>
     <button onclick="(function(){
       const f=document.getElementById('m12f_fecha').value;
       const s=document.getElementById('m12f_serie').value;
       const rev=document.getElementById('m12f_reviso').value.trim();
       const fir=document.getElementById('m12f_firma').value.trim();
-      if(!f||!s){toast('Completa fecha y serie');return;}
+      if(!f||!s){toast('Completa fecha y analizador');return;}
       saveM12Bit({id:Date.now(),fecha:f,serie:s,
         filtro:document.getElementById('m12f_filtro').checked,
         sonda:document.getElementById('m12f_sonda').checked,
@@ -1791,41 +1809,56 @@ function renderVisorMedicion12(){
 
   // Tabla bitácora
   const bit12Rows=bit.length===0
-    ?`<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros. Usa el formulario para agregar el primer préstamo.</td></tr>`
+    ?`<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros aún.</td></tr>`
     :bit.map((e,i)=>{
-      const chk=v=>`<span style="font-size:13px;">${v?'✅':'⬜'}</span>`;
+      const chk=v=>`<span style="font-size:12px;">${v?'✅':'⬜'}</span>`;
       return`<tr style="border-bottom:1px solid #f0f0f0;font-size:11px;">
         <td style="padding:4px 6px;text-align:center;color:var(--tx3);">${i+1}</td>
-        <td style="padding:4px 8px;">${e.fecha||''}</td>
-        <td style="padding:4px 8px;font-weight:600;">${e.serie||''}</td>
+        <td style="padding:4px 8px;white-space:nowrap;">${e.fecha||''}</td>
+        <td style="padding:4px 8px;font-weight:600;">${esc(e.serie||'')}</td>
         <td style="padding:4px 8px;text-align:center;">${chk(e.filtro)}</td>
         <td style="padding:4px 8px;text-align:center;">${chk(e.sonda)}</td>
         <td style="padding:4px 8px;text-align:center;">${chk(e.funda)}</td>
         <td style="padding:4px 8px;text-align:center;">${chk(e.equipo)}</td>
-        <td style="padding:4px 8px;">${esc(e.reviso||'')} ${e.firma?'/ '+esc(e.firma):''}</td>
-        <td style="padding:4px 6px;text-align:center;"><button onclick="if(confirm('¿Eliminar este registro?'))delM12Bit(${e.id})" style="font-size:10px;padding:2px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕</button></td>
+        <td style="padding:4px 8px;">${esc(e.reviso||'')}${e.firma?' / '+esc(e.firma):''}</td>
+        <td style="padding:4px 6px;text-align:center;"><button onclick="if(confirm('¿Eliminar?'))delM12Bit(${e.id})" style="font-size:10px;padding:2px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕</button></td>
       </tr>`;
     }).join('');
 
   return`<div class="card" style="margin-bottom:10px;">
-    <div class="card-title">🔬 Analizador de Gas · KPI 1.2</div>
-    <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;">Control de calibración y préstamo de analizadores de gas Bacharach</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+      <div>
+        <div class="card-title" style="margin-bottom:2px;">🔬 Analizador de Gas · KPI 1.2</div>
+        <div style="font-size:11px;color:var(--tx3);">Vigencia de calibración — registra los datos del analizador para determinar su estado</div>
+      </div>
+      ${total>0?`<div style="text-align:center;background:var(--bg2);border-radius:10px;padding:10px 20px;">
+        <div style="font-size:32px;font-weight:900;color:${kpiPct>=100?grn:kpiPct>0?org:red};line-height:1;">${kpiPct}%</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px;">vigentes</div>
+      </div>`:''}
+    </div>
 
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">${instCards}</div>
+    ${total>0?`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <span style="font-size:11px;background:#e8f5e9;color:#2e7d32;padding:3px 10px;border-radius:10px;font-weight:700;">✓ ${nVig} Vigente${nVig!==1?'s':''}</span>
+      ${instData.filter(d=>d.porVencer).length>0?`<span style="font-size:11px;background:#fff3e0;color:#e65100;padding:3px 10px;border-radius:10px;font-weight:700;">⚠ ${instData.filter(d=>d.porVencer).length} Por vencer</span>`:''}
+      ${nVenc>0?`<span style="font-size:11px;background:#ffebee;color:#c62828;padding:3px 10px;border-radius:10px;font-weight:700;">✗ ${nVenc} Vencido${nVenc!==1?'s':''}</span>`:''}
+      ${nSinFecha>0?`<span style="font-size:11px;background:#f5f5f5;color:#888;padding:3px 10px;border-radius:10px;">⚪ ${nSinFecha} Sin fecha</span>`:''}
+    </div>`:''}
 
-    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Cumplimiento calibración mensual</div>
-    ${svgChart}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:14px;">
+      ${instCards||`<div style="padding:30px;text-align:center;border:1.5px dashed var(--brd);border-radius:10px;color:var(--tx3);font-size:12px;grid-column:1/-1;">No hay analizadores registrados. Agrega el primero con el botón de abajo.</div>`}
+    </div>
+    <button onclick="addM12Inst()" style="padding:7px 18px;background:var(--grn);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">＋ Agregar analizador</button>
   </div>
 
   <div class="card" style="margin-top:10px;">
-    <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px;">📋 Bitácora de préstamo · Analizador de Gas</div>
+    <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px;">📋 Bitácora de préstamo</div>
     ${formBit}
     <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;min-width:560px;">
       <thead><tr style="background:#f5f9f6;border-bottom:2px solid var(--brd);">
         <th style="padding:5px 6px;font-size:10px;color:var(--tx3);text-align:center;">#</th>
         <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Fecha</th>
-        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Serie</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Analizador</th>
         <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Filtro</th>
         <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Sonda</th>
         <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Funda</th>
