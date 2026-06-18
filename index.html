@@ -968,32 +968,14 @@ function renderVisorFTF(){
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MARCA</span>${mkSel('marca',marcas,f.marca)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipoServicio',tipos,f.tipoServicio)}</div>
-    <div style="display:flex;flex-direction:column;gap:4px;">${(()=>{
+    <div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">SUCURSAL</span>${(()=>{
       const sels=f.sucursales&&f.sucursales.length>0?f.sucursales:null;
-      const grpMTY=sucursales.filter(s=>getSucZona(s)==='MTY');
-      const grpCDMX=sucursales.filter(s=>getSucZona(s)==='CDMX');
-      const isMTYonly=sels&&grpMTY.length>0&&grpMTY.every(s=>sels.includes(s))&&(grpCDMX.length===0||!grpCDMX.some(s=>sels.includes(s)));
-      const isCDMXonly=sels&&grpCDMX.length>0&&grpCDMX.every(s=>sels.includes(s))&&(grpMTY.length===0||!grpMTY.some(s=>sels.includes(s)));
-      const isTodas=sels===null;
-      const btnSt=(act)=>`padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--grn);transition:all .15s;${act?'background:var(--grn);color:#fff;':'background:#fff;color:var(--grn);'}`;
-      const zonaBtns=`<div style="display:flex;gap:4px;align-items:center;">
-        <span style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-right:2px;">SUCURSAL</span>
-        <button style="${btnSt(isTodas)}" onclick="(function(){const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');})()">Todas</button>
-        ${grpMTY.length>0?`<button style="${btnSt(isMTYonly)}" onclick="selZonaOnly('MTY',${JSON.stringify(sucursales)})">MTY</button>`:''}
-        ${grpCDMX.length>0?`<button style="${btnSt(isCDMXonly)}" onclick="selZonaOnly('CDMX',${JSON.stringify(sucursales)})">CDMX</button>`:''}
-      </div>`;
-      const mkChks=(grp)=>grp.map(s=>`<label style="display:flex;align-items:center;gap:5px;padding:3px 0;cursor:pointer;font-size:11px;color:var(--tx);white-space:nowrap;">
-        <input type="checkbox" ${sels===null||sels.includes(s)?'checked':''} onchange="toggleSucursal('${s}')" style="cursor:pointer;accent-color:var(--grn);"/>
-        ${s}
-      </label>`).join('');
-      const detalle=(grpMTY.length>0||grpCDMX.length>0)?`<details style="margin-top:2px;">
-        <summary style="font-size:10px;color:var(--tx3);cursor:pointer;list-style:none;padding:2px 0;">▸ Selección individual</summary>
-        <div style="display:flex;gap:16px;margin-top:4px;padding:6px 8px;background:#f8f9fa;border-radius:6px;border:1px solid var(--brd);">
-          ${grpMTY.length>0?`<div><div style="font-size:9px;font-weight:700;color:var(--tx3);margin-bottom:3px;">MTY</div>${mkChks(grpMTY)}</div>`:''}
-          ${grpCDMX.length>0?`<div><div style="font-size:9px;font-weight:700;color:var(--tx3);margin-bottom:3px;">CDMX</div>${mkChks(grpCDMX)}</div>`:''}
-        </div>
-      </details>`:'';
-      return zonaBtns+detalle;
+      const chipSt=(act)=>`padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--grn);white-space:nowrap;${act?'background:var(--grn);color:#fff;':'background:#fff;color:var(--grn);'}`;
+      const chips=[
+        `<button style="${chipSt(sels===null)}" onclick="(function(){const ftv=getFtv();ftv.filtros.sucursales=[];saveData();renderMain('kpi');})()">Todas</button>`,
+        ...sucursales.map(s=>`<button style="${chipSt(sels&&sels.includes(s))}" onclick="toggleSucursal('${s}')">${s}</button>`)
+      ].join('');
+      return`<div style="display:flex;gap:4px;flex-wrap:wrap;">${chips}</div>`;
     })()}</div>
     <label style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
       📤 Cargar Excel
