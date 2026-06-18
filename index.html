@@ -2424,7 +2424,7 @@ function renderEncuestas31(){
     return'';
   };
   const makeTabla=rows=>{
-    if(!rows.length)return`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS en este período.</td></tr>`;
+    if(!rows.length)return`<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS en este período.</td></tr>`;
     return rows.map(r=>{
       const hasPdf=!!(r.pdf);
       const pdfCell=hasPdf
@@ -2437,10 +2437,8 @@ function renderEncuestas31(){
         <td style="padding:5px 8px;font-size:10px;color:var(--tx3);">${esc(r.tipo)}</td>
         <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${r.os}</td>
         <td style="padding:5px 8px;">${npsChip(r)}</td>
-        <td style="padding:5px 8px;text-align:center;">
-          <div style="font-size:12px;font-weight:700;color:${r.satScore!==null?(r.satScore>=8?grn:r.satScore>=6?org:red):'#888'}">${r.satScore!==null?r.satScore:'-'}</div>
-          <div style="margin-top:2px;">${pdfCell}</div>
-        </td>
+        <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;color:${r.satScore!==null?(r.satScore>=8?grn:r.satScore>=6?org:red):'#888'}">${r.satScore!==null?r.satScore:'-'}</td>
+        <td style="padding:5px 8px;text-align:center;">${pdfCell}</td>
         <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.comentarios||r.satEscrito)}</td>
       </tr>`;
     }).join('');
@@ -2452,7 +2450,8 @@ function renderEncuestas31(){
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Tipo</th>
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;"># OS</th>
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;">NPS</th>
-    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:center;">Sat. / PDF</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:center;">Sat.</th>
+    <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:center;">PDF</th>
     <th style="padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;text-align:left;">Comentario</th>
   </tr></thead>`;
 
