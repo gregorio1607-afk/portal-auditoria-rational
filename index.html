@@ -802,11 +802,12 @@ function setFtfFiltro(k,v){
 function getFtfFiltered(){
   const ftv=getFtv();
   const f=ftv.filtros||{};
+  const nc=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   return ftv.osData.filter(r=>{
     if(f.año&&f.año!=='Todos'&&r.año!==parseInt(f.año))return false;
-    if(f.marca&&f.marca!=='Todos'&&r.marca!==f.marca)return false;
-    if(f.tipoServicio&&f.tipoServicio!=='Todos'&&r.tipoServicio!==f.tipoServicio)return false;
-    if(f.sucursal&&f.sucursal!=='Todos'&&r.sucursal!==f.sucursal)return false;
+    if(f.marca&&f.marca!=='Todos'&&nc(r.marca)!==nc(f.marca))return false;
+    if(f.tipoServicio&&f.tipoServicio!=='Todos'&&nc(r.tipoServicio)!==nc(f.tipoServicio))return false;
+    if(f.sucursal&&f.sucursal!=='Todos'&&nc(r.sucursal)!==nc(f.sucursal))return false;
     return true;
   });
 }
@@ -1127,16 +1128,21 @@ function loadExcelFTF(input){
           counts[mes]={ftf,noFtf};
           proc++;
         }
-        // No hay desglose OS en este formato
-        getFtv().osData=[];
-        FTF_MESES.forEach(m=>{
-          const fi=document.getElementById('ftf_'+m);
-          const ni=document.getElementById('noftf_'+m);
-          if(fi)fi.value=counts[m].ftf;
-          if(ni)ni.value=counts[m].noFtf;
+        // Pivot table: convertir a osData sintético para que los filtros funcionen
+        const ftv=getFtv();
+        const synth=[];
+        FTF_MESES.forEach((m,mi)=>{
+          const c=counts[m];
+          for(let x=0;x<c.ftf;x++) synth.push({os:'',prospecto:'',sucursal:'',tecnico:'',fechaAlta:'',cantRep:1,ftf:'F.T.F.',mes:mi,trim:Math.floor(mi/3),año:CY,marca:'RATIONAL',tipoServicio:'Garantía'});
+          for(let x=0;x<c.noFtf;x++) synth.push({os:'',prospecto:'',sucursal:'',tecnico:'',fechaAlta:'',cantRep:2,ftf:'NO F.T.F.',mes:mi,trim:Math.floor(mi/3),año:CY,marca:'RATIONAL',tipoServicio:'Garantía'});
         });
+        ftv.osData=synth;
+        ftv.filtros={año:CY,marca:'RATIONAL',tipoServicio:'Garantía',sucursal:'Todos'};
+        ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+        saveData();
         toast('✅ Tabla Kepler cargada · '+proc+' meses · Hoja: '+sheetName);
-        updateVisorFTF();
+        ftfTrimDetail=null;
+        renderMain('kpi');
         return;
       }
 
@@ -1190,14 +1196,19 @@ function loadExcelFTF(input){
 
       const ftv=getFtv();
       ftv.osData=osData;
-      // Establecer filtros por defecto al cargar
-      const años=[...new Set(osData.map(r=>r.año))].sort((a,b)=>b-a);
-      if(!ftv.filtros.año)ftv.filtros.año=años[0]||CY;
-      if(!ftv.filtros.marca)ftv.filtros.marca='RATIONAL';
-      if(!ftv.filtros.tipoServicio)ftv.filtros.tipoServicio='Garantía';
-      if(!ftv.filtros.sucursal)ftv.filtros.sucursal='Todos';
+      // Resetear filtros al cargar nuevo Excel
+      const años=[...new Set(osData.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a);
+      const marcasU=[...new Set(osData.map(r=>r.marca))].filter(Boolean);
+      const tiposU=[...new Set(osData.map(r=>r.tipoServicio))].filter(Boolean);
+      // Auto-detectar el filtro más probable
+      const marcaRat=marcasU.find(m=>/rational/i.test(m))||marcasU[0]||'Todos';
+      const tipoGar=tiposU.find(t=>/garant/i.test(t))||tiposU[0]||'Todos';
+      ftv.filtros={año:años[0]||CY,marca:marcaRat,tipoServicio:tipoGar,sucursal:'Todos'};
+      ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+      saveData();
       toast('✅ '+proc+' OS cargadas · '+sheetName+(skip?' ('+skip+' sin fecha)':''));
-      updateVisorFTF();
+      ftfTrimDetail=null;
+      renderMain('kpi');
     }catch(err){
       toast('Error al procesar Excel: '+err.message);
       console.error(err);
