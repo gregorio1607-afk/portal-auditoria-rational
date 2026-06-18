@@ -1521,19 +1521,21 @@ function renderVisorAuditoria11(){
   const barH=p=>Math.round(p/100*(H-20));
   const svgBars=hist.map((d,i)=>{
     const x=pad+i*(bw+3);
-    const hH=barH(d.pH),aH=barH(d.pA);
+    const hH=barH(d.pH);
     const isLast=i===hist.length-1;
+    const clr=d.pH>=meta?grn:org;
     return`<g>
-      <rect x="${x}" y="${H-hH-15}" width="${Math.floor(bw*0.48)}" height="${hH}" fill="${grn}" opacity="${isLast?1:0.7}" rx="2"/>
-      <rect x="${x+Math.floor(bw*0.52)}" y="${H-aH-15}" width="${Math.floor(bw*0.48)}" height="${aH}" fill="#1565c0" opacity="${isLast?1:0.7}" rx="2"/>
+      <rect x="${x}" y="${H-hH-15}" width="${bw}" height="${hH}" fill="${clr}" opacity="${isLast?1:0.75}" rx="2"/>
+      <text x="${x+bw/2}" y="${H-hH-17}" text-anchor="middle" font-size="8" fill="${clr}" font-family="sans-serif" font-weight="${isLast?'700':'400'}">${d.pH}%</text>
       <text x="${x+bw/2}" y="${H-2}" text-anchor="middle" font-size="8" fill="var(--tx3)" font-family="sans-serif">${d.mes}</text>
     </g>`;
   }).join('');
-  const svgChart=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="margin:8px 0;">
+  const metaY=H-15-barH(meta);
+  const svgChart=`<svg width="100%" viewBox="0 0 ${W} ${H+10}" style="margin:8px 0;">
     <line x1="${pad}" y1="${H-15}" x2="${W-10}" y2="${H-15}" stroke="var(--brd)" stroke-width="0.5"/>
+    <line x1="${pad}" y1="${metaY}" x2="${W-10}" y2="${metaY}" stroke="${grn}" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.6"/>
+    <text x="${W-8}" y="${metaY-2}" text-anchor="end" font-size="8" fill="${grn}" font-family="sans-serif">meta ${meta}%</text>
     ${svgBars}
-    <rect x="10" y="4" width="10" height="8" fill="${grn}" rx="2"/><text x="23" y="12" font-size="9" fill="var(--tx3)" font-family="sans-serif">Herramienta</text>
-    <rect x="90" y="4" width="10" height="8" fill="#1565c0" rx="2"/><text x="103" y="12" font-size="9" fill="var(--tx3)" font-family="sans-serif">Automóvil</text>
   </svg>`;
 
   // Tabla segmentos
