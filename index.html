@@ -889,6 +889,19 @@ function makeFtfBarChart(mData,trimIdx){
 }
 function showFTFDetalle(ti){ftfTrimDetail=ti;renderMain('kpi');setTimeout(()=>{const el=document.getElementById('ftf-detalle');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);}
 function hideFTFDetalle(){ftfTrimDetail=null;renderMain('kpi');}
+function descargarDesglose(){
+  const os=ftfTrimDetail!==null?getFtfFiltered().filter(r=>r.trim===ftfTrimDetail):getFtfFiltered();
+  const lbl=ftfTrimDetail!==null?FTF_TRIMS[ftfTrimDetail].label.replace(/\s/g,'_'):'Todos';
+  const ftv=getFtv();const f=ftv.filtros||{};
+  const hdrs=['#','OS','Cliente','Sucursal','Técnico','Fecha Alta','Cant. Rep.','F.T.F.','Mes','Trimestre','Año'];
+  const rows=os.map((r,i)=>[i+1,r.os,r.prospecto,r.sucursal,r.tecnico,r.fechaAlta,r.cantRep,r.ftf,FTF_MESES[r.mes]||r.mes,lbl==='Todos'?'T'+(r.trim+1):lbl,r.año]);
+  const csv=[hdrs,...rows].map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download='FTF_'+lbl+'_'+(f.año||'Todos')+'_'+(f.marca||'').replace(/\s/g,'')+'_'+(f.tipoServicio||'').replace(/\s/g,'')+'.csv';
+  a.click();URL.revokeObjectURL(url);
+}
 function renderFTFDetalleOS(){
   const ftv=getFtv();const t=FTF_TRIMS[ftfTrimDetail];
   const os=getFtfOS().filter(r=>r.trim===ftfTrimDetail);
@@ -1074,9 +1087,10 @@ function renderVisorFTF(){
         <td style="padding:4px 8px;font-size:12px;text-align:center;font-weight:700;color:var(--tx);">${tot||'—'}</td>
       </tr>`;
     }).join('');
-    return`<div style="flex:1;min-width:200px;border:1.5px solid ${bg==='#fafafa'?'#e5e5e5':clr+'55'};border-radius:10px;overflow:hidden;">
+    const isSelTrim=ftfTrimDetail===ti;
+    return`<div style="flex:1;min-width:200px;border:${isSelTrim?'2.5px solid '+clr:'1.5px solid '+(bg==='#fafafa'?'#e5e5e5':clr+'55')};border-radius:10px;overflow:hidden;cursor:pointer;" onclick="ftfTrimDetail=${isSelTrim?'null':ti};renderMain('kpi');setTimeout(()=>{const el=document.getElementById('ftf-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60)">
       <div style="background:${bg};padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${bg==='#fafafa'?'#e5e5e5':clr+'44'};">
-        <span style="font-size:12px;font-weight:700;color:var(--tx);">${t.label}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--tx);">${t.label}${isSelTrim?' ✓':''}</span>
         <span style="font-size:18px;font-weight:900;color:${clr};">${d.pct!==null?d.pct+'%':'—'}</span>
       </div>
       <table style="width:100%;border-collapse:collapse;">
@@ -1097,8 +1111,13 @@ function renderVisorFTF(){
     </div>`;
   }).join('');
 
+  // Desglose: filtrar por trimestre seleccionado si hay uno activo
+  const osDesglose=ftfTrimDetail!==null?osF.filter(r=>r.trim===ftfTrimDetail):osF;
+  const desgloseLbl=ftfTrimDetail!==null?FTF_TRIMS[ftfTrimDetail].label+' · '+FTF_TRIMS[ftfTrimDetail].meses:'Todos los trimestres';
+  const desgloseTitle=`📋 Desglose OS · ${desgloseLbl}`;
+
   // Tabla desglose OS siempre visible
-  const osRows=osF.length?osF.map((r,i)=>{
+  const osRows=osDesglose.length?osDesglose.map((r,i)=>{
     const isFtf=r.ftf==='F.T.F.';
     const badge=isFtf
       ?`<span style="padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;font-size:10px;font-weight:700;">F.T.F.</span>`
@@ -1115,10 +1134,16 @@ function renderVisorFTF(){
     </tr>`;
   }).join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS con los filtros seleccionados</td></tr>`;
 
-  const osTable=`<details style="margin-top:16px;">
+  const desFtf=osDesglose.filter(r=>r.ftf==='F.T.F.').length;
+  const desNoFtf=osDesglose.filter(r=>r.ftf==='NO F.T.F.').length;
+  const osTable=`<details id="ftf-desglose" style="margin-top:16px;" ${ftfTrimDetail!==null?'open':''}>
     <summary style="cursor:pointer;padding:8px 12px;border-radius:8px;background:#f5f9f6;border:1px solid var(--brd);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;">
-      <span style="font-size:12px;font-weight:700;color:var(--tx);">📋 Desglose de Órdenes de Servicio</span>
-      <span style="font-size:11px;color:var(--tx3);font-weight:400;">${osF.length} OS · ${totalFtf} FTF · ${totalGen-totalFtf} NO FTF</span>
+      <span style="font-size:12px;font-weight:700;color:var(--tx);">${desgloseTitle}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:var(--tx3);font-weight:400;">${osDesglose.length} OS · ${desFtf} FTF · ${desNoFtf} NO FTF</span>
+        <button onclick="event.stopPropagation();descargarDesglose()" style="padding:3px 10px;background:var(--grn);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">⬇ Descargar</button>
+        ${ftfTrimDetail!==null?`<button onclick="event.stopPropagation();ftfTrimDetail=null;renderMain('kpi')" style="padding:3px 8px;background:#fff;border:1px solid var(--brd);border-radius:6px;font-size:11px;cursor:pointer;">✕ Ver todos</button>`:''}
+      </div>
     </summary>
     <div style="overflow-x:auto;border-radius:0 0 8px 8px;border:1px solid var(--brd);border-top:none;margin-top:-1px;">
       <table style="width:100%;border-collapse:collapse;min-width:620px;">
