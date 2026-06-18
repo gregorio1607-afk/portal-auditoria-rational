@@ -484,10 +484,12 @@ function renderUsuarios(){
     <button onclick="setUsuarioFiltro('')" style="padding:4px 12px;font-size:11px;font-weight:700;border-radius:20px;cursor:pointer;border:1px solid ${usuarioFiltro===''?'var(--grn)':'var(--brd)'};background:${usuarioFiltro===''?'var(--grn)':'#fff'};color:${usuarioFiltro===''?'#fff':'var(--tx2)'};">Todos</button>
     ${puestos.map(p=>`<button onclick="setUsuarioFiltro('${p.replace(/'/g,"\\'")}')" style="padding:4px 12px;font-size:11px;font-weight:700;border-radius:20px;cursor:pointer;border:1px solid ${usuarioFiltro===p?'var(--grn)':'var(--brd)'};background:${usuarioFiltro===p?'var(--grn)':'#fff'};color:${usuarioFiltro===p?'#fff':'var(--tx2)'};">${esc(p)}</button>`).join('')}
   </div>`:'';
-  const filtered=usuarioFiltro?appUsers.map((u,i)=>({u,i})).filter(({u})=>u.puesto===usuarioFiltro):appUsers.map((u,i)=>({u,i}));
+  const isAdmin=activeUserId===null;
+  const porZona=appUsers.map((u,i)=>({u,i})).filter(({u})=>isAdmin||u.zona===CZ||u.zona==='Ambas');
+  const filtered=usuarioFiltro?porZona.filter(({u})=>u.puesto===usuarioFiltro):porZona;
   const userList=appUsers.length===0
     ?'<p style="font-size:12px;color:var(--tx3);padding:8px 0;">No hay usuarios registrados.</p>'
-    :filtered.length===0?'<p style="font-size:12px;color:var(--tx3);padding:8px 0;">Sin usuarios con ese puesto.</p>'
+    :filtered.length===0?'<p style="font-size:12px;color:var(--tx3);padding:8px 0;">Sin usuarios para esta zona.</p>'
     :filtered.map(({u,i})=>{const isA=activeUserId===i;return`<div class="member-card" style="${isA?'border-color:var(--grn);background:#f0f7f3;border-width:2px;':''}">
       <div class="m-ava" style="background:${aC[i%aC.length]};">${u.nombre.charAt(0).toUpperCase()}</div>
       <div class="m-info">
