@@ -786,7 +786,35 @@ const FTF_TRIMS=[
   {label:'3er Trimestre',meses:'Jul · Ago · Sep',idx:[6,7,8]},
   {label:'4to Trimestre',meses:'Oct · Nov · Dic',idx:[9,10,11]}
 ];
-function getFtv(){const zd=gzd();if(!zd.ftv)zd.ftv={meses:{},osData:[],tipoServicio:'Garantía',marca:'RATIONAL',updatedAt:''};FTF_MESES.forEach(m=>{if(!zd.ftv.meses[m])zd.ftv.meses[m]={ftf:0,noFtf:0};});if(!zd.ftv.osData)zd.ftv.osData=[];return zd.ftv;}
+function getFtv(){
+  const zd=gzd();
+  if(!zd.ftv)zd.ftv={meses:{},osData:[],filtros:{},updatedAt:''};
+  if(!zd.ftv.osData)zd.ftv.osData=[];
+  if(!zd.ftv.filtros)zd.ftv.filtros={};
+  return zd.ftv;
+}
+function setFtfFiltro(k,v){
+  const ftv=getFtv();
+  ftv.filtros[k]=v;
+  saveData();
+  renderMain('kpi');
+}
+function getFtfFiltered(){
+  const ftv=getFtv();
+  const f=ftv.filtros||{};
+  return ftv.osData.filter(r=>{
+    if(f.año&&f.año!=='Todos'&&r.año!==parseInt(f.año))return false;
+    if(f.marca&&f.marca!=='Todos'&&r.marca!==f.marca)return false;
+    if(f.tipoServicio&&f.tipoServicio!=='Todos'&&r.tipoServicio!==f.tipoServicio)return false;
+    if(f.sucursal&&f.sucursal!=='Todos'&&r.sucursal!==f.sucursal)return false;
+    return true;
+  });
+}
+function computeFtfMeses(osArr){
+  const d=Array(12).fill(null).map(()=>({ftf:0,noFtf:0}));
+  osArr.forEach(r=>{if(r.mes>=0&&r.mes<=11){if(r.ftf==='F.T.F.')d[r.mes].ftf++;else d[r.mes].noFtf++;}});
+  return d;
+}
 function makeFtfBarChart(mData,trimIdx){
   const t=FTF_TRIMS[trimIdx];
   const W=210,H=100,pl=28,pr=8,pt=22,pb=22;
@@ -858,121 +886,186 @@ function renderFTFDetalleOS(){
        </div>`}
   </div>`;
 }
+function makeFtfHBarChart(trimData){
+  // trimData = [{label, pct, ftf, tot}] x4
+  const W=340,H=170,lw=90,rw=46,bw=W-lw-rw-12,bh=22,gap=18;
+  const rows=trimData.map((t,i)=>{
+    const y=10+i*(bh+gap);
+    const p=t.pct;
+    const clr=p===null?'#ccc':p>=85?'#2e7d52':p>=70?'#e67e22':'#c62828';
+    const barW=p!==null?Math.round(p/100*bw):0;
+    return`
+      <text x="${lw-6}" y="${y+bh/2+4}" text-anchor="end" font-size="11" fill="#555" font-family="sans-serif">${t.label}</text>
+      <rect x="${lw}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="#f0f0f0"/>
+      <rect x="${lw}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="${clr}"/>
+      <line x1="${lw+Math.round(85/100*bw)}" y1="${y-2}" x2="${lw+Math.round(85/100*bw)}" y2="${y+bh+2}" stroke="#999" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="${lw+barW+5}" y="${y+bh/2+4}" font-size="11" font-weight="700" fill="${clr}" font-family="sans-serif">${p!==null?p+'%':'—'}</text>
+      <text x="${W-2}" y="${y+bh/2+4}" text-anchor="end" font-size="10" fill="#888" font-family="sans-serif">${t.ftf}/${t.tot}</text>`;
+  }).join('');
+  // Meta label
+  const mx=lw+Math.round(85/100*bw);
+  return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block;">
+    <text x="${mx}" y="7" text-anchor="middle" font-size="9" fill="#999" font-family="sans-serif">meta 85%</text>
+    ${rows}
+    <text x="${lw}" y="${H-2}" font-size="9" fill="#bbb" font-family="sans-serif">0%</text>
+    <text x="${lw+bw}" y="${H-2}" text-anchor="end" font-size="9" fill="#bbb" font-family="sans-serif">100%</text>
+  </svg>`;
+}
 function renderVisorFTF(){
   const ftv=getFtv();
-  const zpill=CZ==='MTY'?'background:#e3f0ff;color:#1565c0;':'background:#f3e8ff;color:#6a1b9a;';
-  const zoneName=CZ==='MTY'?'Monterrey':'CDMX';
+  const f=ftv.filtros||{};
+  const hasRaw=ftv.osData&&ftv.osData.length>0;
   const pct=(n,d)=>d>0?Math.round(n/d*1000)/10:null;
-  const mData=FTF_MESES.map(m=>{const d=ftv.meses[m]||{ftf:0,noFtf:0};return{m,ftf:d.ftf||0,noFtf:d.noFtf||0,tot:(d.ftf||0)+(d.noFtf||0)};});
+
+  // Opciones únicas para filtros
+  const años=hasRaw?[...new Set(ftv.osData.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
+  const marcas=hasRaw?[...new Set(ftv.osData.map(r=>r.marca))].filter(Boolean).sort():[];
+  const tipos=hasRaw?[...new Set(ftv.osData.map(r=>r.tipoServicio))].filter(Boolean).sort():[];
+  const sucursales=hasRaw?[...new Set(ftv.osData.map(r=>r.sucursal))].filter(Boolean).sort():[];
+
+  const selStyle='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
+  const mkSel=(key,opts,cur)=>`<select style="${selStyle}" onchange="setFtfFiltro('${key}',this.value)">
+    <option value="Todos"${!cur||cur==='Todos'?' selected':''}>Todos</option>
+    ${opts.map(o=>`<option value="${o}"${cur==o?' selected':''}>${o}</option>`).join('')}
+  </select>`;
+
+  const filtroBar=hasRaw?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
+    <span style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;">Filtros:</span>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MARCA</span>${mkSel('marca',marcas,f.marca)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipoServicio',tipos,f.tipoServicio)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">SUCURSAL</span>${mkSel('sucursal',sucursales,f.sucursal)}</div>
+    <label style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
+      📤 Cargar Excel
+      <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
+    </label>
+  </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">Carga el Excel de Kepler para visualizar los datos FTF</div>
+    <label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
+      📤 Cargar Excel de Kepler
+      <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
+    </label>
+  </div>`;
+
+  // Datos filtrados
+  const osF=getFtfFiltered();
+  const meses=computeFtfMeses(osF);
   let totalFtf=0,totalGen=0;
-  mData.forEach(r=>{totalFtf+=r.ftf;totalGen+=r.tot;});
+  meses.forEach(d=>{totalFtf+=d.ftf;totalGen+=d.ftf+d.noFtf;});
   const hasData=totalGen>0;
-  const hasOS=ftv.osData&&ftv.osData.length>0;
   const kpiAnual=pct(totalFtf,totalGen);
   const kpiColor=kpiAnual===null?'var(--tx3)':kpiAnual>=85?'#2e7d52':kpiAnual>=70?'#b8690a':'#c62828';
+  const kpiBg=kpiAnual===null?'#f8f8f8':kpiAnual>=85?'#f0fbf5':kpiAnual>=70?'#fffde7':'#fff5f5';
+  const kpiBdr=kpiAnual===null?'#e0e0e0':kpiAnual>=85?'#a5d6a7':kpiAnual>=70?'#ffe082':'#ef9a9a';
 
-  // Input rows for manual entry
-  const inputRows=FTF_MESES.map(m=>`
-    <tr><td style="padding:4px 8px;font-size:12px;color:var(--tx);text-transform:capitalize;">${m}</td>
-    <td style="padding:3px 5px;"><input type="number" min="0" id="ftf_${m}" value="${ftv.meses[m]?.ftf||0}" style="width:54px;text-align:center;padding:3px 4px;border:1px solid var(--brd);border-radius:6px;font-size:12px;"/></td>
-    <td style="padding:3px 5px;"><input type="number" min="0" id="noftf_${m}" value="${ftv.meses[m]?.noFtf||0}" style="width:54px;text-align:center;padding:3px 4px;border:1px solid var(--brd);border-radius:6px;font-size:12px;"/></td>
-    </tr>`).join('');
-
-  // 4 trimester cards
-  const trimCards=FTF_TRIMS.map((t,ti)=>{
-    const vals=t.idx.map(i=>pct(mData[i].ftf,mData[i].tot));
-    const validVals=vals.filter(v=>v!==null);
-    const avg=validVals.length?Math.round(validVals.reduce((a,b)=>a+b,0)/validVals.length*10)/10:null;
-    const clr=avg===null?'#9e9e9e':avg>=85?'#2e7d52':avg>=70?'#b8690a':'#c62828';
-    const bg=avg===null?'#fafafa':avg>=85?'#f0fbf5':avg>=70?'#fffde7':'#fff5f5';
-    const bdr=avg===null?'#e0e6e2':avg>=85?'#a5d6a7':avg>=70?'#ffe082':'#ef9a9a';
-    const tFtf=t.idx.reduce((a,i)=>a+mData[i].ftf,0);
-    const tNo=t.idx.reduce((a,i)=>a+mData[i].noFtf,0);
-    const tTot=tFtf+tNo;
-    const osN=hasOS?ftv.osData.filter(r=>r.trim===ti).length:0;
-    const isActive=ftfTrimDetail===ti;
-    // Monthly detail rows inside card
-    const monthRows=t.idx.map(i=>{
-      const d=mData[i];const p=pct(d.ftf,d.tot);
-      const pc=p===null?'#bbb':p>=85?'#2e7d52':p>=70?'#b8690a':'#c62828';
-      return`<tr><td style="padding:3px 6px;font-size:11px;color:var(--tx2);text-transform:capitalize;">${FTF_MESES[i]}</td><td style="padding:3px 6px;font-size:11px;text-align:center;color:#2e7d52;font-weight:700;">${d.ftf||'—'}</td><td style="padding:3px 6px;font-size:11px;text-align:center;color:#c62828;font-weight:700;">${d.noFtf||'—'}</td><td style="padding:3px 6px;font-size:11px;text-align:center;font-weight:800;color:${pc};">${p!==null?p+'%':'—'}</td></tr>`;
-    }).join('');
-    return`<div style="flex:1;min-width:195px;border:2px solid ${isActive?clr:bdr};border-radius:12px;background:${isActive?bg:'#fafafa'};padding:12px;display:flex;flex-direction:column;gap:8px;transition:all .2s;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div><div style="font-size:12px;font-weight:700;color:var(--tx);">${t.label}</div><div style="font-size:10px;color:var(--tx3);margin-top:1px;">${t.meses}</div></div>
-        <div style="font-size:22px;font-weight:900;color:${clr};">${avg!==null?avg+'%':'—'}</div>
-      </div>
-      ${hasData?makeFtfBarChart(mData,ti):'<div style="height:100px;display:flex;align-items:center;justify-content:center;"><span style="font-size:11px;color:#ccc;">Sin datos</span></div>'}
-      <table style="width:100%;border-collapse:collapse;border-top:1px solid var(--brd);padding-top:4px;">
-        <thead><tr style="background:transparent;">
-          <th style="padding:3px 6px;font-size:9px;color:var(--tx3);text-align:left;">Mes</th>
-          <th style="padding:3px 6px;font-size:9px;color:#2e7d52;text-align:center;">FTF</th>
-          <th style="padding:3px 6px;font-size:9px;color:#c62828;text-align:center;">NO</th>
-          <th style="padding:3px 6px;font-size:9px;color:var(--tx3);text-align:center;">%</th>
-        </tr></thead>
-        <tbody>${monthRows}</tbody>
-        <tfoot><tr style="border-top:1px solid var(--brd);background:${bg};">
-          <td style="padding:4px 6px;font-size:11px;font-weight:700;color:var(--tx);">Total</td>
-          <td style="padding:4px 6px;font-size:11px;text-align:center;font-weight:700;color:#2e7d52;">${tFtf||'—'}</td>
-          <td style="padding:4px 6px;font-size:11px;text-align:center;font-weight:700;color:#c62828;">${tNo||'—'}</td>
-          <td style="padding:4px 6px;font-size:12px;text-align:center;font-weight:900;color:${clr};">${avg!==null?avg+'%':'—'}</td>
-        </tr></tfoot>
-      </table>
-      <button onclick="${isActive?'hideFTFDetalle()':'showFTFDetalle('+ti+')'}" style="width:100%;padding:6px 4px;border:1.5px solid ${clr};border-radius:8px;background:${isActive?clr:'#fff'};color:${isActive?'#fff':clr};font-size:11px;font-weight:700;cursor:pointer;">
-        ${isActive?'▲ Ocultar desglose':'📋 Ver desglose OS'+(osN>0?' ('+osN+')':'')}
-      </button>
-    </div>`;
-  }).join('');
-
-  // Annual KPI bar
-  const anualBar=hasData?`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;background:${kpiAnual>=85?'#f0fbf5':kpiAnual>=70?'#fffde7':'#fff5f5'};border:1.5px solid ${kpiAnual>=85?'#a5d6a7':kpiAnual>=70?'#ffe082':'#ef9a9a'};margin-bottom:14px;">
+  // Banner anual
+  const anualBar=hasData?`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;background:${kpiBg};border:1.5px solid ${kpiBdr};margin-bottom:14px;">
     <div style="text-align:center;min-width:80px;">
-      <div style="font-size:11px;color:var(--tx3);">KPI Anual</div>
-      <div style="font-size:32px;font-weight:900;color:${kpiColor};line-height:1.1;">${kpiAnual}%</div>
+      <div style="font-size:11px;color:var(--tx3);">FIRST TIME FIX ${f.año||CY}</div>
+      <div style="font-size:36px;font-weight:900;color:${kpiColor};line-height:1.1;">${kpiAnual}%</div>
     </div>
     <div style="flex:1;min-width:140px;">
-      <div style="font-size:12px;font-weight:700;color:${kpiColor};">${kpiAnual>=85?'✅ Dentro de meta':kpiAnual>=70?'⚠️ En riesgo — cercano a meta':'✗ Brecha — requiere plan A3'}</div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${totalFtf} FTF de ${totalGen} OS · Meta ≥ 85% · Diferencia: ${Math.round((kpiAnual-85)*10)/10}%</div>
+      <div style="font-size:12px;font-weight:700;color:${kpiColor};">${kpiAnual>=85?'✅ Dentro de meta':kpiAnual>=70?'⚠️ En riesgo':'✗ Brecha — requiere plan A3'}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:3px;">${totalFtf} FTF de ${totalGen} OS · Meta ≥ 85% · Dif: ${Math.round((kpiAnual-85)*10)/10}%</div>
       ${ftv.updatedAt?`<div style="font-size:10px;color:var(--tx3);margin-top:2px;">Actualizado: ${ftv.updatedAt}</div>`:''}
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;${zpill}">${zoneName} · ${CY}</span>
-      <span style="font-size:11px;padding:3px 9px;border-radius:12px;background:#e8f5ee;color:#2e7d52;font-weight:700;">RATIONAL · Garantía</span>
     </div>
   </div>`:'';
 
+  // Datos por trimestre para gráfica horizontal
+  const trimData=FTF_TRIMS.map((t,ti)=>{
+    const tFtf=t.idx.reduce((a,i)=>a+meses[i].ftf,0);
+    const tNo=t.idx.reduce((a,i)=>a+meses[i].noFtf,0);
+    const tTot=tFtf+tNo;
+    return{label:t.label.replace('Trimestre','TRIM.'),pct:pct(tFtf,tTot),ftf:tFtf,tot:tTot,noFtf:tNo};
+  });
+
+  // Layout: gráfica horizontal + tablas mensuales
+  const trimTablas=FTF_TRIMS.map((t,ti)=>{
+    const d=trimData[ti];
+    const clr=d.pct===null?'#9e9e9e':d.pct>=85?'#2e7d52':d.pct>=70?'#b8690a':'#c62828';
+    const bg=d.pct===null?'#fafafa':d.pct>=85?'#f0fbf5':d.pct>=70?'#fffde7':'#fff5f5';
+    const rows=t.idx.map(i=>{
+      const md=meses[i];const tot=md.ftf+md.noFtf;
+      return`<tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:4px 8px;font-size:12px;text-transform:capitalize;color:var(--tx2);">${FTF_MESES[i]}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;color:#2e7d52;font-weight:700;">${md.ftf||'—'}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;color:#c62828;font-weight:700;">${md.noFtf||'—'}</td>
+        <td style="padding:4px 8px;font-size:12px;text-align:center;font-weight:700;color:var(--tx);">${tot||'—'}</td>
+      </tr>`;
+    }).join('');
+    return`<div style="flex:1;min-width:200px;border:1.5px solid ${bg==='#fafafa'?'#e5e5e5':clr+'55'};border-radius:10px;overflow:hidden;">
+      <div style="background:${bg};padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${bg==='#fafafa'?'#e5e5e5':clr+'44'};">
+        <span style="font-size:12px;font-weight:700;color:var(--tx);">${t.label}</span>
+        <span style="font-size:18px;font-weight:900;color:${clr};">${d.pct!==null?d.pct+'%':'—'}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#f9f9f9;">
+          <th style="padding:5px 8px;font-size:10px;text-align:left;color:var(--tx3);font-weight:600;">MES ALTA</th>
+          <th style="padding:5px 8px;font-size:10px;text-align:center;color:#2e7d52;font-weight:700;">F.T.F.</th>
+          <th style="padding:5px 8px;font-size:10px;text-align:center;color:#c62828;font-weight:700;">NO F.T.F.</th>
+          <th style="padding:5px 8px;font-size:10px;text-align:center;color:var(--tx3);font-weight:600;">Total</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:${bg};border-top:2px solid ${bg==='#fafafa'?'#e0e0e0':clr+'66'};">
+          <td style="padding:5px 8px;font-size:12px;font-weight:700;color:var(--tx);">Total general</td>
+          <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;color:#2e7d52;">${d.ftf||'—'}</td>
+          <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;color:#c62828;">${d.noFtf||'—'}</td>
+          <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;color:${clr};">${d.tot||'—'}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  }).join('');
+
+  // Tabla desglose OS siempre visible
+  const osRows=osF.length?osF.map((r,i)=>{
+    const isFtf=r.ftf==='F.T.F.';
+    const badge=isFtf
+      ?`<span style="padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;font-size:10px;font-weight:700;">F.T.F.</span>`
+      :`<span style="padding:2px 8px;border-radius:10px;background:#fdecea;color:#c62828;font-size:10px;font-weight:700;">NO F.T.F.</span>`;
+    return`<tr style="border-bottom:1px solid #f5f5f5;${i%2?'background:#fafafa':''}">
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${i+1}</td>
+      <td style="padding:5px 8px;font-size:12px;font-weight:700;color:var(--tx);">${r.os||'—'}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${r.prospecto||'—'}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${r.sucursal||'—'}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${r.tecnico||'—'}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${r.fechaAlta||'—'}</td>
+      <td style="padding:5px 8px;font-size:11px;text-align:center;color:var(--tx);">${r.cantRep}</td>
+      <td style="padding:5px 8px;text-align:center;">${badge}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS con los filtros seleccionados</td></tr>`;
+
+  const osTable=`<div style="margin-top:16px;">
+    <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+      <span>Desglose de Órdenes de Servicio</span>
+      <span style="font-size:11px;color:var(--tx3);font-weight:400;">${osF.length} OS · ${totalFtf} FTF · ${totalGen-totalFtf} NO FTF</span>
+    </div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--brd);">
+      <table style="width:100%;border-collapse:collapse;min-width:620px;">
+        <thead><tr style="background:#f5f9f6;">
+          <th style="padding:6px 8px;font-size:10px;text-align:left;color:var(--tx3);">#</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:left;color:var(--tx3);">OS</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:left;color:var(--tx3);">Cliente / Prospecto</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:left;color:var(--tx3);">Sucursal</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:left;color:var(--tx3);">Técnico</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:left;color:var(--tx3);">Fecha Alta</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;color:var(--tx3);">Cant. Rep.</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;color:var(--tx3);">Resultado</th>
+        </tr></thead>
+        <tbody>${osRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+
   return`<div class="card" style="margin-top:10px;">
     <div class="card-title">📊 Visor FTF · Kepler ERP</div>
+    ${filtroBar}
     ${anualBar}
-    <!-- Tarjetas trimestrales -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">${trimCards}</div>
-    <!-- Carga de datos -->
-    <details${!hasData?' open':''}>
-      <summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:5px 0;user-select:none;">⚙️ ${hasData?'Actualizar datos del ERP':'Cargar datos del ERP'}</summary>
-      <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
-        <div style="flex:1;min-width:210px;">
-          <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Entrada manual por mes</div>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead><tr style="background:#f5f9f6;">
-              <th style="padding:4px 8px;font-size:10px;text-align:left;color:var(--tx3);">Mes</th>
-              <th style="padding:4px 6px;font-size:10px;text-align:center;color:#2e7d52;">FTF</th>
-              <th style="padding:4px 6px;font-size:10px;text-align:center;color:#c62828;">NO FTF</th>
-            </tr></thead>
-            <tbody>${inputRows}</tbody>
-          </table>
-        </div>
-        <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px;padding-top:18px;">
-          <label style="display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;background:#fff;border:2px dashed var(--grn);border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--grn);">
-            📤 Cargar Excel de Kepler
-            <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
-          </label>
-          <div style="font-size:10px;color:var(--tx3);line-height:1.6;padding:0 2px;">Filtros automáticos:<br/>✔ Marca = RATIONAL<br/>✔ Tipo = Garantía<br/>✔ Año = ${CY}<br/>✔ Cant. Reportes: 1→FTF, >1→NO FTF</div>
-          <button class="btn btn-p" onclick="updateVisorFTF()" style="font-size:13px;padding:9px;">🔄 Actualizar visor</button>
-        </div>
-      </div>
-    </details>
-  </div>
-  ${ftfTrimDetail!==null?renderFTFDetalleOS():''}`;
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">
+      <div style="flex:1;min-width:260px;">${hasData?makeFtfHBarChart(trimData):'<div style="height:160px;display:flex;align-items:center;justify-content:center;"><span style="font-size:12px;color:#ccc;">Sin datos</span></div>'}</div>
+      <div style="flex:2;min-width:300px;display:flex;gap:8px;flex-wrap:wrap;">${trimTablas}</div>
+    </div>
+    ${hasData?osTable:''}
+  </div>`;
 }
 function _parseFechaAlta(fv){
   // Returns {yr, mo} (mo = 0-based) or null
@@ -1061,55 +1154,49 @@ function loadExcelFTF(input){
       const missing=[['marca',ci.marca],['tipo',ci.tipo],['fechaAlta',ci.fechaAlta],['cantRep',ci.cantRep]].filter(([,v])=>v<0).map(([k])=>k);
       if(missing.length){toast('Columnas no encontradas: '+missing.join(', '));console.warn('Headers:',hdr);return;}
 
-      const counts={};
-      FTF_MESES.forEach(m=>counts[m]={ftf:0,noFtf:0});
       const osData=[];
       let proc=0,skip=0;
 
       for(let i=hdrIdx+1;i<rows.length;i++){
         const row=rows[i];
         if(!row||!row[ci.marca])continue;
-        const marca=String(row[ci.marca]||'').trim().toUpperCase();
-        const tipo=norm(String(row[ci.tipo]||''));
-        if(!marca.includes('RATIONAL')){skip++;continue;}
-        if(!tipo.includes('garantia')){skip++;continue;}
-
         const fecha=_parseFechaAlta(row[ci.fechaAlta]);
-        if(!fecha||fecha.yr!==CY||fecha.mo<0||fecha.mo>11){skip++;continue;}
-
-        const mo=fecha.mo;
-        const mes=FTF_MESES[mo];
+        if(!fecha||fecha.mo<0||fecha.mo>11){skip++;continue;}
         const cant=parseInt(row[ci.cantRep])||0;
         if(cant===0){skip++;continue;}
 
+        const marca=String(row[ci.marca]||'').trim();
+        const tipoServicio=String(row[ci.tipo]||'').trim();
         const isFtf=cant===1;
-        if(isFtf)counts[mes].ftf++;else counts[mes].noFtf++;
-
         const fechaStr=row[ci.fechaAlta] instanceof Date
           ?row[ci.fechaAlta].toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})
           :String(row[ci.fechaAlta]||'').trim();
         osData.push({
-          os:       String(row[ci.os]     ||'').trim(),
-          prospecto:String(row[ci.prospecto]||'').trim(),
-          sucursal: String(row[ci.sucursal]||'').trim(),
-          tecnico:  String(row[ci.tecnico] ||'').trim(),
-          fechaAlta:fechaStr,
-          cantRep:  cant,
-          ftf:      isFtf?'F.T.F.':'NO F.T.F.',
-          mes:      mo,
-          trim:     Math.floor(mo/3),
+          os:          String(row[ci.os]       ||'').trim(),
+          prospecto:   String(row[ci.prospecto]||'').trim(),
+          sucursal:    String(row[ci.sucursal] ||'').trim(),
+          tecnico:     String(row[ci.tecnico]  ||'').trim(),
+          fechaAlta:   fechaStr,
+          cantRep:     cant,
+          ftf:         isFtf?'F.T.F.':'NO F.T.F.',
+          mes:         fecha.mo,
+          trim:        Math.floor(fecha.mo/3),
+          año:         fecha.yr,
+          marca,
+          tipoServicio,
         });
         proc++;
       }
 
-      getFtv().osData=osData;
-      FTF_MESES.forEach(m=>{
-        const fi=document.getElementById('ftf_'+m);
-        const ni=document.getElementById('noftf_'+m);
-        if(fi)fi.value=counts[m].ftf;
-        if(ni)ni.value=counts[m].noFtf;
-      });
-      toast('✅ '+proc+' OS cargadas · RATIONAL Garantía '+CY+(skip?' ('+skip+' omitidas)':''));
+      const ftv=getFtv();
+      ftv.osData=osData;
+      // Establecer filtros por defecto al cargar
+      const años=[...new Set(osData.map(r=>r.año))].sort((a,b)=>b-a);
+      if(!ftv.filtros.año)ftv.filtros.año=años[0]||CY;
+      if(!ftv.filtros.marca)ftv.filtros.marca='RATIONAL';
+      if(!ftv.filtros.tipoServicio)ftv.filtros.tipoServicio='Garantía';
+      if(!ftv.filtros.sucursal)ftv.filtros.sucursal='Todos';
+      toast('✅ '+proc+' OS cargadas · '+sheetName+(skip?' ('+skip+' sin fecha)':''));
       updateVisorFTF();
     }catch(err){
       toast('Error al procesar Excel: '+err.message);
@@ -1121,19 +1208,12 @@ function loadExcelFTF(input){
 }
 function updateVisorFTF(){
   const ftv=getFtv();
-  let anyData=false;
-  FTF_MESES.forEach(m=>{
-    const ftf=parseInt(document.getElementById('ftf_'+m)?.value||0)||0;
-    const noFtf=parseInt(document.getElementById('noftf_'+m)?.value||0)||0;
-    ftv.meses[m]={ftf,noFtf};
-    if(ftf>0||noFtf>0)anyData=true;
-  });
-  if(!anyData){toast('Ingresa al menos un valor para actualizar el visor');return;}
-  // Calc annual KPI and auto-fill KPI row
+  const osF=getFtfFiltered();
+  const meses=computeFtfMeses(osF);
   let totalFtf=0,totalGen=0;
-  FTF_MESES.forEach(m=>{totalFtf+=ftv.meses[m].ftf;totalGen+=ftv.meses[m].ftf+ftv.meses[m].noFtf;});
-  const kpiPct=totalGen>0?Math.round(totalFtf/totalGen*1000)/10:0;
-  // Auto-update first KPI row "actual" field
+  meses.forEach(d=>{totalFtf+=d.ftf;totalGen+=d.ftf+d.noFtf;});
+  if(!totalGen){toast('Sin datos con los filtros seleccionados');return;}
+  const kpiPct=Math.round(totalFtf/totalGen*1000)/10;
   const zd=gzd();
   if(!zd.kpi)zd.kpi={rows:[]};
   if(!zd.kpi.rows.length)zd.kpi.rows.push({name:'First Time Fix (Garantía · RATIONAL)',meta:'85',actual:'',estado:''});
@@ -1141,10 +1221,9 @@ function updateVisorFTF(){
   zd.kpi.rows[0].meta='85';
   zd.kpi.rows[0].actual=String(kpiPct);
   zd.kpi.rows[0].estado=kpiPct>=85?'ok':kpiPct>=70?'warn':'no';
-  // Timestamp
   const now=new Date();
   ftv.updatedAt=now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-  ftfTrimDetail=null; // reset detalle al actualizar
+  ftfTrimDetail=null;
   saveData();
   renderMain('kpi');
   toast('Visor FTF actualizado · KPI: '+kpiPct+'%');
