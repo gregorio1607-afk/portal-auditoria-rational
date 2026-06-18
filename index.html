@@ -1014,6 +1014,7 @@ function renderVisorFTF(){
 
   // Datos filtrados
   const osF=getFtfFiltered();
+  const totalRaw=rawOS.length; // total sin filtros para diagnóstico
   const meses=computeFtfMeses(osF);
   let totalFtf=0,totalGen=0;
   meses.forEach(d=>{totalFtf+=d.ftf;totalGen+=d.ftf+d.noFtf;});
@@ -1032,6 +1033,7 @@ function renderVisorFTF(){
     <div style="flex:1;min-width:140px;">
       <div style="font-size:12px;font-weight:700;color:${kpiColor};">${kpiAnual>=85?'✅ Dentro de meta':kpiAnual>=70?'⚠️ En riesgo':'✗ Brecha — requiere plan A3'}</div>
       <div style="font-size:11px;color:var(--tx3);margin-top:3px;">${totalFtf} FTF de ${totalGen} OS · Meta ≥ 85% · Dif: ${Math.round((kpiAnual-85)*10)/10}%</div>
+      ${totalRaw!==totalGen?`<div style="font-size:10px;color:var(--tx3);margin-top:1px;">📊 Total en Excel: ${totalRaw} OS · Filtros activos muestran ${totalGen}</div>`:''}
       ${ftv.updatedAt?`<div style="font-size:10px;color:var(--tx3);margin-top:2px;">Actualizado: ${ftv.updatedAt}</div>`:''}
     </div>
   </div>`:'';
