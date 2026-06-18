@@ -1565,7 +1565,7 @@ function renderVisorAuditoria11(){
       const aud=recs.filter(r=>r.herr!=='-');
       const ph=pct(aud.filter(r=>r.presHerr==='Si').length,aud.length);
       return{label:q.label,sub:q.sub,pH:ph,count:aud.length,qi};
-    }).filter(q=>q.count>0);
+    });
 
     const validSel=_aud11SelQ!==null&&histQ.some(q=>q.qi===_aud11SelQ);
     selQIdx=validSel?_aud11SelQ:(histQ.length>0?histQ[histQ.length-1].qi:null);
