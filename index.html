@@ -1090,12 +1090,12 @@ function renderVisorFTF(){
     </tr>`;
   }).join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS con los filtros seleccionados</td></tr>`;
 
-  const osTable=`<div style="margin-top:16px;">
-    <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-      <span>Desglose de Órdenes de Servicio</span>
+  const osTable=`<details style="margin-top:16px;">
+    <summary style="cursor:pointer;padding:8px 12px;border-radius:8px;background:#f5f9f6;border:1px solid var(--brd);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+      <span style="font-size:12px;font-weight:700;color:var(--tx);">📋 Desglose de Órdenes de Servicio</span>
       <span style="font-size:11px;color:var(--tx3);font-weight:400;">${osF.length} OS · ${totalFtf} FTF · ${totalGen-totalFtf} NO FTF</span>
-    </div>
-    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--brd);">
+    </summary>
+    <div style="overflow-x:auto;border-radius:0 0 8px 8px;border:1px solid var(--brd);border-top:none;margin-top:-1px;">
       <table style="width:100%;border-collapse:collapse;min-width:620px;">
         <thead><tr style="background:#f5f9f6;">
           <th style="padding:6px 8px;font-size:10px;text-align:left;color:var(--tx3);">#</th>
@@ -1110,7 +1110,7 @@ function renderVisorFTF(){
         <tbody>${osRows}</tbody>
       </table>
     </div>
-  </div>`;
+  </details>`;
 
   return`<div class="card" style="margin-top:10px;">
     <div class="card-title">📊 Visor FTF · Kepler ERP</div>
