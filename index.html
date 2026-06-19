@@ -1168,19 +1168,19 @@ function renderVisorFTF(){
       </details>`;
     })()}</div>
     <div style="margin-left:auto;display:flex;gap:6px;">
-      <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="(function(){try{sessionStorage.removeItem(_ftfOsKey());}catch(e){}const ftv=getFtv();ftv.filtros={};ftv.updatedAt='';saveData();renderMain('kpi');toast('🗑 Datos FTF borrados — carga el Excel de nuevo');})()">🔄 Limpiar</button>
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="(function(){try{sessionStorage.removeItem(_ftfOsKey());}catch(e){}const ftv=getFtv();ftv.filtros={};ftv.updatedAt='';saveData();renderMain('kpi');toast('🗑 Datos FTF borrados — carga el Excel de nuevo');})()">🔄 Limpiar</button>`:''}
       <button onclick="showFmtInfo('3.3')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
-      <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
+      ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel
         <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
-      </label>
+      </label>`:''}
     </div>
   </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
     <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">Carga el Excel de Kepler para visualizar los datos FTF</div>
-    <label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
+    ${activeUserId===null?`<label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
       📤 Cargar Excel de Kepler
       <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
-    </label>
+    </label>`:`<div style="font-size:12px;color:var(--tx3);padding:8px 16px;border:1px solid var(--brd);border-radius:8px;background:#f9f9f9;">El administrador debe cargar los datos para visualizar este KPI.</div>`}
   </div>`;
 
   // Datos filtrados
@@ -1676,11 +1676,11 @@ function renderVisorAuditoria11(){
   </div>`:'';
 
   const uploadBtn=`<div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-    <button onclick="(function(){try{sessionStorage.removeItem(_aud11Key());}catch(e){}const ftv=getFtv();ftv.aud11UpdatedAt='';ftv.aud11f={sucs:[],año:0};_aud11SelQ=null;saveData();renderMain(CT);toast('🗑 Datos borrados');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>
+    ${activeUserId===null?`<button onclick="(function(){try{sessionStorage.removeItem(_aud11Key());}catch(e){}const ftv=getFtv();ftv.aud11UpdatedAt='';ftv.aud11f={sucs:[],año:0};_aud11SelQ=null;saveData();renderMain(CT);toast('🗑 Datos borrados');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>`:''}
     <button onclick="showFmtInfo('1.1')" style="padding:3px 8px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
-    <label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--grn);color:#fff;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">
+    ${activeUserId===null?`<label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--grn);color:#fff;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">
       📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelAuditoria11(this)"/>
-    </label>
+    </label>`:''}
   </div>`;
 
   // Desglose: agrupar por persona (una fila por técnico, chips por mes del trimestre)
@@ -2020,10 +2020,10 @@ function renderVisorCapacitacion13(){
         <div style="font-size:11px;color:var(--tx3);">Técnicos con certificación Rational vigente · Meta ≥ ${meta}%</div>
       </div>
       <button onclick="showFmtInfo('2.1')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:11px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
-      <label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
+      ${activeUserId===null?`<label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
         📤 Importar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCap13(this)"/>
-      </label>
-      <button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">+ Agregar</button>
+      </label>`:''}
+      ${activeUserId===null?`<button onclick="addM13Tec()" style="font-size:11px;background:var(--grn);color:#fff;font-weight:700;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;">+ Agregar</button>`:''}
       <button onclick="_cap13ShowChart=!_cap13ShowChart;renderMain(CT);" style="font-size:11px;background:#fff;color:#666;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid var(--brd);cursor:pointer;">${_cap13ShowChart?'🙈 Ocultar gráfica':'📊 Mostrar gráfica'}</button>
     </div>
 
@@ -2523,20 +2523,20 @@ function renderVisorCI43(){
       </details>
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;">
-      <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getCI43().os=[];_ci43Filtros={año:'Todos',sucursales:null};_ci43TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getCI43().os=[];_ci43Filtros={año:'Todos',sucursales:null};_ci43TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
       <button onclick="showFmtInfo('4.3')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
-      <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
+      ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCI43(this)"/>
-      </label>
+      </label>`:''}
     </div>
   </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
-    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">Carga el Excel de instalaciones (hoja RATIONAL) para visualizar el KPI de Web ID</div>
-    <div style="display:flex;gap:8px;justify-content:center;">
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">${activeUserId===null?'Carga el Excel de instalaciones (hoja RATIONAL) para visualizar el KPI de Web ID':'El administrador debe cargar los datos para visualizar este KPI.'}</div>
+    ${activeUserId===null?`<div style="display:flex;gap:8px;justify-content:center;">
       <button onclick="showFmtInfo('4.3')" style="padding:8px 14px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
       <label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCI43(this)"/>
       </label>
-    </div>
+    </div>`:''}
   </div>`;
 
   const osF=getCI43Filtered();
@@ -2816,18 +2816,18 @@ function renderVisorOS34(){
       </details>
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;">
-      <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getOS34().os=[];_os34Filtros={año:'Todos',marca:'Todos',tipo:'Todos',sucursales:null};_os34TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getOS34().os=[];_os34Filtros={año:'Todos',marca:'Todos',tipo:'Todos',sucursales:null};_os34TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
       <button onclick="showFmtInfo('3.4')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
-      <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
+      ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
-      </label>
+      </label>`:''}
     </div>
   </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
-    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">Carga el Excel exportado del SQL para visualizar el KPI de Tiempo de Resolución</div>
-    <label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">${activeUserId===null?'Carga el Excel exportado del SQL para visualizar el KPI de Tiempo de Resolución':'El administrador debe cargar los datos para visualizar este KPI.'}</div>
+    ${activeUserId===null?`<label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
       📤 Cargar Excel
       <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
-    </label>
+    </label>`:''}
   </div>`;
 
   const osF=getOs34Filtered();
@@ -3126,9 +3126,9 @@ function renderEncuestas31(){
 
   const uploadBtn=`<div style="display:flex;gap:6px;align-items:center;">
     <button onclick="showFmtInfo('3.1')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:11px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
-    <label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
+    ${activeUserId===null?`<label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
       📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelEnc31(this)"/>
-    </label>
+    </label>`:''}
   </div>`;
 
   return`<div class="card" style="margin-bottom:10px;">
