@@ -2431,6 +2431,8 @@ function aplicarCI43Sucs(){
 function getCI43Filtered(){
   const all=(getCI43().os||[]);const f=_ci43Filtros;
   return all.filter(r=>{
+    // Si tiene tipo, excluir instalaciones (4.4)
+    if(r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis')))return false;
     if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
     if(f.sucursales!==null&&!f.sucursales.includes(r.sucursal))return false;
     return true;
@@ -2465,6 +2467,7 @@ function loadExcelCI43(input){
       const cCont=col(['CONTRATO','EN CONTRATO']);
       const cOS=col(['# OS','OS']);
       const cWid=col('WEB ID');
+      const cTipo=col(['TIPO_SERV','TIPO SERV','TIPO DE SERVICIO','TIPO SERVICIO','TIPO']);
       if(cOS<0){toast('⚠ No se encontró columna OS');return;}
       const osList=[];
       for(let i=hdrIdx+1;i<rows.length;i++){
@@ -2474,19 +2477,22 @@ function loadExcelCI43(input){
         const mes=CI43_MESES_ES[mesRaw]??-1;
         const wid=String(cWid>=0?r[cWid]:'').trim();
         const tieneWebId=!!(wid&&wid!==''&&wid!=='0'&&wid.toLowerCase()!=='none'&&wid.toLowerCase()!=='n/a');
+        const tipo=String(cTipo>=0?r[cTipo]:'').trim();
         osList.push({
           os:osNum,mes,año:CY,
           mesNom:mes>=0?CI43_MESES_NOM[mes]:mesRaw,
           sucursal:String(cSuc>=0?r[cSuc]:'').trim(),
           cliente:String(cCli>=0?r[cCli]:'').trim(),
           contrato:String(cCont>=0?r[cCont]:'').trim(),
-          webId:wid,tieneWebId,
+          webId:wid,tieneWebId,tipo,
         });
       }
       if(!osList.length){toast('⚠ No se encontraron OS');return;}
       const d=getCI43();d.os=osList;
       d.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-      saveData();toast('✅ '+osList.length+' OS cargadas');renderMain(CT);
+      const nGar=osList.filter(r=>!r.tipo||r.tipo.toLowerCase().includes('garant')||(!r.tipo.toLowerCase().includes('instal')&&!r.tipo.toLowerCase().includes('comis'))).length;
+      const nIns=osList.filter(r=>r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis'))).length;
+      saveData();toast('✅ '+osList.length+' OS cargadas · '+nGar+' Garantía · '+nIns+' Instalación');renderMain(CT);
     }catch(ex){toast('❌ Error: '+ex.message);}
   };
   reader.readAsArrayBuffer(file);
@@ -2701,15 +2707,12 @@ function renderVisorCI43(){
 let _ci44Filtros={año:'Todos',sucursales:null};
 let _ci44TrimDetail=null;
 let _ci44SucPending=null;
-function getCI44(){
-  if(!YZD[CY][CZ]['4.4'])YZD[CY][CZ]['4.4']={};
-  const zd=YZD[CY][CZ]['4.4'];
-  if(!zd.ci44)zd.ci44={os:[],updatedAt:''};
-  return zd.ci44;
-}
+// KPI 4.4 comparte store con 4.3 — filtra por tipo=instalación/comisionado
+function getCI44(){return getCI43();}
 function setCI44Filtro(k,v){_ci44Filtros[k]=v;_ci44TrimDetail=null;renderMain(CT);}
 function _ci44GetSucsDisp(){
-  return[...new Set((getCI44().os||[]).map(r=>r.sucursal).filter(Boolean))].sort();
+  const all=(getCI43().os||[]).filter(r=>!r.tipo||r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis'));
+  return[...new Set(all.map(r=>r.sucursal).filter(Boolean))].sort();
 }
 function toggleCI44Suc(s,checked){
   const opts=_ci44GetSucsDisp();
@@ -2724,62 +2727,17 @@ function aplicarCI44Sucs(){
   _ci44SucPending=null;_ci44TrimDetail=null;renderMain(CT);
 }
 function getCI44Filtered(){
-  const all=(getCI44().os||[]);const f=_ci44Filtros;
+  const all=(getCI43().os||[]);const f=_ci44Filtros;
   return all.filter(r=>{
+    // Solo instalaciones/comisionado; si no tiene tipo, incluir aquí también
+    if(r.tipo&&r.tipo.toLowerCase().includes('garant'))return false;
     if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
     if(f.sucursales!==null&&!f.sucursales.includes(r.sucursal))return false;
     return true;
   });
 }
-function loadExcelCI44(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try{
-      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
-      const sheetName=wb.SheetNames.find(n=>/rational/i.test(n))||wb.SheetNames[0];
-      const ws=wb.Sheets[sheetName];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
-      if(rows.length<2){toast('⚠ Excel vacío');return;}
-      let hdrIdx=0;
-      for(let i=0;i<Math.min(rows.length,10);i++){
-        const r=rows[i].map(c=>String(c||'').toUpperCase());
-        if(r.some(c=>c.includes('OS')||c.includes('WEB')||c.includes('MES'))){hdrIdx=i;break;}
-      }
-      const hdrs=rows[hdrIdx].map(h=>String(h||'').trim().toUpperCase());
-      const col=names=>{
-        for(const n of (Array.isArray(names)?names:[names])){
-          const i=hdrs.findIndex(h=>h.includes(n.toUpperCase()));if(i>=0)return i;
-        }return -1;
-      };
-      const cMes=col(['MES DEL','MES']);const cSuc=col(['UNIDAD NEGOCIO','SUCURSAL','UNIDAD']);
-      const cCli=col('CLIENTE');const cCont=col(['CONTRATO','EN CONTRATO']);
-      const cOS=col(['# OS','OS']);const cWid=col('WEB ID');
-      if(cOS<0){toast('⚠ No se encontró columna OS');return;}
-      const osList=[];
-      for(let i=hdrIdx+1;i<rows.length;i++){
-        const r=rows[i];
-        const osNum=String(r[cOS]||'').trim();if(!osNum||osNum==='0')continue;
-        const mesRaw=String(cMes>=0?r[cMes]:'').trim().toLowerCase().replace(/\s+/g,' ');
-        const mes=CI43_MESES_ES[mesRaw]??-1;
-        const wid=String(cWid>=0?r[cWid]:'').trim();
-        const tieneWebId=!!(wid&&wid!==''&&wid!=='0'&&wid.toLowerCase()!=='none'&&wid.toLowerCase()!=='n/a');
-        osList.push({
-          os:osNum,mes,año:CY,mesNom:mes>=0?CI43_MESES_NOM[mes]:mesRaw,
-          sucursal:String(cSuc>=0?r[cSuc]:'').trim(),
-          cliente:String(cCli>=0?r[cCli]:'').trim(),
-          contrato:String(cCont>=0?r[cCont]:'').trim(),
-          webId:wid,tieneWebId,
-        });
-      }
-      if(!osList.length){toast('⚠ No se encontraron OS');return;}
-      const d=getCI44();d.os=osList;
-      d.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-      saveData();toast('✅ '+osList.length+' OS cargadas');renderMain(CT);
-    }catch(ex){toast('❌ Error: '+ex.message);}
-  };
-  reader.readAsArrayBuffer(file);
-}
+// loadExcelCI44 → carga al mismo store compartido que 4.3
+function loadExcelCI44(input){loadExcelCI43(input);}
 function renderVisorCI44(){
   const d=getCI44();const rawOS=d.os||[];const hasRaw=rawOS.length>0;
   const grn='#2e7d32',red='#c62828',org='#e65100';
@@ -2820,14 +2778,14 @@ function renderVisorCI44(){
       </details>
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;">
-      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getCI44().os=[];_ci44Filtros={año:'Todos',sucursales:null};_ci44TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getCI43().os=[];_ci43Filtros={año:'Todos',sucursales:null};_ci43TrimDetail=null;_ci44Filtros={año:'Todos',sucursales:null};_ci44TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados (store compartido 4.3/4.4)')">🔄 Limpiar</button>`:''}
       <button onclick="showFmtInfo('4.4')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
       ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCI44(this)"/>
       </label>`:''}
     </div>
   </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
-    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">${activeUserId===null?'Carga el Excel de instalaciones y comisionado (hoja RATIONAL) para visualizar el KPI de Web ID':'El administrador debe cargar los datos para visualizar este KPI.'}</div>
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">${activeUserId===null?'Usa el mismo Excel que KPI 4.3 — columna TIPO_SERV = "Instalación" o "Comisionado"':'El administrador debe cargar los datos para visualizar este KPI.'}</div>
     ${activeUserId===null?`<div style="display:flex;gap:8px;justify-content:center;">
       <button onclick="showFmtInfo('4.4')" style="padding:8px 14px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
       <label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
@@ -3900,24 +3858,28 @@ function showFmtInfo(kpi){
       }]
     },
     '4.3':{
-      nombre:'Plantilla_KPI_4.3_WebID_Garantias.xlsx',
+      nombre:'Plantilla_KPI_4.3_4.4_WebID_Compartida.xlsx',
       hojas:[{
         nombre:'RATIONAL',
         filas:[
-          [null,'Mes del Servicio','Unidad Negocio','Cliente','Cliente en Contrato?','# OS','WEB ID'],
-          [null,'Enero','Monterrey','Cliente SA','Sí','10001','WEB-000001'],
-          [null,'Febrero','CDMX','Cliente AB','No','10002',''],
+          [null,'Mes del Servicio','Unidad Negocio','Cliente','Cliente en Contrato?','# OS','WEB ID','TIPO_SERV'],
+          [null,'Enero','Monterrey','Cliente SA','Sí','10001','WEB-000001','Garantía'],
+          [null,'Febrero','CDMX','Cliente AB','No','10002','','Garantía'],
+          [null,'Marzo','Monterrey','Cliente Instalación SA','Sí','20001','WEB-100001','Instalación'],
+          [null,'Abril','CDMX','Cliente Comisionado AB','No','20002','','Comisionado'],
         ]
       }]
     },
     '4.4':{
-      nombre:'Plantilla_KPI_4.4_WebID_Instalaciones.xlsx',
+      nombre:'Plantilla_KPI_4.3_4.4_WebID_Compartida.xlsx',
       hojas:[{
         nombre:'RATIONAL',
         filas:[
-          [null,'Mes del Servicio','Unidad Negocio','Cliente','Cliente en Contrato?','# OS','WEB ID'],
-          [null,'Enero','Monterrey','Cliente Instalación SA','Sí','20001','WEB-100001'],
-          [null,'Marzo','CDMX','Cliente Comisionado AB','No','20002',''],
+          [null,'Mes del Servicio','Unidad Negocio','Cliente','Cliente en Contrato?','# OS','WEB ID','TIPO_SERV'],
+          [null,'Enero','Monterrey','Cliente SA','Sí','10001','WEB-000001','Garantía'],
+          [null,'Febrero','CDMX','Cliente AB','No','10002','','Garantía'],
+          [null,'Marzo','Monterrey','Cliente Instalación SA','Sí','20001','WEB-100001','Instalación'],
+          [null,'Abril','CDMX','Cliente Comisionado AB','No','20002','','Comisionado'],
         ]
       }]
     },
