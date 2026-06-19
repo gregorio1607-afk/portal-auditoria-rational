@@ -1169,6 +1169,7 @@ function renderVisorFTF(){
     })()}</div>
     <div style="margin-left:auto;display:flex;gap:6px;">
       <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="(function(){try{sessionStorage.removeItem(_ftfOsKey());}catch(e){}const ftv=getFtv();ftv.filtros={};ftv.updatedAt='';saveData();renderMain('kpi');toast('🗑 Datos FTF borrados — carga el Excel de nuevo');})()">🔄 Limpiar</button>
+      <button onclick="showFmtInfo('3.3')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
       <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel
         <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelFTF(this)"/>
@@ -1676,6 +1677,7 @@ function renderVisorAuditoria11(){
 
   const uploadBtn=`<div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
     <button onclick="(function(){try{sessionStorage.removeItem(_aud11Key());}catch(e){}const ftv=getFtv();ftv.aud11UpdatedAt='';ftv.aud11f={sucs:[],año:0};_aud11SelQ=null;saveData();renderMain(CT);toast('🗑 Datos borrados');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>
+    <button onclick="showFmtInfo('1.1')" style="padding:3px 8px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
     <label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--grn);color:#fff;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">
       📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelAuditoria11(this)"/>
     </label>
@@ -2017,6 +2019,7 @@ function renderVisorCapacitacion13(){
         <div class="card-title" style="margin-bottom:2px;">🎓 Plan de Formación · KPI 2.1</div>
         <div style="font-size:11px;color:var(--tx3);">Técnicos con certificación Rational vigente · Meta ≥ ${meta}%</div>
       </div>
+      <button onclick="showFmtInfo('2.1')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:11px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
       <label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
         📤 Importar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelCap13(this)"/>
       </label>
@@ -2484,6 +2487,7 @@ function renderVisorOS34(){
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;">
       <button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getOS34().os=[];_os34Filtros={año:'Todos',marca:'Todos',tipo:'Todos',sucursales:null};_os34TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>
+      <button onclick="showFmtInfo('3.4')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
       <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelOS34(this)"/>
       </label>
@@ -2754,9 +2758,12 @@ function renderEncuestas31(){
   const filtered=sq?all.filter(r=>r.cliente.toLowerCase().includes(sq)||r.os.includes(sq)||r.sucursal.toLowerCase().includes(sq)):all;
   const tablaRows=makeTabla(filtered.slice(0,100));
 
-  const uploadBtn=`<label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
-    📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelEnc31(this)"/>
-  </label>`;
+  const uploadBtn=`<div style="display:flex;gap:6px;align-items:center;">
+    <button onclick="showFmtInfo('3.1')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:11px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
+    <label style="font-size:11px;background:#e3f2fd;color:#1565c0;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid #90caf9;">
+      📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelEnc31(this)"/>
+    </label>
+  </div>`;
 
   return`<div class="card" style="margin-bottom:10px;">
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
@@ -2939,6 +2946,103 @@ function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};const ver=(zd.action.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});const snap={version:ver,fechaGuardado,responsable:v('a_rsp'),estadoA3:v('a_est'),fechaInicio:v('a_fi'),fechaFin:v('a_ff'),actual:v('a_act'),meta:v('a_met'),brecha:v('a_bre'),situacion:v('a_sit'),estrategia:v('a_est2'),fechaSeg:v('a_fseg'),resultadoMedido:v('a_rmed'),lecciones:v('a_lec'),causas:[...(zd.action.causas||[])],rows:[...(zd.action.rows||[])]};const history=[...(zd.action.history||[]),snap];zd.action={...snap,saved:true,history};saveData();renderAcc();renderMain('action');toast('A3 guardado V'+String(ver).padStart(2,'0')+' — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg,dur){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2500);}
+function showFmtInfo(kpi){
+  const INFO={
+    '1.1':{
+      titulo:'KPI 1.1 — Formato Excel Herramienta / Auditoría',
+      fuente:'Área de Servicio',
+      filas:[
+        {col:'Hoja(s)',desc:'Una hoja por año — el nombre debe contener el año (ej: "HERRAMIENTA 2025" o "Auditorias 2025")'},
+        {col:'Fila 1',desc:'Encabezados de mes en mayúsculas: ENERO, FEBRERO, MARZO … DICIEMBRE (una columna por mes)'},
+        {col:'Fila 2',desc:'Encabezados de columnas fijas: SUCURSAL (o UBICACIÓN) y NOMBRE'},
+        {col:'Filas 3+',desc:'Una fila por técnico — valor por mes: Si / No (o 1 / 0)'},
+      ]
+    },
+    '2.1':{
+      titulo:'KPI 2.1 — Formato Excel Capacitación / Certificaciones',
+      fuente:'Área de Capacitación',
+      filas:[
+        {col:'NOMBRE',desc:'Nombre completo del técnico'},
+        {col:'CURSO',desc:'Nombre del curso o certificación'},
+        {col:'FECHA',desc:'Fecha de caducidad (DD.MM.YYYY, DD/MM/YYYY o serial Excel)'},
+        {col:'SUCURSAL',desc:'Sucursal a la que pertenece el técnico'},
+      ]
+    },
+    '3.1':{
+      titulo:'KPI 3.1 — Formato Excel Encuestas de Satisfacción',
+      fuente:'Área de Atención a Clientes',
+      filas:[
+        {col:'MES',desc:'Mes de la encuesta (número o nombre)'},
+        {col:'UNIDAD',desc:'Sucursal / unidad de servicio'},
+        {col:'CLIENTE',desc:'Nombre del cliente'},
+        {col:'CONTRATO',desc:'Tipo de contrato'},
+        {col:'OS',desc:'Número de orden de servicio'},
+        {col:'GARANTIA',desc:'Sí / No'},
+        {col:'RECOMIENDA',desc:'Valor numérico (0–10) o Sí / No'},
+        {col:'NPS',desc:'Valor NPS numérico'},
+        {col:'SATISFACCION TECNICO',desc:'Puntuación de satisfacción con el técnico'},
+        {col:'SATISFACCION',desc:'Puntuación general'},
+        {col:'NOMBRE',desc:'Nombre del técnico'},
+      ],
+      nota:'La primera fila puede ser un título; los encabezados deben estar en la fila 2.'
+    },
+    '3.3':{
+      titulo:'KPI 3.3 — Formato Excel FTF (First Time Fix)',
+      fuente:'Exportación Kepler',
+      modos:[
+        {label:'Modo A — Tabla resumen mensual (Kepler)',cols:['MES ALTA','F.T.F.','NO F.T.F.']},
+        {label:'Modo B — Detalle por OS',cols:['Fecha','OS / Folio','Resultado FTF (Si/No o columnas separadas)','Sucursal','Marca','Tipo Servicio']},
+      ]
+    },
+    '3.4':{
+      titulo:'KPI 3.4 — Formato Excel Tiempo de Resolución',
+      fuente:'Exportación SQL ServIndustrial (SSMS → Export to Excel)',
+      filas:[
+        {col:'FECHA',desc:'Fecha de nueva orden (col A) — formato DD/MM/YYYY'},
+        {col:'OS',desc:'Número de orden de servicio'},
+        {col:'TIPO_SERV',desc:'Tipo de servicio (ej: Garantía, Correctivo)'},
+        {col:'STATUS',desc:'Estatus de la OS'},
+        {col:'PROSP',desc:'Cliente / prospecto'},
+        {col:'SUCURSAL',desc:'Sucursal que atendió la OS'},
+        {col:'MARCA',desc:'Marca del equipo (ej: Rational)'},
+        {col:'TECNICO',desc:'Técnico asignado'},
+        {col:'FECHA_ULT_REP_TERM',desc:'Fecha última reparación / terminado — formato DD/MM/YYYY'},
+        {col:'FALLA',desc:'Descripción de la falla (opcional)'},
+      ],
+      nota:'Las columnas se detectan por nombre de encabezado — el orden no importa. Exportar desde SSMS: clic derecho → Save Results As → Excel.'
+    },
+  };
+  const d=INFO[kpi];if(!d)return;
+  let html=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)this.remove()">
+  <div style="background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.25);">
+    <div style="background:var(--grn);color:#fff;padding:14px 18px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:700;font-size:13px;">📋 ${d.titulo}</span>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="padding:16px;">
+      <div style="font-size:11px;color:#888;margin-bottom:12px;font-weight:600;">Fuente: ${d.fuente}</div>`;
+  if(d.filas){
+    html+=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;background:#f5f5f5;border-radius:6px 0 0 0;font-weight:700;width:38%;">Columna</th>
+        <th style="text-align:left;padding:6px 8px;background:#f5f5f5;border-radius:0 6px 0 0;font-weight:700;">Descripción</th>
+      </tr></thead><tbody>
+      ${d.filas.map((f,i)=>`<tr style="background:${i%2?'#fafafa':'#fff'}">
+        <td style="padding:5px 8px;font-family:monospace;font-weight:700;color:#1565c0;border-bottom:1px solid #f0f0f0;">${f.col}</td>
+        <td style="padding:5px 8px;color:#333;border-bottom:1px solid #f0f0f0;">${f.desc}</td>
+      </tr>`).join('')}
+      </tbody></table>`;
+  }
+  if(d.modos){
+    d.modos.forEach(mo=>{
+      html+=`<div style="margin-top:10px;"><div style="font-weight:700;font-size:12px;color:#333;margin-bottom:4px;">📌 ${mo.label}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;">${mo.cols.map(c=>`<span style="background:#e3f2fd;color:#1565c0;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;font-family:monospace;">${c}</span>`).join('')}</div></div>`;
+    });
+  }
+  if(d.nota){html+=`<div style="margin-top:12px;background:#fff8e1;border-left:3px solid #f9a825;padding:8px 10px;border-radius:0 6px 6px 0;font-size:11px;color:#555;">⚠ ${d.nota}</div>`;}
+  html+=`</div></div></div>`;
+  const el=document.createElement('div');el.innerHTML=html;document.body.appendChild(el.firstChild);
+}
 function applySession(idx,isAdmin){
   if(!isAdmin){
     activeUserId=idx;
