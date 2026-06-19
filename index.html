@@ -881,9 +881,8 @@ function toggleAud11Suc(suc,checked){
 function setAud11SucTodas(){const f=getAud11F();f.sucs=[];saveData();_aud11SelQ=null;renderMain(CT);
   setTimeout(()=>{const d=document.getElementById('aud11-suc-det');if(d)d.setAttribute('open','');},20);
 }
-function _aud11Key(){return'aud11_'+CZ;}
-function getAud11(){try{const r=sessionStorage.getItem(_aud11Key());return r?JSON.parse(r):[]; }catch(e){return[];}}
-function setAud11(arr){try{sessionStorage.setItem(_aud11Key(),JSON.stringify(arr));}catch(e){}}
+function getAud11(){return getFtv().aud11Data||[];}
+function setAud11(arr){getFtv().aud11Data=arr;}
 function loadExcelAuditoria11(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
@@ -955,9 +954,8 @@ function loadExcelAuditoria11(input){
   reader.readAsArrayBuffer(file);
 }
 // osData de FTF vive en sessionStorage (sin límite de cuota)
-function _ftfOsKey(){return'ftfOS_'+CZ;}
-function getFtfOS(){try{const r=sessionStorage.getItem(_ftfOsKey());return r?JSON.parse(r):[];}catch(e){return[];}}
-function setFtfOS(arr){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr));}catch(e){try{sessionStorage.setItem(_ftfOsKey(),JSON.stringify(arr.slice(0,800)));}catch(e2){}}}
+function getFtfOS(){return getFtv().ftfOS||[];}
+function setFtfOS(arr){getFtv().ftfOS=arr;}
 // Limpiar osData de localStorage al inicio (versiones anteriores lo guardaban ahí)
 (function _purgeFtfFromLS(){try{['appSD','appYZD'].forEach(k=>{const raw=localStorage.getItem(k);if(!raw||!raw.includes('osData'))return;try{const obj=JSON.parse(raw);const strip=o=>{if(!o||typeof o!=='object')return;if(Array.isArray(o))return;if('osData'in o){delete o.osData;}Object.values(o).forEach(strip);};strip(obj);localStorage.setItem(k,JSON.stringify(obj));}catch(e){}});}catch(e){}})();
 function getFtv(){
@@ -1198,7 +1196,7 @@ function renderVisorFTF(){
       </details>`;
     })()}</div>
     <div style="margin-left:auto;display:flex;gap:6px;">
-      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="(function(){try{sessionStorage.removeItem(_ftfOsKey());}catch(e){}const ftv=getFtv();ftv.filtros={};ftv.updatedAt='';saveData();renderMain('kpi');toast('🗑 Datos FTF borrados — carga el Excel de nuevo');})()">🔄 Limpiar</button>`:''}
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="(function(){const ftv=getFtv();ftv.ftfOS=[];ftv.filtros={};ftv.updatedAt='';saveData();renderMain('kpi');toast('🗑 Datos FTF borrados — carga el Excel de nuevo');})()">🔄 Limpiar</button>`:''}
       <button onclick="showFmtInfo('3.3')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
       ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel
@@ -1706,7 +1704,7 @@ function renderVisorAuditoria11(){
   </div>`:'';
 
   const uploadBtn=`<div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-    ${activeUserId===null?`<button onclick="(function(){try{sessionStorage.removeItem(_aud11Key());}catch(e){}const ftv=getFtv();ftv.aud11UpdatedAt='';ftv.aud11f={sucs:[],año:0};_aud11SelQ=null;saveData();renderMain(CT);toast('🗑 Datos borrados');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>`:''}
+    ${activeUserId===null?`<button onclick="(function(){const ftv=getFtv();ftv.aud11Data=[];ftv.aud11UpdatedAt='';ftv.aud11f={sucs:[],año:0};_aud11SelQ=null;saveData();renderMain(CT);toast('🗑 Datos borrados');})();" style="padding:3px 10px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Limpiar</button>`:''}
     <button onclick="showFmtInfo('1.1')" style="padding:3px 8px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;font-weight:700;" title="Ver formato requerido">? Formato</button>
     ${activeUserId===null?`<label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--grn);color:#fff;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">
       📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelAuditoria11(this)"/>
