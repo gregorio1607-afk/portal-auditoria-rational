@@ -818,7 +818,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
+  const extra=CA==='6.2'?renderVisorQ62():CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -3598,6 +3598,236 @@ function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};const ver=(zd.action.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});const snap={version:ver,fechaGuardado,responsable:v('a_rsp'),estadoA3:v('a_est'),fechaInicio:v('a_fi'),fechaFin:v('a_ff'),actual:v('a_act'),meta:v('a_met'),brecha:v('a_bre'),situacion:v('a_sit'),estrategia:v('a_est2'),fechaSeg:v('a_fseg'),resultadoMedido:v('a_rmed'),lecciones:v('a_lec'),causas:[...(zd.action.causas||[])],rows:[...(zd.action.rows||[])]};const history=[...(zd.action.history||[]),snap];zd.action={...snap,saved:true,history};saveData();renderAcc();renderMain('action');toast('A3 guardado V'+String(ver).padStart(2,'0')+' — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg,dur){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2500);}
+// ── KPI 6.2 Gestión de Reclamaciones ─────────────────────────────────────────
+let _q62ShowForm=false;
+let _q62EditId=null;
+let _q62Filtros={estatus:'Todos'};
+let _q62EvidNom='';
+let _q62EvidData='';
+function getQ62(){
+  if(!YZD[CY][CZ]['6.2'])YZD[CY][CZ]['6.2']={};
+  const zd=YZD[CY][CZ]['6.2'];
+  if(!zd.quejas)zd.quejas=[];
+  return zd;
+}
+function q62OpenForm(id){
+  _q62EditId=id||null;_q62ShowForm=true;
+  _q62EvidNom='';_q62EvidData='';
+  renderMain(CT);
+  setTimeout(()=>{const el=document.getElementById('q62-form');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);
+}
+function q62CloseForm(){_q62ShowForm=false;_q62EditId=null;_q62EvidNom='';_q62EvidData='';renderMain(CT);}
+function q62Del(id){
+  if(!confirm('¿Eliminar esta queja?'))return;
+  const d=getQ62();d.quejas=d.quejas.filter(q=>q.id!==id);
+  saveData();renderMain(CT);toast('🗑 Queja eliminada');
+}
+function q62Save(){
+  const d=getQ62();
+  const v=id=>document.getElementById(id)?document.getElementById(id).value.trim():'';
+  const finicio=v('q62-finicio');const ffin=v('q62-ffin');
+  const estatus=v('q62-estatus');
+  if(!v('q62-cliente')&&!v('q62-queja')){toast('⚠ Completa al menos Cliente y Queja');return;}
+  // Preserve existing evidencia if not replaced
+  let evNom=_q62EvidNom,evData=_q62EvidData;
+  if(_q62EditId&&!evNom){
+    const ex=d.quejas.find(q=>q.id===_q62EditId);
+    if(ex){evNom=ex.evidenciaNombre||'';evData=ex.evidenciaData||'';}
+  }
+  const q={
+    id:_q62EditId||Date.now(),
+    zona:CZ,
+    cliente:v('q62-cliente'),
+    responsable:v('q62-responsable'),
+    queja:v('q62-queja'),
+    oportunidad:v('q62-oportunidad'),
+    fechaInicio:finicio,
+    fechaFin:ffin,
+    estatus,
+    observaciones:v('q62-obs'),
+    evidenciaNombre:evNom,
+    evidenciaData:evData,
+    updatedAt:new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}),
+  };
+  if(_q62EditId){const idx=d.quejas.findIndex(x=>x.id===_q62EditId);if(idx>=0)d.quejas[idx]=q;else d.quejas.push(q);}
+  else d.quejas.push(q);
+  _q62ShowForm=false;_q62EditId=null;_q62EvidNom='';_q62EvidData='';
+  saveData();renderMain(CT);toast('✅ Queja guardada');
+}
+function q62LoadPdf(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>3*1024*1024){toast('⚠ PDF demasiado grande (máx 3 MB)');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _q62EvidNom=file.name;_q62EvidData=e.target.result;
+    const btn=document.getElementById('q62-evid-btn');
+    if(btn)btn.textContent='📎 '+file.name;
+    toast('📎 PDF adjunto: '+file.name);
+  };
+  reader.readAsDataURL(file);
+}
+function q62VerPdf(id){
+  const d=getQ62();const q=d.quejas.find(x=>x.id===id);
+  if(!q||!q.evidenciaData){toast('Sin evidencia adjunta');return;}
+  const w=window.open();w.document.write(`<iframe src="${q.evidenciaData}" style="width:100%;height:100vh;border:none;"></iframe>`);
+}
+function q62DiasTranscurridos(q){
+  if(!q.fechaInicio)return null;
+  const ini=new Date(q.fechaInicio);
+  const fin=q.fechaFin&&q.estatus==='Cerrada'?new Date(q.fechaFin):new Date();
+  const dias=Math.round((fin-ini)/(1000*60*60*24));
+  return isNaN(dias)?null:dias;
+}
+function renderVisorQ62(){
+  const d=getQ62();const quejas=d.quejas||[];
+  const grn='#2e7d32',red='#c62828',org='#e65100',blu='#1565c0';
+  const meta=85;
+  // Filtro
+  const f=_q62Filtros;
+  const quejasF=quejas.filter(q=>f.estatus==='Todos'||q.estatus===f.estatus);
+  // KPI: quejas cerradas en ≤15 días / total quejas con fecha inicio
+  const conFecha=quejas.filter(q=>q.fechaInicio);
+  const enTiempo=conFecha.filter(q=>q.estatus==='Cerrada'&&q62DiasTranscurridos(q)<=15);
+  const kpi=conFecha.length>0?Math.round(enTiempo.length/conFecha.length*1000)/10:null;
+  const kpiColor=kpi===null?'var(--tx3)':kpi>=meta?grn:kpi>=60?org:red;
+  const kpiBg=kpi===null?'#f8f8f8':kpi>=meta?'#f0fbf5':kpi>=60?'#fffde7':'#fff5f5';
+  const kpiBdr=kpi===null?'#e0e0e0':kpi>=meta?'#a5d6a7':kpi>=60?'#ffe082':'#ef9a9a';
+
+  // Estadísticas rápidas
+  const abiertas=quejas.filter(q=>q.estatus==='Abierta').length;
+  const enProceso=quejas.filter(q=>q.estatus==='En proceso').length;
+  const cerradas=quejas.filter(q=>q.estatus==='Cerrada').length;
+  const vencidas=conFecha.filter(q=>q.estatus!=='Cerrada'&&q62DiasTranscurridos(q)>15).length;
+
+  // Banner KPI
+  const banner=`<div style="display:flex;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;background:${kpiBg};border:1.5px solid ${kpiBdr};margin-bottom:14px;align-items:center;">
+    <div style="text-align:center;min-width:80px;">
+      <div style="font-size:11px;color:var(--tx3);">Resueltas ≤15 días</div>
+      <div style="font-size:36px;font-weight:900;color:${kpiColor};line-height:1.1;">${kpi!==null?kpi+'%':'—'}</div>
+      <div style="font-size:10px;color:var(--tx3);">meta ≥ ${meta}%</div>
+    </div>
+    <div style="flex:1;min-width:140px;">
+      <div style="font-size:12px;font-weight:700;color:${kpiColor};">${kpi!==null?(kpi>=meta?'✅ Dentro de meta':kpi>=60?'⚠️ En riesgo':'✗ Brecha — requiere plan A3'):'Sin datos'}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+        <span style="font-size:11px;background:#fff3e0;color:${org};font-weight:700;padding:3px 10px;border-radius:8px;">⭕ ${abiertas} Abierta${abiertas!==1?'s':''}</span>
+        <span style="font-size:11px;background:#e3f2fd;color:${blu};font-weight:700;padding:3px 10px;border-radius:8px;">🔄 ${enProceso} En proceso</span>
+        <span style="font-size:11px;background:#e8f5e9;color:${grn};font-weight:700;padding:3px 10px;border-radius:8px;">✅ ${cerradas} Cerrada${cerradas!==1?'s':''}</span>
+        ${vencidas>0?`<span style="font-size:11px;background:#ffebee;color:${red};font-weight:700;padding:3px 10px;border-radius:8px;">⚠ ${vencidas} vencida${vencidas!==1?'s':''} (+15 días)</span>`:''}
+      </div>
+    </div>
+  </div>`;
+
+  // Barra de filtros + acciones
+  const filtroBar=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
+    <span style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;">Filtrar:</span>
+    <select style="padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;" onchange="_q62Filtros.estatus=this.value;renderMain(CT)">
+      <option value="Todos"${f.estatus==='Todos'?' selected':''}>Todos los estatus</option>
+      <option value="Abierta"${f.estatus==='Abierta'?' selected':''}>⭕ Abierta</option>
+      <option value="En proceso"${f.estatus==='En proceso'?' selected':''}>🔄 En proceso</option>
+      <option value="Cerrada"${f.estatus==='Cerrada'?' selected':''}>✅ Cerrada</option>
+    </select>
+    <span style="font-size:11px;color:var(--tx3);">${quejasF.length} de ${quejas.length} queja${quejas.length!==1?'s':''}</span>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      ${activeUserId===null?`<button onclick="q62OpenForm(null)" style="padding:6px 14px;background:var(--grn);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">+ Nueva Queja</button>`:''}
+    </div>
+  </div>`;
+
+  // Formulario de captura
+  const editQ=_q62EditId?quejas.find(q=>q.id===_q62EditId):null;
+  const estatusOpts=['Abierta','En proceso','Cerrada'].map(e=>`<option value="${e}"${(editQ?editQ.estatus:'')==e?' selected':''}>${e}</option>`).join('');
+  const formPanel=_q62ShowForm&&activeUserId===null?`<div id="q62-form" style="padding:16px;border:2px solid var(--grn);border-radius:12px;background:#f9fdf9;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:13px;font-weight:700;color:var(--tx);">${editQ?'✏️ Editar Queja':'➕ Nueva Queja'}</span>
+      <button onclick="q62CloseForm()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3);">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">CLIENTE *</label>
+        <input id="q62-cliente" class="fc" style="font-size:13px;" placeholder="Nombre del cliente" value="${esc(editQ?.cliente||'')}"/></div>
+      <div><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">RESPONSABLE</label>
+        <input id="q62-responsable" class="fc" style="font-size:13px;" placeholder="Responsable de atención" value="${esc(editQ?.responsable||'')}"/></div>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">QUEJA / DESCRIPCIÓN *</label>
+        <textarea id="q62-queja" class="fc" style="font-size:13px;" rows="2" placeholder="Descripción de la queja del cliente">${esc(editQ?.queja||'')}</textarea></div>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">OPORTUNIDAD / PROBLEMA DETECTADO</label>
+        <textarea id="q62-oportunidad" class="fc" style="font-size:13px;" rows="2" placeholder="Causa raíz o problema identificado">${esc(editQ?.oportunidad||'')}</textarea></div>
+      <div><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">FECHA INICIO</label>
+        <input id="q62-finicio" type="date" class="fc" style="font-size:13px;" value="${editQ?.fechaInicio||''}"/></div>
+      <div><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">FECHA FIN</label>
+        <input id="q62-ffin" type="date" class="fc" style="font-size:13px;" value="${editQ?.fechaFin||''}"/></div>
+      <div><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">ESTATUS</label>
+        <select id="q62-estatus" class="fc" style="font-size:13px;">${estatusOpts}</select></div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px;">
+        <label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;">EVIDENCIA (PDF, máx 3 MB)</label>
+        <label id="q62-evid-btn" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#e3f2fd;color:${blu};border:1px solid #90caf9;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${editQ?.evidenciaNombre?'📎 '+esc(editQ.evidenciaNombre):'📎 Adjuntar PDF'}
+          <input type="file" accept=".pdf" style="display:none;" onchange="q62LoadPdf(this)"/>
+        </label>
+        ${editQ?.evidenciaData?`<button onclick="q62VerPdf(${editQ.id})" style="padding:4px 10px;border:1px solid ${grn};color:${grn};background:#fff;border-radius:6px;font-size:11px;cursor:pointer;">👁 Ver PDF actual</button>`:''}
+      </div>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">OBSERVACIONES / COMENTARIOS</label>
+        <textarea id="q62-obs" class="fc" style="font-size:13px;" rows="2" placeholder="Notas adicionales, seguimiento...">${esc(editQ?.observaciones||'')}</textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button onclick="q62CloseForm()" style="padding:7px 18px;border:1px solid var(--brd);background:#fff;color:var(--tx2);border-radius:8px;cursor:pointer;font-size:12px;">Cancelar</button>
+      <button onclick="q62Save()" style="padding:7px 22px;background:var(--grn);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">💾 Guardar Queja</button>
+    </div>
+  </div>`:'';
+
+  // Tabla de quejas
+  const estatusChip=e=>{
+    if(e==='Cerrada')return`<span style="font-size:10px;background:#e8f5e9;color:${grn};font-weight:700;padding:2px 8px;border-radius:8px;white-space:nowrap;">✅ Cerrada</span>`;
+    if(e==='En proceso')return`<span style="font-size:10px;background:#e3f2fd;color:${blu};font-weight:700;padding:2px 8px;border-radius:8px;white-space:nowrap;">🔄 En proceso</span>`;
+    return`<span style="font-size:10px;background:#fff3e0;color:${org};font-weight:700;padding:2px 8px;border-radius:8px;white-space:nowrap;">⭕ Abierta</span>`;
+  };
+  const tablaRows=quejasF.length?quejasF.map((q,i)=>{
+    const dias=q62DiasTranscurridos(q);
+    const diasStr=dias!==null?dias+' día'+(dias!==1?'s':''):'—';
+    const diasColor=dias===null?'var(--tx3)':dias<=15?grn:red;
+    const diasBg=dias===null?'transparent':dias<=15?'#f0fbf5':'#ffebee';
+    return`<tr style="border-bottom:1px solid #f0f0f0;${i%2?'background:#fafafa':''}">
+      <td style="padding:6px 8px;font-size:11px;color:var(--tx3);text-align:center;">${i+1}</td>
+      <td style="padding:6px 8px;font-size:12px;font-weight:700;color:var(--tx);max-width:160px;word-break:break-word;">${esc(q.cliente)||'—'}</td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--tx2);max-width:200px;word-break:break-word;">${esc(q.queja)||'—'}</td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--tx2);">${esc(q.responsable)||'—'}</td>
+      <td style="padding:6px 8px;text-align:center;">${estatusChip(q.estatus)}</td>
+      <td style="padding:6px 8px;font-size:11px;text-align:center;color:var(--tx2);">${q.fechaInicio||'—'}</td>
+      <td style="padding:6px 8px;font-size:11px;text-align:center;color:var(--tx2);">${q.fechaFin||'—'}</td>
+      <td style="padding:6px 8px;text-align:center;"><span style="font-size:11px;font-weight:700;color:${diasColor};background:${diasBg};padding:2px 8px;border-radius:8px;">${diasStr}</span></td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--tx2);max-width:180px;word-break:break-word;">${esc(q.observaciones)||'—'}</td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap;">
+        ${q.evidenciaData?`<button onclick="q62VerPdf(${q.id})" style="padding:2px 7px;border:1px solid ${blu};color:${blu};background:#fff;border-radius:5px;font-size:10px;cursor:pointer;margin-right:3px;" title="Ver PDF">📄</button>`:''}
+        ${activeUserId===null?`<button onclick="q62OpenForm(${q.id})" style="padding:2px 7px;border:1px solid ${grn};color:${grn};background:#fff;border-radius:5px;font-size:10px;cursor:pointer;margin-right:3px;">✏️</button>
+        <button onclick="q62Del(${q.id})" style="padding:2px 7px;border:1px solid ${red};color:${red};background:#fff;border-radius:5px;font-size:10px;cursor:pointer;">🗑</button>`:''}
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--tx3);font-size:12px;">${quejas.length===0?'Sin quejas registradas. El admin puede agregar una nueva queja.':'Sin quejas con el filtro seleccionado.'}</td></tr>`;
+
+  const tabla=`<div style="overflow-x:auto;border-radius:10px;border:1px solid var(--brd);">
+    <table style="width:100%;border-collapse:collapse;min-width:900px;">
+      <thead><tr style="background:#f5f9f6;border-bottom:2px solid var(--brd);">
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:center;">#</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:left;">CLIENTE</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:left;">QUEJA / DESCRIPCIÓN</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:left;">RESPONSABLE</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:center;">ESTATUS</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:center;">F. INICIO</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:center;">F. FIN</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:center;">DÍAS</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:left;">OBSERVACIONES</th>
+        <th style="padding:8px;font-size:10px;color:var(--tx3);text-align:center;">ACCIONES</th>
+      </thead>
+      <tbody>${tablaRows}</tbody>
+    </table>
+  </div>`;
+
+  return`<div class="card" style="margin-top:10px;">
+    <div class="card-title">📋 Gestión de Reclamaciones · KPI 6.2</div>
+    ${banner}
+    ${filtroBar}
+    ${formPanel}
+    ${tabla}
+  </div>`;
+}
+
 function showFmtInfo(kpi){
   if(typeof XLSX==='undefined'){toast('⚠ Librería XLSX no disponible');return;}
   const PLANTILLAS={
