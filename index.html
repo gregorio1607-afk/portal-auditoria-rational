@@ -2329,8 +2329,10 @@ function loadExcelEnc31(input){
   reader.readAsArrayBuffer(file);
 }
 // ── KPI 3.4 Tiempo de Resolución ─────────────────────────────────────────────
-let _os34Filtros={año:'Todos',marca:'Todos',tipo:'Todos',sucursales:null};
+let _os34Filtros={año:'Todos',marca:'Rational',tipo:'Todos',sucursales:null};
 let _os34TrimDetail=null;
+let _os34SucPending=null; // pendiente hasta que el usuario clique Aplicar
+const OS34_SUC_BLOQUEADAS=['Bongard','Kitchen Labs','Plato Limpio'];
 const OS34_TRIMS=[
   {label:'1er Trimestre',meses:'Ene–Mar',idx:[0,1,2]},
   {label:'2do Trimestre',meses:'Abr–Jun',idx:[3,4,5]},
@@ -2339,18 +2341,36 @@ const OS34_TRIMS=[
 ];
 const OS34_MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function setOs34Filtro(k,v){_os34Filtros[k]=v;_os34TrimDetail=null;renderMain(CT);}
+// Cambios de sucursal sólo actualizan _os34SucPending — no re-renderizan
 function toggleOs34Suc(s,checked){
-  const all=(getOS34().os||[]);const opts=[...new Set(all.map(r=>r.sucursal).filter(Boolean))].sort();
-  if(_os34Filtros.sucursales===null)_os34Filtros.sucursales=[...opts];
-  if(checked){if(!_os34Filtros.sucursales.includes(s))_os34Filtros.sucursales.push(s);}
-  else{_os34Filtros.sucursales=_os34Filtros.sucursales.filter(x=>x!==s);}
-  if(_os34Filtros.sucursales.length===opts.length)_os34Filtros.sucursales=null;
+  const opts=_os34GetSucsDisp();
+  if(_os34SucPending===null)_os34SucPending=_os34Filtros.sucursales===null?[...opts]:([..._os34Filtros.sucursales]);
+  if(checked){if(!_os34SucPending.includes(s))_os34SucPending.push(s);}
+  else{_os34SucPending=_os34SucPending.filter(x=>x!==s);}
+}
+function setOs34SucTodas(checked){
+  const opts=_os34GetSucsDisp();
+  if(checked){_os34SucPending=null;}
+  else{_os34SucPending=[];}
+}
+function aplicarOs34Sucs(){
+  const opts=_os34GetSucsDisp();
+  if(_os34SucPending===null||(_os34SucPending&&_os34SucPending.length===opts.length)){
+    _os34Filtros.sucursales=null;
+  }else{
+    _os34Filtros.sucursales=_os34SucPending?[..._os34SucPending]:null;
+  }
+  _os34SucPending=null;
   _os34TrimDetail=null;renderMain(CT);
 }
-function setOs34SucTodas(){_os34Filtros.sucursales=null;_os34TrimDetail=null;renderMain(CT);}
+function _os34GetSucsDisp(){
+  const all=(getOS34().os||[]);
+  return[...new Set(all.map(r=>r.sucursal).filter(s=>s&&!OS34_SUC_BLOQUEADAS.some(b=>s.toLowerCase().includes(b.toLowerCase()))))].sort();
+}
 function getOs34Filtered(){
   const d=getOS34();const all=d.os||[];const f=_os34Filtros;
   return all.filter(r=>{
+    if(OS34_SUC_BLOQUEADAS.some(b=>r.sucursal&&r.sucursal.toLowerCase().includes(b.toLowerCase())))return false;
     if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
     if(f.marca&&f.marca!=='Todos'&&r.marca!==f.marca)return false;
     if(f.tipo&&f.tipo!=='Todos'&&r.tipo!==f.tipo)return false;
@@ -2451,11 +2471,14 @@ function renderVisorOS34(){
 
   // Opciones únicas para filtros
   const años=hasRaw?[...new Set(rawOS.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
-  const marcas=hasRaw?[...new Set(rawOS.map(r=>r.marca))].filter(Boolean).sort():[];
+  const marcasData=hasRaw?[...new Set(rawOS.map(r=>r.marca))].filter(Boolean).sort():[];
+  // Siempre mostrar Rational en el filtro de marca
+  const marcas=[...new Set(['Rational',...marcasData])].sort();
   const tipos=hasRaw?[...new Set(rawOS.map(r=>r.tipo))].filter(Boolean).sort():[];
-  const sucursales=hasRaw?[...new Set(rawOS.map(r=>r.sucursal))].filter(Boolean).sort():[];
+  const sucursales=_os34GetSucsDisp();
   const f=_os34Filtros;
-  const selSucs=f.sucursales;
+  // Estado de checkboxes usa _os34SucPending si hay cambios pendientes, si no usa el filtro aplicado
+  const selSucs=_os34SucPending!==null?_os34SucPending:f.sucursales;
 
   const selStyle='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
   const mkSel=(key,opts,cur)=>`<select style="${selStyle}" onchange="setOs34Filtro('${key}',this.value)">
@@ -2463,12 +2486,13 @@ function renderVisorOS34(){
     ${opts.map(o=>`<option value="${o}"${cur==o?' selected':''}>${o}</option>`).join('')}
   </select>`;
 
-  const sucSelLbl=selSucs===null?'Todas ('+sucursales.length+')':'Sel. '+selSucs.length+' / '+sucursales.length;
+  const todosChecked=selSucs===null;
+  const sucSelLbl=todosChecked?'Todas ('+sucursales.length+')':'Sel. '+(selSucs?selSucs.length:0)+' / '+sucursales.length;
   const sucItems=[
     `<label style="display:flex;align-items:center;gap:6px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #f0f0f0;font-weight:700;">
-      <input type="checkbox" ${selSucs===null?'checked':''} onchange="setOs34SucTodas()" style="accent-color:var(--grn);cursor:pointer;"/>Todas</label>`,
+      <input type="checkbox" ${todosChecked?'checked':''} onchange="setOs34SucTodas(this.checked)" style="accent-color:var(--grn);cursor:pointer;"/>Todas</label>`,
     ...sucursales.map(s=>`<label style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 14px;cursor:pointer;font-size:11px;white-space:nowrap;">
-      <input type="checkbox" ${selSucs===null||selSucs.includes(s)?'checked':''} onchange="toggleOs34Suc('${s.replace(/'/g,"\\'")}',this.checked)" style="accent-color:var(--grn);cursor:pointer;"/>${s}</label>`)
+      <input type="checkbox" ${todosChecked||(selSucs&&selSucs.includes(s))?'checked':''} onchange="toggleOs34Suc('${s.replace(/'/g,"\\'")}',this.checked)" style="accent-color:var(--grn);cursor:pointer;"/>${s}</label>`)
   ].join('');
 
   const filtroBar=hasRaw?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
@@ -2484,7 +2508,7 @@ function renderVisorOS34(){
         <div style="position:absolute;z-index:99;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px #0002;min-width:200px;max-height:280px;overflow-y:auto;margin-top:2px;">
           ${sucItems}
           <div style="padding:6px 8px;border-top:1px solid #f0f0f0;">
-            <button style="width:100%;padding:5px;border-radius:6px;background:var(--grn);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;" onclick="this.closest('details').removeAttribute('open');renderMain(CT)">✔ Aplicar</button>
+            <button style="width:100%;padding:5px;border-radius:6px;background:var(--grn);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;" onclick="this.closest('details').removeAttribute('open');aplicarOs34Sucs()">✔ Aplicar</button>
           </div>
         </div>
       </details>
@@ -2526,6 +2550,41 @@ function renderVisorOS34(){
       ${avgDias!==null?`<div style="font-size:10px;color:var(--tx3);margin-top:1px;">⏱ Promedio: ${avgDias} días · Total OS: ${osF.length}</div>`:''}
       ${d.updatedAt?`<div style="font-size:10px;color:var(--tx3);margin-top:2px;">Actualizado: ${d.updatedAt}</div>`:''}
     </div>
+  </div>`:'';
+
+  // Gráfica trimestral (barras verticales, clicables)
+  const W34=340,H34=130,pad34=30,bw34=50,gap34=18;
+  const barH34=p=>Math.max(2,Math.round(p/100*(H34-28)));
+  const metaY34=H34-18-barH34(meta);
+  const svgBars34=OS34_TRIMS.map((t,ti)=>{
+    const osTr=osF.filter(r=>t.idx.includes(r.mes));
+    const termTr=osTr.filter(r=>r.terminada);
+    const okTr=termTr.filter(r=>r.cumple);
+    const p=pct(okTr.length,termTr.length);
+    const pH=p!==null?p:0;
+    const clr=p===null?'#9e9e9e':p>=meta?grn:p>=70?org:red;
+    const isSel=_os34TrimDetail===ti;
+    const hH=barH34(pH);
+    const x=pad34+ti*(bw34+gap34);
+    const label=t.label.replace('Trimestre','TRIM.').replace('er ','er\n').replace('do ','do\n').replace('er ','er\n').replace('to ','to\n');
+    const qLabel=['1er T.','2do T.','3er T.','4to T.'][ti];
+    return`<g style="cursor:${termTr.length>0?'pointer':'default'};" ${termTr.length>0?`onclick="_os34TrimDetail=${isSel?'null':ti};renderMain(CT);setTimeout(()=>{const el=document.getElementById('os34-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60)"`:''}>
+      <rect x="${x-2}" y="0" width="${bw34+4}" height="${H34}" fill="${isSel?'rgba(0,0,0,0.04)':'none'}" rx="6"/>
+      <rect x="${x}" y="${H34-hH-18}" width="${bw34}" height="${hH}" fill="${clr}" opacity="${isSel?'1':'0.75'}" rx="4"/>
+      ${isSel?`<rect x="${x-1}" y="${H34-hH-19}" width="${bw34+2}" height="${hH+2}" fill="none" stroke="${clr}" stroke-width="1.5" rx="4"/>`:''}
+      <text x="${x+bw34/2}" y="${H34-hH-22}" text-anchor="middle" font-size="11" fill="${clr}" font-weight="700" font-family="sans-serif">${p!==null?p+'%':'—'}</text>
+      <text x="${x+bw34/2}" y="${H34-4}" text-anchor="middle" font-size="10" fill="${isSel?clr:'var(--tx3)'}" font-weight="${isSel?'700':'400'}" font-family="sans-serif">${qLabel}</text>
+      <text x="${x+bw34/2}" y="${H34+8}" text-anchor="middle" font-size="8" fill="var(--tx3)" font-family="sans-serif">${t.meses}</text>
+    </g>`;
+  }).join('');
+  const chartW34=pad34*2+4*(bw34+gap34)-gap34+10;
+  const svgChart34=osF.length>0?`<div style="display:flex;justify-content:center;margin-bottom:14px;">
+    <svg width="100%" viewBox="0 0 ${chartW34} ${H34+16}" style="max-width:380px;">
+      <line x1="${pad34-4}" y1="${H34-18}" x2="${chartW34-8}" y2="${H34-18}" stroke="var(--brd)" stroke-width="0.5"/>
+      <line x1="${pad34-4}" y1="${metaY34}" x2="${chartW34-8}" y2="${metaY34}" stroke="${grn}" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.5"/>
+      <text x="${chartW34-6}" y="${metaY34-2}" text-anchor="end" font-size="8" fill="${grn}" font-family="sans-serif">meta ${meta}%</text>
+      ${svgBars34}
+    </svg>
   </div>`:'';
 
   // Tarjetas trimestrales con tabla mensual
@@ -2624,7 +2683,7 @@ function renderVisorOS34(){
     <div class="card-title">⏱ Visor Tiempo de Resolución · KPI 3.4</div>
     ${filtroBar}
     ${anualBar}
-    ${osF.length>0?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">${trimCards}</div>${osTable}`:''}
+    ${osF.length>0?`${svgChart34}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">${trimCards}</div>${osTable}`:''}
   </div>`;
 }
 function uploadPdfEnc31(input,osId){
