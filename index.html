@@ -57,6 +57,9 @@ html,body{height:100%;overflow:hidden;}
 .sb-item.on .sb-iname{color:#fff;}
 .sb-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .dok{background:#4CAF7D;}.dpr{background:#FFA726;}.dno{background:#ef5350;}
+.tri-dots{display:flex;flex-direction:column;gap:2px;align-items:center;flex-shrink:0;}
+.td{width:5px;height:5px;border-radius:50%;}
+.td-ok{background:#4CAF7D;}.td-no{background:rgba(255,255,255,.18);}
 .opt-c{font-size:9px;padding:1px 4px;border-radius:6px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .topbar{background:#fff;border-bottom:1px solid var(--brd);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -348,11 +351,16 @@ function renderAcc(){
     head.onclick=()=>{head.classList.toggle('open');};
     const body=document.createElement('div');body.className='acc-body';
     g.ids.forEach(id=>{
-      const a=areas.find(x=>x.id===id);const st=gs(id);
+      const a=areas.find(x=>x.id===id);
+      const s=SD[id]||{};const zd=((YZD[CY]||{})[CZ]||{})[id]||{};
+      const dDoc=!!(s.doc&&s.doc.saved);
+      const dKpi=!!(zd.kpi&&zd.kpi.saved);
+      const dA3=!!(zd.action&&zd.action.saved);
+      const tipTxt='Doc: '+(dDoc?'✓':'✗')+' · KPI: '+(dKpi?'✓':'✗')+' · A3: '+(dA3?'✓':'✗');
       const item=document.createElement('div');
       item.className='sb-item'+(id===CA&&VM==='area'?' on':'');
       item.onclick=()=>openArea(id);
-      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}</span><span class="sb-dot ${st==='ok'?'dok':st==='prog'?'dpr':'dno'}"></span>`;
+      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}</span><span class="tri-dots" title="${tipTxt}"><span class="td ${dDoc?'td-ok':'td-no'}"></span><span class="td ${dKpi?'td-ok':'td-no'}"></span><span class="td ${dA3?'td-ok':'td-no'}"></span></span>`;
       body.appendChild(item);
     });
     div.appendChild(head);div.appendChild(body);acc.appendChild(div);
