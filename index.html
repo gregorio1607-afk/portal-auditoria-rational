@@ -284,6 +284,9 @@ async function _fbLoad(){
     toast('☁ Datos sincronizados');
   }catch(e){console.warn('FB load error',e);}
 }
+// Sucursales excluidas de todos los filtros de visores
+const SUC_BLOQUEADAS_GLOBAL=['admin','kitchen lab','kl','si ks','subcontratad','corporativ','plato limpio','bongard'];
+const sucBloqueada=s=>!s||SUC_BLOQUEADAS_GLOBAL.some(b=>s.toLowerCase().includes(b));
 // KPIs marcados como área clave por el auditor
 const PRIO_IDS=new Set(['1.1','1.2','1.3','2.1','3.1','3.3','3.4','4.3','4.4','6.5']);
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2358,7 +2361,7 @@ function loadExcelEnc31(input){
 // ── KPI 3.2 Atención Telefónica (Días a primera cita) ────────────────────────
 const OS32_META_PCT=85;   // meta porcentaje ≥ 85%
 const OS32_META_DIAS=3;   // umbral: RANGO ATEN. TEL. ≤ 3 días → CUMPLE
-const OS32_SUC_BLOQUEADAS=['Bongard','Kitchen Labs','Plato Limpio'];
+const OS32_SUC_BLOQUEADAS=SUC_BLOQUEADAS_GLOBAL;
 const OS32_TRIMS=[
   {label:'1er Trimestre',meses:'Ene–Mar',idx:[0,1,2]},
   {label:'2do Trimestre',meses:'Abr–Jun',idx:[3,4,5]},
@@ -2695,7 +2698,7 @@ function renderVisorOS32(){
 let _os34Filtros={año:'Todos',marca:'Todos',tipo:'Todos',sucursales:null};
 let _os34TrimDetail=null;
 let _os34SucPending=null; // pendiente hasta que el usuario clique Aplicar
-const OS34_SUC_BLOQUEADAS=['Bongard','Kitchen Labs','Plato Limpio'];
+const OS34_SUC_BLOQUEADAS=SUC_BLOQUEADAS_GLOBAL;
 const OS34_TRIMS=[
   {label:'1er Trimestre',meses:'Ene–Mar',idx:[0,1,2]},
   {label:'2do Trimestre',meses:'Abr–Jun',idx:[3,4,5]},
@@ -2769,7 +2772,7 @@ function getCI43(){
 }
 function setCI43Filtro(k,v){_ci43Filtros[k]=v;_ci43TrimDetail=null;renderMain(CT);}
 function _ci43GetSucsDisp(){
-  return[...new Set((getCI43().os||[]).map(r=>r.sucursal).filter(Boolean))].sort();
+  return[...new Set((getCI43().os||[]).map(r=>r.sucursal).filter(s=>s&&!sucBloqueada(s)))].sort();
 }
 function toggleCI43Suc(s,checked){
   const opts=_ci43GetSucsDisp();
@@ -2786,6 +2789,7 @@ function aplicarCI43Sucs(){
 function getCI43Filtered(){
   const all=(getCI43().os||[]);const f=_ci43Filtros;
   return all.filter(r=>{
+    if(sucBloqueada(r.sucursal))return false;
     // Si tiene tipo, excluir instalaciones (4.4)
     if(r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis')))return false;
     if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
@@ -3069,7 +3073,7 @@ function getCI44(){return getCI43();}
 function setCI44Filtro(k,v){_ci44Filtros[k]=v;_ci44TrimDetail=null;renderMain(CT);}
 function _ci44GetSucsDisp(){
   const all=(getCI43().os||[]).filter(r=>!r.tipo||r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis'));
-  return[...new Set(all.map(r=>r.sucursal).filter(Boolean))].sort();
+  return[...new Set(all.map(r=>r.sucursal).filter(s=>s&&!sucBloqueada(s)))].sort();
 }
 function toggleCI44Suc(s,checked){
   const opts=_ci44GetSucsDisp();
@@ -3086,6 +3090,7 @@ function aplicarCI44Sucs(){
 function getCI44Filtered(){
   const all=(getCI43().os||[]);const f=_ci44Filtros;
   return all.filter(r=>{
+    if(sucBloqueada(r.sucursal))return false;
     // Solo instalaciones/comisionado; si no tiene tipo, incluir aquí también
     if(r.tipo&&r.tipo.toLowerCase().includes('garant'))return false;
     if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
