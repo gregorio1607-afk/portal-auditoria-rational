@@ -2371,8 +2371,9 @@ function getOs34Filtered(){
   const d=getOS34();const all=d.os||[];const f=_os34Filtros;
   return all.filter(r=>{
     if(OS34_SUC_BLOQUEADAS.some(b=>r.sucursal&&r.sucursal.toLowerCase().includes(b.toLowerCase())))return false;
+    // Siempre filtrar solo Rational (case-insensitive)
+    if(!r.marca||!r.marca.toLowerCase().includes('rational'))return false;
     if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
-    if(f.marca&&f.marca!=='Todos'&&r.marca!==f.marca)return false;
     if(f.tipo&&f.tipo!=='Todos'&&r.tipo!==f.tipo)return false;
     if(f.sucursales!==null&&!f.sucursales.includes(r.sucursal))return false;
     return true;
@@ -2471,9 +2472,6 @@ function renderVisorOS34(){
 
   // Opciones únicas para filtros
   const años=hasRaw?[...new Set(rawOS.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
-  const marcasData=hasRaw?[...new Set(rawOS.map(r=>r.marca))].filter(Boolean).sort():[];
-  // Siempre mostrar Rational en el filtro de marca
-  const marcas=[...new Set(['Rational',...marcasData])].sort();
   const tipos=hasRaw?[...new Set(rawOS.map(r=>r.tipo))].filter(Boolean).sort():[];
   const sucursales=_os34GetSucsDisp();
   const f=_os34Filtros;
@@ -2498,7 +2496,6 @@ function renderVisorOS34(){
   const filtroBar=hasRaw?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
     <span style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;">Filtros:</span>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
-    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MARCA</span>${mkSel('marca',marcas,f.marca)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">TIPO SERVICIO</span>${mkSel('tipo',tipos,f.tipo)}</div>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">SUCURSAL</span>
       <details style="position:relative;" onmouseleave="this.removeAttribute('open')">
