@@ -60,6 +60,9 @@ html,body{height:100%;overflow:hidden;}
 .tri-dots{display:flex;flex-direction:column;gap:2px;align-items:center;flex-shrink:0;}
 .td{width:5px;height:5px;border-radius:50%;}
 .td-ok{background:#4CAF7D;}.td-no{background:rgba(255,255,255,.18);}
+.sb-prio{border-left:3px solid #f59e0b !important;padding-left:5px !important;background:rgba(245,158,11,.08);}
+.sb-prio.on{background:rgba(245,158,11,.18) !important;}
+.prio-star{color:#f59e0b;font-size:9px;vertical-align:middle;margin-right:1px;}
 .opt-c{font-size:9px;padding:1px 4px;border-radius:6px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .topbar{background:#fff;border-bottom:1px solid var(--brd);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -281,6 +284,8 @@ async function _fbLoad(){
     toast('☁ Datos sincronizados');
   }catch(e){console.warn('FB load error',e);}
 }
+// KPIs marcados como área clave por el auditor
+const PRIO_IDS=new Set(['1.1','1.2','1.3','2.1','3.1','3.3','3.4','4.3','4.4','6.5']);
 // ─────────────────────────────────────────────────────────────────────────────
 const areas=[
   {id:'1.1',g:'1',name:'Herramientas de trabajo',area:'Control Activos',aC:'#B5D4F4',aT:'#0C447C',aL:'CA',opt:false,flow_owner:'Control de Activos / Gerente / Supervisor Técnico',flow_freq:'Trimestral',flow_steps:'1. Asegurar formato de asignación y reglamento de herramienta (Control de Activos)\n2. Entregar herramienta completa y ordenada al técnico\n3. Verificar que la herramienta está completa y ordenada (Técnico firma formato)\n4. Llevar a cabo revisión de herramienta de trabajo (Control de Activos)\n¿Detecta herramienta faltante?\n   - SÍ: Realizar formato de acuerdo y reposición de herramienta\n   - NO: Registrar información en tablero\n5. Registrar información en tablero con calificaciones individuales y promedio general\n6. Subir información de revisión al tablero de control (Data Studio)\n7. Avisar al gerente la carga de información\n¿KPI es ≥ al 9.5?\n   - SÍ: Mantener el mismo método de trabajo\n   - NO: Elaborar hoja A3 de análisis y mejora\n8. Ejecutar plan de acción',flow_tools:'App de control de activos, Data Studio, formato de asignación de herramienta, formato de acuerdo, formato de solicitud de herramienta, Hoja A3',flow_file:'DF-SERV-021',proc_code:'AUDRTN-UN-PR-1.1',proc_ver:'004 — 26/08/2025',proc_approver:'Gregorio González (Dirección General)',proc_obj:'Asegurar que los equipos de nuestros clientes son correctamente intervenidos y que se utilizan las herramientas de trabajo.',proc_scope:'A nivel nacional.',proc_resp:'Control de Activos: asignar herramienta, auditar trimestralmente y aplicar descuentos. Gerente/Supervisor Técnico: garantizar cumplimiento del indicador y solicitar reposición. Técnico: mantener herramienta completa y ordenada y asistir a auditorías.',proc_body:'1. Control de Activos asegura lista de asignación y reglamento de uso de herramienta (POPRT-UDN-PO-66-001).\n2. Se entrega herramienta completa al técnico según su línea (Rational, Fríos, Calientes).\n3. El técnico verifica y firma el formato de asignación; reporta faltantes de inmediato.\n4. Control de Activos realiza revisión trimestral; si detecta faltante genera formato de acuerdo y solicitud de reposición (posible impacto económico al técnico por negligencia o extravío).\n5. Los resultados se registran en tablero de control y se comparten con Gerente/Supervisor para retroalimentación.'},
@@ -369,10 +374,11 @@ function renderAcc(){
       })();
       const dA3=!!(zd.action&&zd.action.saved);
       const tipTxt='Doc: '+(dDoc?'✓':'✗')+' · KPI: '+(dKpi?'✓':'✗')+' · A3: '+(dA3?'✓':'✗');
+      const isPrio=PRIO_IDS.has(id);
       const item=document.createElement('div');
-      item.className='sb-item'+(id===CA&&VM==='area'?' on':'');
+      item.className='sb-item'+(id===CA&&VM==='area'?' on':'')+(isPrio?' sb-prio':'');
       item.onclick=()=>openArea(id);
-      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${a.name}${a.opt?'<span class="opt-c">opt</span>':''}</span><span class="tri-dots" title="${tipTxt}"><span class="td ${dDoc?'td-ok':'td-no'}"></span><span class="td ${dKpi?'td-ok':'td-no'}"></span><span class="td ${dA3?'td-ok':'td-no'}"></span></span>`;
+      item.innerHTML=`<span class="sb-id">${id}</span><span class="sb-iname">${isPrio?'<span class="prio-star" title="Área clave">★</span>':''} ${a.name}${a.opt?'<span class="opt-c">opt</span>':''}</span><span class="tri-dots" title="${tipTxt}"><span class="td ${dDoc?'td-ok':'td-no'}"></span><span class="td ${dKpi?'td-ok':'td-no'}"></span><span class="td ${dA3?'td-ok':'td-no'}"></span></span>`;
       body.appendChild(item);
     });
     div.appendChild(head);div.appendChild(body);acc.appendChild(div);
