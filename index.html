@@ -2411,21 +2411,22 @@ function loadExcelOS32(input){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
+      // cellDates:true → fechas llegan como JS Date directamente
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+      // raw:true → números como número, fechas como Date (con cellDates:true)
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,cellDates:true});
       if(rows.length<2){toast('⚠ Excel vacío');return;}
       const hdrs=rows[0].map(h=>String(h||'').trim().toUpperCase());
       const col=name=>{
         const variants=Array.isArray(name)?name:[name];
         for(const v of variants){const i=hdrs.indexOf(v.toUpperCase());if(i>=0)return i;}
-        // búsqueda parcial
         for(const v of variants){const i=hdrs.findIndex(h=>h.includes(v.toUpperCase()));if(i>=0)return i;}
         return -1;
       };
       const cFecha=col('FECHA');
-      const cFechaProg=col(['FECHA_1_PROG','FECHA 1 PROG','FECHA1PROG','PRIMERA PROG']);
-      const cRango=col(['RANGO ATEN. TEL.','RANGO ATEN TEL','RANGO ATEN.','RANGO ATEN','RANGO']);
+      // Columna S (primera programada) — exacta primero, luego parcial
+      const cFechaProg=col(['FECHA_1_PROG','FECHA 1 PROG','FECHA1PROG','1 PROG','PRIMERA PROG']);
       const cOS=col(['OS','ORDEN','FOLIO']);
       const cTipo=col('TIPO_SERV');
       const cProsp=col(['PROSP','CLIENTE','PROSPECTO']);
@@ -2433,38 +2434,36 @@ function loadExcelOS32(input){
       const cMarca=col('MARCA');
       const cTecnico=col('TECNICO');
       const cFalla=col('FALLA');
-      if(cOS<0||cFecha<0){
-        toast('⚠ Columnas requeridas: OS, FECHA. Detectadas: '+hdrs.filter(Boolean).slice(0,8).join(', '));return;
+      if(cOS<0||cFecha<0||cFechaProg<0){
+        const det=['OS→col '+(cOS>=0?cOS+' ✓':'✗'),'FECHA→col '+(cFecha>=0?cFecha+' ✓':'✗'),'FECHA_1_PROG→col '+(cFechaProg>=0?cFechaProg+' ✓':'✗')];
+        toast('⚠ Columnas no encontradas. '+det.join(' · ')+'. Encabezados: '+hdrs.filter(Boolean).slice(0,10).join(', '));return;
       }
+      // Fórmula: =SI.ERROR([@[FECHA_1_PROG]]-[@FECHA],"") — siempre calculado desde fechas
       const parseDate=v=>{
         if(!v||v==='')return null;
         if(v instanceof Date)return isNaN(v)?null:v;
-        if(typeof v==='number'&&v>1000)return new Date(Math.round((v-25569)*86400*1000));
+        // serial Excel → Date
+        if(typeof v==='number'&&v>1000)return new Date(Math.round((v-25569)*86400000));
         const s=String(v).trim();
         let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         if(m)return new Date(+m[3],+m[2]-1,+m[1]);
         m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if(m)return new Date(+m[1],+m[2]-1,+m[3]);
-        const d=new Date(s);return isNaN(d)?null:d;
+        return null;
       };
       const fmtDate=d=>d instanceof Date&&!isNaN(d)?d.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
       const osList=[];
       rows.slice(1).forEach(r=>{
         const osNum=String(r[cOS]||'').trim();if(!osNum||osNum==='0')return;
         const fechaOS=parseDate(r[cFecha]);
-        const fechaProg=cFechaProg>=0?parseDate(r[cFechaProg]):null;
+        const fechaProg=parseDate(r[cFechaProg]);
         const año=fechaOS?fechaOS.getFullYear():CY;
         const mes=fechaOS?fechaOS.getMonth():-1;
-        // Usar columna RANGO ATEN. TEL. si existe, si no calcular de fechas
-        let diasEspera=null;
-        if(cRango>=0){
-          const rv=String(r[cRango]||'').trim();
-          const n=parseFloat(rv);
-          if(!isNaN(n))diasEspera=Math.round(n);
-        }else if(fechaOS&&fechaProg){
-          diasEspera=Math.round((fechaProg-fechaOS)/86400000);
-        }
-        const tieneProg=!!(fechaProg)||(diasEspera!==null);
+        // Calcular FECHA_1_PROG - FECHA directamente (replicando la fórmula del Excel)
+        const diasEspera=fechaOS&&fechaProg
+          ?Math.round((fechaProg.getTime()-fechaOS.getTime())/86400000)
+          :null;
+        const tieneProg=!!(fechaProg);
         const cumple=diasEspera!==null&&diasEspera>=0&&diasEspera<=OS32_META_DIAS;
         osList.push({
           os:osNum,fecha:fmtDate(fechaOS),fechaProg:fmtDate(fechaProg),mes,año,
