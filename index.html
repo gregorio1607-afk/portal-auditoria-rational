@@ -2357,7 +2357,7 @@ function loadExcelEnc31(input){
 }
 // ── KPI 3.2 Atención Telefónica (Días a primera cita) ────────────────────────
 const OS32_META_PCT=85;   // meta porcentaje ≥ 85%
-const OS32_META_DIAS=2;   // umbral: primera cita en ≤ 2 días
+const OS32_META_DIAS=3;   // umbral: RANGO ATEN. TEL. ≤ 3 días → CUMPLE
 const OS32_SUC_BLOQUEADAS=['Bongard','Kitchen Labs','Plato Limpio'];
 const OS32_TRIMS=[
   {label:'1er Trimestre',meses:'Ene–Mar',idx:[0,1,2]},
@@ -2421,7 +2421,8 @@ function loadExcelOS32(input){
         return -1;
       };
       const cFecha=col('FECHA');
-      const cFechaProg=col(['FECHA_1_PROG','FECHA 1 PROG','FECHA1PROG','PRIMERA PROG','PROG']);
+      const cFechaProg=col(['FECHA_1_PROG','FECHA 1 PROG','FECHA1PROG','PRIMERA PROG']);
+      const cRango=col(['RANGO ATEN. TEL.','RANGO ATEN TEL','RANGO ATEN.','RANGO ATEN','RANGO']);
       const cOS=col(['OS','ORDEN','FOLIO']);
       const cTipo=col('TIPO_SERV');
       const cProsp=col(['PROSP','CLIENTE','PROSPECTO']);
@@ -2431,9 +2432,6 @@ function loadExcelOS32(input){
       const cFalla=col('FALLA');
       if(cOS<0||cFecha<0){
         toast('⚠ Columnas requeridas: OS, FECHA. Detectadas: '+hdrs.filter(Boolean).slice(0,8).join(', '));return;
-      }
-      if(cFechaProg<0){
-        toast('⚠ No se encontró columna FECHA_1_PROG. Detectadas: '+hdrs.filter(Boolean).slice(0,12).join(', '));return;
       }
       const parseDate=v=>{
         if(!v||v==='')return null;
@@ -2451,12 +2449,19 @@ function loadExcelOS32(input){
       rows.slice(1).forEach(r=>{
         const osNum=String(r[cOS]||'').trim();if(!osNum||osNum==='0')return;
         const fechaOS=parseDate(r[cFecha]);
-        const fechaProg=parseDate(r[cFechaProg]);
+        const fechaProg=cFechaProg>=0?parseDate(r[cFechaProg]):null;
         const año=fechaOS?fechaOS.getFullYear():CY;
         const mes=fechaOS?fechaOS.getMonth():-1;
-        // FECHA_1_PROG - FECHA en días
-        const diasEspera=fechaOS&&fechaProg?Math.round((fechaProg-fechaOS)/86400000):null;
-        const tieneProg=!!(fechaProg);
+        // Usar columna RANGO ATEN. TEL. si existe, si no calcular de fechas
+        let diasEspera=null;
+        if(cRango>=0){
+          const rv=String(r[cRango]||'').trim();
+          const n=parseFloat(rv);
+          if(!isNaN(n))diasEspera=Math.round(n);
+        }else if(fechaOS&&fechaProg){
+          diasEspera=Math.round((fechaProg-fechaOS)/86400000);
+        }
+        const tieneProg=!!(fechaProg)||(diasEspera!==null);
         const cumple=diasEspera!==null&&diasEspera>=0&&diasEspera<=OS32_META_DIAS;
         osList.push({
           os:osNum,fecha:fmtDate(fechaOS),fechaProg:fmtDate(fechaProg),mes,año,
