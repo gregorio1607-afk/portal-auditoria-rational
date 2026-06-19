@@ -2390,7 +2390,11 @@ function loadExcelOS34(input){
       const cTecnico=col('TECNICO');
       const cFechaTerm=col('FECHA_ULT_REP_TERM');
       const cFalla=col('FALLA');
-      if(cOS<0||cFecha<0){toast('⚠ No se encontraron columnas FECHA / OS en el Excel');return;}
+      if(cOS<0||cFecha<0){
+        const found=hdrs.filter(Boolean).slice(0,8).join(', ');
+        toast('⚠ Columnas no encontradas. Encabezados detectados: '+found);
+        return;
+      }
       const parseDate=v=>{
         if(!v||v==='')return null;
         if(v instanceof Date)return isNaN(v)?null:v;
