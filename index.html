@@ -354,7 +354,19 @@ function renderAcc(){
       const a=areas.find(x=>x.id===id);
       const s=SD[id]||{};const zd=((YZD[CY]||{})[CZ]||{})[id]||{};
       const dDoc=!!(s.doc&&s.doc.saved);
-      const dKpi=!!(zd.kpi&&zd.kpi.saved);
+      const dKpi=(()=>{
+        try{
+          if(id==='1.1'){const ftv=getFtv();return!!(ftv.aud11UpdatedAt);}
+          if(id==='2.1'){return(getM13Cap().tecnicos||[]).length>0;}
+          if(id==='3.1'){return(getEnc31().os||[]).length>0;}
+          if(id==='3.3'){const ftv=getFtv();return!!(ftv.updatedAt);}
+          if(id==='3.4'){return(getOS34().os||[]).length>0;}
+          if(id==='4.3'){return(getCI43().os||[]).some(r=>!r.tipo||r.tipo.toLowerCase().includes('garant')||(!r.tipo.toLowerCase().includes('instal')&&!r.tipo.toLowerCase().includes('comis')));}
+          if(id==='4.4'){return(getCI43().os||[]).some(r=>r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis')));}
+          if(id==='6.2'){return(getQ62().quejas||[]).length>0;}
+        }catch(e){}
+        return!!(zd.kpi&&zd.kpi.saved);
+      })();
       const dA3=!!(zd.action&&zd.action.saved);
       const tipTxt='Doc: '+(dDoc?'✓':'✗')+' · KPI: '+(dKpi?'✓':'✗')+' · A3: '+(dA3?'✓':'✗');
       const item=document.createElement('div');
