@@ -375,6 +375,7 @@ function renderAcc(){
           if(id==='6.2'){return(getQ62().quejas||[]).length>0;}
           if(id==='6.4'){return(getL64().bajas||[]).length>0;}
           if(id==='6.5'){return(getD65().os||[]).length>0;}
+          if(id==='1.3'){return(getS13().items||[]).length>0;}
         }catch(e){}
         return!!(zd.kpi&&zd.kpi.saved);
       })();
@@ -850,7 +851,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='6.5'?renderVisorD65():CA==='6.4'?renderVisorL64():CA==='6.2'?renderVisorQ62():CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.2'?renderVisorOS32():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
+  const extra=CA==='6.5'?renderVisorD65():CA==='6.4'?renderVisorL64():CA==='6.2'?renderVisorQ62():CA==='1.3'?renderVisorStock13():CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.2'?renderVisorOS32():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -3927,6 +3928,190 @@ function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};const ver=(zd.action.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});const snap={version:ver,fechaGuardado,responsable:v('a_rsp'),estadoA3:v('a_est'),fechaInicio:v('a_fi'),fechaFin:v('a_ff'),actual:v('a_act'),meta:v('a_met'),brecha:v('a_bre'),situacion:v('a_sit'),estrategia:v('a_est2'),fechaSeg:v('a_fseg'),resultadoMedido:v('a_rmed'),lecciones:v('a_lec'),causas:[...(zd.action.causas||[])],rows:[...(zd.action.rows||[])]};const history=[...(zd.action.history||[]),snap];zd.action={...snap,saved:true,history};saveData();renderAcc();renderMain('action');toast('A3 guardado V'+String(ver).padStart(2,'0')+' — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg,dur){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2500);}
+// ── KPI 1.3 Stock Almacén Garantías ─────────────────────────────────────────
+let _s13Filtros={claseArt:'Todos',conStock:false,q:''};
+function getS13(){
+  if(!YZD[CY][CZ]['1.3'])YZD[CY][CZ]['1.3']={};
+  const zd=YZD[CY][CZ]['1.3'];
+  if(!zd.s13)zd.s13={items:[],updatedAt:''};
+  return zd.s13;
+}
+function setS13Filtro(k,v){_s13Filtros[k]=v;renderMain(CT);}
+function getS13Filtered(){
+  const all=(getS13().items||[]);const f=_s13Filtros;
+  const q=(f.q||'').toLowerCase().trim();
+  return all.filter(r=>{
+    if(f.claseArt!=='Todos'&&r.claseArt!==f.claseArt)return false;
+    if(f.conStock&&!(r.cantidad>0))return false;
+    if(q&&!r.articulo.toLowerCase().includes(q)&&!r.descripcion.toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function loadExcelS13(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:false});
+      // Buscar la hoja correcta (report136 o primera)
+      const wsName=wb.SheetNames.find(n=>n.toLowerCase().includes('report'))||wb.SheetNames[0];
+      const ws=wb.Sheets[wsName];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+      if(rows.length<2){toast('⚠ Excel vacío');return;}
+      // Encabezados en fila 0
+      const hdrs=rows[0].map(h=>String(h||'').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
+      const col=ns=>{for(const n of(Array.isArray(ns)?ns:[ns])){const i=hdrs.findIndex(h=>h.includes(n.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));if(i>=0)return i;}return -1;};
+      const cAlmacen=col(['ALMACEN','ALMACÉN']);
+      const cArticulo=col(['ARTICULO','ARTÍCULO']);
+      const cDesc=col(['NOMBRE','PROVEEDOR','DESCRIPCION']);
+      const cClase=col(['CLASE ARTICULO','CLASE ART']);
+      const cClaseN=col(['CLASE: NOMBRE','CLASE:NOMBRE']);
+      const cCant=col('CANTIDAD');
+      const cValUnit=col(['VALOR UNITARIO']);
+      const cValDisp=col(['VALOR DISPONIBLE']);
+      if(cArticulo<0||cCant<0){toast('⚠ No se encontraron columnas clave. Encabezados: '+hdrs.slice(0,10).join(', '));return;}
+      const parseMoney=v=>{if(!v||v==='')return 0;return parseFloat(String(v).replace(/[,$\s]/g,''))||0;};
+      const itemsList=[];
+      for(let i=1;i<rows.length;i++){
+        const r=rows[i];
+        const almacen=String(cAlmacen>=0?r[cAlmacen]:'').trim().toUpperCase();
+        // Solo filas del almacén GARANTIAS
+        if(cAlmacen>=0&&almacen&&!almacen.includes('GARANTIA'))continue;
+        const articulo=String(r[cArticulo]||'').trim();
+        if(!articulo)continue;
+        const cantidad=parseFloat(String(r[cCant]||'').replace(/[,$\s]/g,''))||0;
+        const descripcion=String(cDesc>=0?r[cDesc]:'').trim()||articulo;
+        const claseArt=String(cClase>=0?r[cClase]:'').trim()||'—';
+        const clase=String(cClaseN>=0?r[cClaseN]:'').trim()||'—';
+        const valorUnit=parseMoney(r[cValUnit]);
+        const valorDisp=parseMoney(r[cValDisp]);
+        itemsList.push({articulo,descripcion,clase,claseArt,cantidad,valorUnit,valorDisp});
+      }
+      if(!itemsList.length){toast('⚠ No se encontraron ítems en almacén GARANTIAS');return;}
+      const d=getS13();d.items=itemsList;
+      d.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+      saveData();toast('✅ '+itemsList.length+' artículos cargados');renderMain(CT);
+    }catch(ex){toast('❌ Error: '+ex.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function renderVisorStock13(){
+  const d=getS13();const allItems=d.items||[];const hasData=allItems.length>0;
+  const azu='#1565c0',grn='#2e7d32',pur='#6a1b9a',org='#e65100';
+  const clasesArt=hasData?[...new Set(allItems.map(r=>r.claseArt))].filter(c=>c&&c!=='—').sort():[];
+  const f=_s13Filtros;
+  const selSt='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
+
+  const filtroBar=hasData?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <span style="font-size:9px;color:var(--tx3);font-weight:700;">BÚSQUEDA</span>
+      <input type="text" placeholder="Artículo o descripción…" value="${esc(f.q||'')}"
+        oninput="setS13Filtro('q',this.value)"
+        style="padding:5px 10px;border:1px solid var(--brd);border-radius:7px;font-size:12px;min-width:200px;background:#fff;color:var(--tx);">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <span style="font-size:9px;color:var(--tx3);font-weight:700;">CLASE ARTÍCULO</span>
+      <select style="${selSt}" onchange="setS13Filtro('claseArt',this.value)">
+        <option value="Todos"${f.claseArt==='Todos'?' selected':''}>Todos</option>
+        ${clasesArt.map(c=>`<option value="${c}"${f.claseArt===c?' selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding-bottom:2px;">
+      <input type="checkbox" id="s13-constock" ${f.conStock?'checked':''} onchange="setS13Filtro('conStock',this.checked)" style="width:14px;height:14px;cursor:pointer;">
+      <label for="s13-constock" style="font-size:12px;color:var(--tx);cursor:pointer;white-space:nowrap;">Solo con stock</label>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:flex-end;">
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getS13().items=[];_s13Filtros={claseArt:'Todos',conStock:false,q:''};saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
+      ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
+        📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelS13(this)"/>
+      </label>`:''}
+    </div>
+  </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">${activeUserId===null?'Carga el reporte NetSuite de stock de garantías':'El administrador debe cargar los datos para visualizar este KPI.'}</div>
+    ${activeUserId===null?`<label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
+      📤 Cargar Excel NetSuite<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelS13(this)"/>
+    </label>`:''}
+  </div>`;
+
+  const filt=getS13Filtered();
+  const totalArt=filt.length;
+  const conStock=filt.filter(r=>r.cantidad>0).length;
+  const totalPiezas=filt.reduce((s,r)=>s+(r.cantidad||0),0);
+  const valorTotal=filt.reduce((s,r)=>s+(r.valorDisp||0),0);
+  const fmtMXN=v=>v.toLocaleString('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:2});
+
+  const resumenBar=hasData?`<div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 18px;border-radius:10px;background:#e3f2fd;border:1.5px solid #90caf9;margin-bottom:14px;">
+    <div style="text-align:center;min-width:80px;">
+      <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;">Artículos totales</div>
+      <div style="font-size:36px;font-weight:900;color:${azu};line-height:1.1;">${totalArt}</div>
+    </div>
+    <div style="text-align:center;min-width:80px;">
+      <div style="font-size:10px;color:${grn};font-weight:700;text-transform:uppercase;">Con stock</div>
+      <div style="font-size:36px;font-weight:900;color:${grn};line-height:1.1;">${conStock}</div>
+    </div>
+    <div style="text-align:center;min-width:80px;">
+      <div style="font-size:10px;color:${pur};font-weight:700;text-transform:uppercase;">Total piezas</div>
+      <div style="font-size:36px;font-weight:900;color:${pur};line-height:1.1;">${totalPiezas}</div>
+    </div>
+    <div style="text-align:center;min-width:120px;">
+      <div style="font-size:10px;color:${org};font-weight:700;text-transform:uppercase;">Valor disponible</div>
+      <div style="font-size:22px;font-weight:900;color:${org};line-height:1.3;">${fmtMXN(valorTotal)}</div>
+    </div>
+    ${d.updatedAt?`<div style="align-self:center;margin-left:auto;"><span style="font-size:10px;color:var(--tx3);">NetSuite · ${d.updatedAt}</span></div>`:''}
+  </div>`:'';
+
+  // Distribución por clase artículo
+  const claseCounts={};filt.forEach(r=>{const k=r.claseArt||'—';if(!claseCounts[k])claseCounts[k]={n:0,pzs:0};claseCounts[k].n++;claseCounts[k].pzs+=r.cantidad||0;});
+  const claseBar=Object.entries(claseCounts).sort((a,b)=>b[1].pzs-a[1].pzs).map(([k,v])=>{
+    const pct=totalPiezas>0?Math.round(v.pzs/totalPiezas*100):0;
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+      <span style="font-size:11px;color:var(--tx);min-width:90px;font-weight:600;">${k}</span>
+      <div style="flex:1;height:14px;background:#f0f0f0;border-radius:7px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${azu};border-radius:7px;opacity:.7;"></div>
+      </div>
+      <span style="font-size:11px;color:var(--tx3);min-width:60px;text-align:right;">${v.pzs} pzs · ${v.n} art.</span>
+    </div>`;
+  }).join('');
+
+  // Tabla
+  const osRows=filt.length?filt.map((r,i)=>`<tr style="border-bottom:1px solid #f5f5f5;${i%2?'background:#fafafa':''}">
+    <td style="padding:5px 8px;font-size:12px;font-weight:700;color:${azu};font-family:monospace;white-space:nowrap;">${esc(r.articulo)}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx);">${esc(r.descripcion)||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${esc(r.clase)||'—'}</td>
+    <td style="padding:5px 8px;text-align:center;">
+      <span style="font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;background:${azu}18;color:${azu};">${esc(r.claseArt)||'—'}</span>
+    </td>
+    <td style="padding:5px 8px;font-size:14px;font-weight:900;text-align:center;color:${r.cantidad>0?grn:'#bbb'};">${r.cantidad??0}</td>
+    <td style="padding:5px 8px;font-size:11px;text-align:right;color:var(--tx2);">${r.valorUnit?fmtMXN(r.valorUnit):'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;font-weight:700;text-align:right;color:${r.valorDisp>0?org:'#bbb'};">${r.valorDisp?fmtMXN(r.valorDisp):'—'}</td>
+  </tr>`).join(''):`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin artículos con los filtros seleccionados</td></tr>`;
+
+  return`<div class="card" style="margin-top:10px;">
+    <div class="card-title">📦 Stock Almacén Garantías · KPI 1.3</div>
+    ${filtroBar}
+    ${resumenBar}
+    ${hasData&&claseBar?`<details style="border-radius:10px;border:1px solid #bbdefb;margin-bottom:14px;overflow:hidden;">
+      <summary style="cursor:pointer;padding:9px 12px;background:#e3f2fd;font-size:11px;font-weight:700;color:${azu};list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;text-transform:uppercase;letter-spacing:.5px;">
+        <span>Distribución por Clase Artículo</span><span style="font-size:12px;">▾</span>
+      </summary>
+      <div style="padding:10px 14px;">${claseBar}</div>
+    </details>`:''}
+    ${hasData?`<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--brd);">
+      <table style="width:100%;border-collapse:collapse;min-width:720px;">
+        <thead><tr style="background:#e3f2fd;border-bottom:2px solid #90caf9;">
+          <th style="padding:7px 8px;font-size:10px;color:${azu};text-align:left;">Artículo</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:left;">Descripción</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:left;">Clase</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;">Clase Art.</th>
+          <th style="padding:7px 8px;font-size:10px;color:${grn};text-align:center;">Cantidad</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:right;">Valor Unit.</th>
+          <th style="padding:7px 8px;font-size:10px;color:${org};text-align:right;">Valor Disp.</th>
+        </tr></thead>
+        <tbody>${osRows}</tbody>
+      </table>
+    </div>`:''}
+  </div>`;
+}
 // ── KPI 6.5 Digitalización Field ────────────────────────────────────────────
 const D65_META=85;
 let _d65Filtros={un:'Todos',reporte:'Todos'};
@@ -4769,6 +4954,17 @@ function showFmtInfo(kpi){
           [null,'Febrero','CDMX','Cliente AB','No','10002','','Garantía'],
           [null,'Marzo','Monterrey','Cliente Instalación SA','Sí','20001','WEB-100001','Instalación'],
           [null,'Abril','CDMX','Cliente Comisionado AB','No','20002','','Comisionado'],
+        ]
+      }]
+    },
+    '1.3':{
+      nombre:'Plantilla_KPI_1.3_Stock_Garantias.xlsx',
+      hojas:[{
+        nombre:'report136',
+        filas:[
+          ['Subsidiaria','Almacén','Total en Almacén','Ubicación del inventario: Nombre completo','Ubicación del inventario: Nombre (agrupado)','Valor unitario','Valor disponible','Cantidad','Comprometido','Artículo','Marca','Clase: Nombre','Clase Artículo: Nombre','Nombre/código del proveedor'],
+          ['Serv Industrial S.A. de C.V.','GARANTIAS','2','ZONA A : ZONA 1 : GARANTIAS','ZONA A:ZONA 1:GARANTIAS','80.29','160.58','2','0','10.02.008P','RATIONAL','Refacción','BAJO','BURLETE EJEMPLO'],
+          ['Serv Industrial S.A. de C.V.','GARANTIAS','1','ZONA A : ZONA 1 : GARANTIAS','ZONA A:ZONA 1:GARANTIAS','1610.74','1610.74','1','0','20.02.553P','RATIONAL','Consumible','80/20','ARTÍCULO EJEMPLO 2'],
         ]
       }]
     },
