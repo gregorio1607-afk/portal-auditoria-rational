@@ -4153,10 +4153,14 @@ function renderVisorL64(){
         <thead><tr style="background:#fafafa;"><th style="padding:4px 8px;font-size:10px;text-align:left;color:var(--tx3);">MES</th><th style="padding:4px 8px;font-size:10px;text-align:center;color:${pur};">Bajas</th></tr></thead>
         <tbody>${mesRows}</tbody>
       </table>
-      ${mRows?`<div style="border-top:1px solid #ede7f6;"><table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:#fafafa;"><th style="padding:4px 8px;font-size:10px;text-align:left;color:var(--tx3);">MOTIVO</th><th style="padding:4px 8px;font-size:10px;text-align:center;color:${pur};">N</th></tr></thead>
-        <tbody>${mRows}</tbody>
-      </table></div>`:''}
+      ${mRows?`<details style="border-top:1px solid #ede7f6;" onclick="event.stopPropagation()">
+        <summary style="cursor:pointer;padding:6px 10px;font-size:10px;font-weight:700;color:${pur};list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;background:#f9f6fc;">
+          <span>Motivos de baja</span><span style="font-size:10px;color:var(--tx3);">▾</span>
+        </summary>
+        <table style="width:100%;border-collapse:collapse;">
+          <tbody>${mRows}</tbody>
+        </table>
+      </details>`:''}
     </div>`;
   }).join('');
 
@@ -4221,10 +4225,12 @@ function renderVisorL64(){
       <div style="flex:1;min-width:240px;">${hbarL64}</div>
       <div style="flex:2;min-width:300px;display:flex;gap:8px;flex-wrap:wrap;">${trimCards64}</div>
     </div>
-    ${unBar?`<div style="padding:10px 12px;background:#f9f6fc;border-radius:10px;border:1px solid #ede7f6;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Bajas por Unidad de Negocio</div>
-      ${unBar}
-    </div>`:''}
+    ${unBar?`<details style="border-radius:10px;border:1px solid #ede7f6;margin-bottom:14px;overflow:hidden;">
+      <summary style="cursor:pointer;padding:10px 12px;background:#f9f6fc;font-size:11px;font-weight:700;color:var(--tx3);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;text-transform:uppercase;letter-spacing:.5px;">
+        <span>Bajas por Unidad de Negocio</span><span style="font-size:12px;color:${pur};">▾</span>
+      </summary>
+      <div style="padding:10px 12px;">${unBar}</div>
+    </details>`:''}
     ${osTableL64}`:''}
   </div>`;
 }
