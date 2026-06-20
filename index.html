@@ -4223,7 +4223,7 @@ function renderVisorL64(){
     ${bajaF.length>0?`
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">
       <div style="flex:1;min-width:240px;">${hbarL64}</div>
-      <div style="flex:2;min-width:300px;display:flex;gap:8px;flex-wrap:wrap;">${trimCards64}</div>
+      <div style="flex:2;min-width:300px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">${trimCards64}</div>
     </div>
     ${unBar?`<details style="border-radius:10px;border:1px solid #ede7f6;margin-bottom:14px;overflow:hidden;">
       <summary style="cursor:pointer;padding:10px 12px;background:#f9f6fc;font-size:11px;font-weight:700;color:var(--tx3);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;text-transform:uppercase;letter-spacing:.5px;">
