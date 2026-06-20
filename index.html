@@ -3976,7 +3976,7 @@ function loadExcelS13(input){
         const r=rows[i];
         const almacen=String(cAlmacen>=0?r[cAlmacen]:'').trim().toUpperCase();
         // Solo filas del almacén GARANTIAS
-        if(cAlmacen>=0&&almacen&&!almacen.includes('GARANTIA'))continue;
+        if(cAlmacen>=0&&!almacen.includes('GARANTIA'))continue;
         const articulo=String(r[cArticulo]||'').trim();
         if(!articulo)continue;
         const cantidad=parseFloat(String(r[cCant]||'').replace(/[,$\s]/g,''))||0;
