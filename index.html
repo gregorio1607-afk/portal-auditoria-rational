@@ -3962,6 +3962,7 @@ function loadExcelS13(input){
       const hdrs=rows[0].map(h=>String(h||'').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
       const col=ns=>{for(const n of(Array.isArray(ns)?ns:[ns])){const i=hdrs.findIndex(h=>h.includes(n.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));if(i>=0)return i;}return -1;};
       const cAlmacen=col(['ALMACEN','ALMACÉN']);
+      const cMarca=col('MARCA');
       const cArticulo=col(['ARTICULO','ARTÍCULO']);
       const cDesc=col(['NOMBRE','PROVEEDOR','DESCRIPCION']);
       const cClase=col(['CLASE ARTICULO','CLASE ART']);
@@ -3977,6 +3978,8 @@ function loadExcelS13(input){
         const almacen=String(cAlmacen>=0?r[cAlmacen]:'').trim().toUpperCase();
         // Solo filas del almacén GARANTIAS
         if(cAlmacen>=0&&!almacen.includes('GARANTIA'))continue;
+        const marca=String(cMarca>=0?r[cMarca]:'').trim().toUpperCase();
+        if(cMarca>=0&&!marca.includes('RATIONAL'))continue;
         const articulo=String(r[cArticulo]||'').trim();
         if(!articulo)continue;
         const cantidad=parseFloat(String(r[cCant]||'').replace(/[,$\s]/g,''))||0;
