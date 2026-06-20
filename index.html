@@ -689,9 +689,12 @@ function renderMain(tab){
   CT=tab;const a=CAO;const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   let h=`<div style="margin-bottom:10px;">${a.proc_obj?`<p style="font-size:12px;color:var(--tx2);line-height:1.6;">${esc(a.proc_obj)}</p>`:''}</div>`;
   const isR11=(CA==='1.1');
-  const kpiActive=tab==='kpi'||tab==='kpi-herr'||tab==='kpi-gas'||tab==='kpi-cap';
+  const isR12=(CA==='1.2');
+  const kpiActive=tab==='kpi'||tab==='kpi-herr'||tab==='kpi-gas'||tab==='kpi-cap'||tab==='kpi-31'||tab==='kpi-33'||tab==='kpi-34';
   if(isR11){
     h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi-herr'?'on':''}" onclick="renderMain('kpi-herr')">🔧 KPI Herramienta</button><button class="mod-tab ${tab==='kpi-gas'?'on':''}" onclick="renderMain('kpi-gas')">🔬 KPI Analizador Gas</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
+  } else if(isR12){
+    h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${tab==='kpi'?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='kpi-31'?'on':''}" onclick="renderMain('kpi-31')">📋 3.1 Encuestas</button><button class="mod-tab ${tab==='kpi-33'?'on':''}" onclick="renderMain('kpi-33')">📊 3.3 FTF</button><button class="mod-tab ${tab==='kpi-34'?'on':''}" onclick="renderMain('kpi-34')">⏱ 3.4 Resolución</button></div>`;
   } else {
     h+=`<div class="mod-tabs"><button class="mod-tab ${tab==='doc'?'on':''}" onclick="renderMain('doc')">📄 Documentación</button><button class="mod-tab ${kpiActive?'on':''}" onclick="renderMain('kpi')">📈 KPI · ${CZ}</button><button class="mod-tab ${tab==='action'?'on':''}" onclick="renderMain('action')">✅ Plan A3 · ${CZ}</button></div>`;
   }
@@ -851,7 +854,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='6.5'?renderVisorD65():CA==='6.4'?renderVisorL64():CA==='6.2'?renderVisorQ62():CA==='1.3'?renderVisorStock13():CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.2'?renderVisorOS32():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
+  const extra=CA==='6.5'?renderVisorD65():CA==='6.4'?renderVisorL64():CA==='6.2'?renderVisorQ62():CA==='1.3'?renderVisorStock13():CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.2'?renderVisorOS32():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.2'?(CT==='kpi-31'?renderEncuestas31():CT==='kpi-33'?renderVisorFTF():CT==='kpi-34'?renderVisorOS34():''):CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
