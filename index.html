@@ -3929,7 +3929,7 @@ function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,member
 function toast(msg,dur){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2500);}
 // ── KPI 6.5 Digitalización Field ────────────────────────────────────────────
 const D65_META=85;
-let _d65Filtros={un:'Todos',contrato:'Todos',reporte:'Todos'};
+let _d65Filtros={un:'Todos',reporte:'Todos'};
 function getD65(){
   if(!YZD[CY][CZ]['6.5'])YZD[CY][CZ]['6.5']={};
   const zd=YZD[CY][CZ]['6.5'];
@@ -3941,7 +3941,7 @@ function getD65Filtered(){
   const all=(getD65().os||[]);const f=_d65Filtros;
   return all.map((r,i)=>({...r,_i:i})).filter(r=>{
     if(f.un!=='Todos'&&r.un!==f.un)return false;
-    if(f.contrato!=='Todos'&&r.contrato!==f.contrato)return false;
+
     if(f.reporte==='SI'&&r.tieneReporte!=='SI')return false;
     if(f.reporte==='NO'&&r.tieneReporte==='SI')return false;
     return true;
@@ -4020,7 +4020,7 @@ function renderVisorD65(){
   const d=getD65();const allOS=d.os||[];const hasData=allOS.length>0;
   const grn='#2e7d32',red='#c62828',amb='#e65100',azu='#1565c0';
   const uns=hasData?[...new Set(allOS.map(r=>r.un))].filter(Boolean).sort():[];
-  const contratos=hasData?[...new Set(allOS.map(r=>r.contrato))].filter(Boolean).sort():[];
+
   const f=_d65Filtros;
   const selSt='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
   const mkSel=(key,opts,cur,labels)=>`<select style="${selSt}" onchange="setD65Filtro('${key}',this.value)">
@@ -4030,10 +4030,9 @@ function renderVisorD65(){
   const filtroBar=hasData?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
     <span style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;">Filtros:</span>
     <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">UNIDAD DE NEGOCIO</span>${mkSel('un',uns,f.un)}</div>
-    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">CONTRATO</span>${mkSel('contrato',contratos,f.contrato)}</div>
-    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">REPORTE FIELD</span>${mkSel('reporte',['SI','NO'],f.reporte,['Con reporte','Sin reporte'])}</div>
+<div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">REPORTE FIELD</span>${mkSel('reporte',['SI','NO'],f.reporte,['Con reporte','Sin reporte'])}</div>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getD65().os=[];_d65Filtros={un:'Todos',contrato:'Todos',reporte:'Todos'};saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getD65().os=[];_d65Filtros={un:'Todos',reporte:'Todos'};saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
       <button onclick="showFmtInfo('6.5')" style="padding:6px 10px;border:1px solid ${azu};color:${azu};background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
       ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelD65(this)"/>
@@ -4104,7 +4103,6 @@ function renderVisorD65(){
       <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${i+1}</td>
       <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.un)||'—'}</td>
       <td style="padding:5px 8px;font-size:12px;font-weight:600;color:var(--tx);">${esc(r.cliente)||'—'}</td>
-      <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.contrato)||'—'}</td>
       <td style="padding:5px 8px;font-size:12px;font-weight:700;color:var(--tx);font-family:monospace;">${esc(r.os)||'—'}</td>
       <td style="padding:5px 8px;text-align:center;">
         ${activeUserId===null
@@ -4113,7 +4111,7 @@ function renderVisorD65(){
       </td>
       <td style="padding:5px 8px;">${pdfCell}</td>
     </tr>`;
-  }).join('')||`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros</td></tr>`;
+  }).join('')||`<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros</td></tr>`;
 
   const osTable=total>0?`<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--brd);">
     <table style="width:100%;border-collapse:collapse;min-width:700px;">
@@ -4121,7 +4119,6 @@ function renderVisorD65(){
         <th style="padding:7px 8px;font-size:10px;color:var(--tx3);">#</th>
         <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:left;">Unidad Negocio</th>
         <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:left;">Cliente</th>
-        <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:left;">Contrato</th>
         <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;"># OS</th>
         <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;">Reporte Field</th>
         <th style="padding:7px 8px;font-size:10px;color:var(--tx3);">PDF Adjunto</th>
