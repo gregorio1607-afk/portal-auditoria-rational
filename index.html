@@ -373,6 +373,7 @@ function renderAcc(){
           if(id==='4.3'){return(getCI43().os||[]).some(r=>!r.tipo||r.tipo.toLowerCase().includes('garant')||(!r.tipo.toLowerCase().includes('instal')&&!r.tipo.toLowerCase().includes('comis')));}
           if(id==='4.4'){return(getCI43().os||[]).some(r=>r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis')));}
           if(id==='6.2'){return(getQ62().quejas||[]).length>0;}
+          if(id==='6.4'){return(getL64().bajas||[]).length>0;}
         }catch(e){}
         return!!(zd.kpi&&zd.kpi.saved);
       })();
@@ -848,7 +849,7 @@ function printDoc(){
 }
 function rKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[{name:'',meta:'',actual:'',estado:''}]};const zl=CZ==='MTY'?'Monterrey':'Ciudad de México';
   const rows=zd.kpi.rows.map((r,i)=>`<div class="tr-kpi"><input class="fc" style="font-size:12px;" placeholder="Nombre del KPI" value="${esc(r.name)}" oninput="gzd().kpi.rows[${i}].name=this.value"/><input class="fc" style="font-size:12px;" placeholder="≥ 85%" value="${esc(r.meta)}" oninput="gzd().kpi.rows[${i}].meta=this.value"/><input class="fc" style="font-size:12px;" placeholder="Actual" value="${esc(r.actual)}" oninput="gzd().kpi.rows[${i}].actual=this.value"/><select class="ssel" onchange="gzd().kpi.rows[${i}].estado=this.value"><option value="">-</option><option ${r.estado==='ok'?'selected':''} value="ok">✓ OK</option><option ${r.estado==='warn'?'selected':''} value="warn">⚠ Riesgo</option><option ${r.estado==='no'?'selected':''} value="no">✗ Brecha</option></select></div>`).join('');
-  const extra=CA==='6.2'?renderVisorQ62():CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.2'?renderVisorOS32():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
+  const extra=CA==='6.4'?renderVisorL64():CA==='6.2'?renderVisorQ62():CA==='4.4'?renderVisorCI44():CA==='4.3'?renderVisorCI43():CA==='3.4'?renderVisorOS34():CA==='3.2'?renderVisorOS32():CA==='3.3'?renderVisorFTF():CA==='3.1'?renderEncuestas31():CA==='2.1'?renderVisorCapacitacion13():CA==='1.1'?(CT==='kpi-gas'?renderVisorMedicion12():renderVisorAuditoria11()):'';
   return`${extra}<div class="card" style="${extra?'margin-top:10px;':''}">
     <div class="notice ${CZ==='MTY'?'notice-mty':'notice-cdmx'}">📍 ${zl} · Ciclo ${CY} — Datos exclusivos de esta zona</div>
     <div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="kn" rows="3">${esc(zd.kpi.notes)}</textarea></div>
@@ -3925,6 +3926,308 @@ function svKPI(){const zd=gzd();if(!zd.kpi)zd.kpi={rows:[]};zd.kpi.saved=true;zd
 function svAction(){const zd=gzd();if(!zd.action)zd.action={};const ver=(zd.action.version||0)+1;const now=new Date();const fechaGuardado=now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});const snap={version:ver,fechaGuardado,responsable:v('a_rsp'),estadoA3:v('a_est'),fechaInicio:v('a_fi'),fechaFin:v('a_ff'),actual:v('a_act'),meta:v('a_met'),brecha:v('a_bre'),situacion:v('a_sit'),estrategia:v('a_est2'),fechaSeg:v('a_fseg'),resultadoMedido:v('a_rmed'),lecciones:v('a_lec'),causas:[...(zd.action.causas||[])],rows:[...(zd.action.rows||[])]};const history=[...(zd.action.history||[]),snap];zd.action={...snap,saved:true,history};saveData();renderAcc();renderMain('action');toast('A3 guardado V'+String(ver).padStart(2,'0')+' — '+(CZ==='MTY'?'Monterrey':'CDMX')+' · '+CY);}
 function exportData(){const blob=new Blob([JSON.stringify({SD,YZD,madData,members,resultados},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='auditoria_rational_'+CY+'.json';a.click();URL.revokeObjectURL(url);toast('Datos exportados');}
 function toast(msg,dur){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur||2500);}
+// ── KPI 6.4 Lealtad y Fidelidad de los Empleados (Bajas) ────────────────────
+const L64_MESES_ES={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11};
+const L64_MESES_NOM=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const L64_TRIMS=[
+  {label:'1er Trimestre',meses:'Ene–Mar',idx:[0,1,2]},
+  {label:'2do Trimestre',meses:'Abr–Jun',idx:[3,4,5]},
+  {label:'3er Trimestre',meses:'Jul–Sep',idx:[6,7,8]},
+  {label:'4to Trimestre',meses:'Oct–Dic',idx:[9,10,11]},
+];
+const L64_MOTIVOS_COLOR={
+  'motivos económicos':'#1565c0','motivos personales':'#6a1b9a',
+  'motivos organizacionales':'#e65100','motivos disciplinares':'#c62828',
+};
+const l64MotivoColor=m=>{const k=Object.keys(L64_MOTIVOS_COLOR).find(k=>m.toLowerCase().includes(k));return k?L64_MOTIVOS_COLOR[k]:'#555';};
+const l64MotivoBg=m=>{const k=Object.keys(L64_MOTIVOS_COLOR).find(k=>m.toLowerCase().includes(k));return k?L64_MOTIVOS_COLOR[k]+'22':'#f5f5f5';};
+let _l64Filtros={año:'Todos',motivo:'Todos',un:'Todos'};
+let _l64TrimDetail=null;
+function getL64(){
+  if(!YZD[CY][CZ]['6.4'])YZD[CY][CZ]['6.4']={};
+  const zd=YZD[CY][CZ]['6.4'];
+  if(!zd.l64)zd.l64={bajas:[],updatedAt:''};
+  return zd.l64;
+}
+function setL64Filtro(k,v){_l64Filtros[k]=v;_l64TrimDetail=null;renderMain(CT);}
+function getL64Filtered(){
+  const all=(getL64().bajas||[]);const f=_l64Filtros;
+  return all.filter(r=>{
+    if(f.año&&f.año!=='Todos'&&r.año!==+f.año)return false;
+    if(f.motivo&&f.motivo!=='Todos'&&r.motivo!==f.motivo)return false;
+    if(f.un&&f.un!=='Todos'&&r.un!==f.un)return false;
+    return true;
+  });
+}
+function loadExcelL64(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+      if(rows.length<2){toast('⚠ Excel vacío');return;}
+      // Buscar fila de encabezados
+      let hdrIdx=0;
+      for(let i=0;i<Math.min(rows.length,5);i++){
+        const r=rows[i].map(c=>String(c||'').toUpperCase());
+        if(r.some(c=>c.includes('NOMBRE')&&c.includes('COLABORADOR'))||r.some(c=>c.includes('MOTIVO'))){hdrIdx=i;break;}
+      }
+      const hdrs=rows[hdrIdx].map(h=>String(h||'').trim().toUpperCase());
+      const col=names=>{
+        for(const n of(Array.isArray(names)?names:[names])){
+          const i=hdrs.findIndex(h=>h.includes(n.toUpperCase()));if(i>=0)return i;
+        }return -1;
+      };
+      const cMes=0; // Col 0 siempre es el mes (agrupador)
+      const cNombre=col(['NOMBRE COLABORADOR','NOMBRE']);
+      const cEmpresa=col('EMPRESA');
+      const cUN=col(['UN','UNIDAD']);
+      const cPuesto=col('PUESTO');
+      const cFechaIng=col(['FECHA DE INGRESO','FECHA INGRESO','INGRESO']);
+      const cFechaBaja=col(['FECHA DE BAJA','FECHA BAJA','BAJA']);
+      const cMotivo=col(['MOTIVO DE BAJA','MOTIVO']);
+      if(cNombre<0||cFechaBaja<0){
+        toast('⚠ No se encontraron columnas: Nombre Colaborador, Fecha de baja. Encabezados: '+hdrs.filter(Boolean).slice(0,8).join(', '));return;
+      }
+      const parseDate=v=>{
+        if(!v||v===''||v==='\xa0'||v==='.')return null;
+        if(v instanceof Date)return isNaN(v)?null:v;
+        const s=String(v).trim();
+        if(!s||s==='\xa0'||s==='.')return null;
+        let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+        m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+        return null;
+      };
+      const fmtDate=d=>d instanceof Date&&!isNaN(d)?d.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+      // Forward-fill mes desde Col 0
+      let mesActual='';
+      const bajasList=[];
+      for(let i=hdrIdx+1;i<rows.length;i++){
+        const r=rows[i];
+        const mesRaw=String(r[cMes]||'').trim();
+        if(mesRaw&&mesRaw!=='\xa0')mesActual=mesRaw;
+        const nombre=String(cNombre>=0?r[cNombre]:'').trim();
+        if(!nombre||nombre==='\xa0')continue;
+        const fechaBaja=parseDate(r[cFechaBaja]);
+        const mes=L64_MESES_ES[mesActual.toLowerCase()]??
+          (fechaBaja?fechaBaja.getMonth():-1);
+        const año=fechaBaja?fechaBaja.getFullYear():CY;
+        const motivo=String(cMotivo>=0?r[cMotivo]:'').trim().replace(/\s+/g,' ');
+        const puesto=String(cPuesto>=0?r[cPuesto]:'').trim()
+          .replace(/TÉCNICO|TECNICO/gi,'TÉCNICO')
+          .replace(/AUX\.?\s*TÉCNICO|AUX\.?\s*TECNICO/gi,'AUX. TÉCNICO');
+        bajasList.push({
+          nombre,
+          empresa:String(cEmpresa>=0?r[cEmpresa]:'').trim()||'SERV INDUSTRIAL',
+          un:String(cUN>=0?r[cUN]:'').trim(),
+          puesto,motivo,mes,año,
+          mesNom:mes>=0?L64_MESES_NOM[mes]:mesActual,
+          fechaIngreso:fmtDate(parseDate(r[cFechaIng])),
+          fechaBaja:fmtDate(fechaBaja),
+        });
+      }
+      if(!bajasList.length){toast('⚠ No se encontraron registros de bajas');return;}
+      const d=getL64();d.bajas=bajasList;
+      d.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+      saveData();toast('✅ '+bajasList.length+' bajas cargadas');renderMain(CT);
+    }catch(ex){toast('❌ Error: '+ex.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function renderVisorL64(){
+  const d=getL64();const rawB=d.bajas||[];const hasRaw=rawB.length>0;
+  const grn='#2e7d32',org='#e65100',red='#c62828',azu='#1565c0',pur='#6a1b9a';
+  const años=hasRaw?[...new Set(rawB.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a):[];
+  const motivos=hasRaw?[...new Set(rawB.map(r=>r.motivo))].filter(Boolean).sort():[];
+  const uns=hasRaw?[...new Set(rawB.map(r=>r.un))].filter(Boolean).sort():[];
+  const f=_l64Filtros;
+  const selStyle='padding:4px 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;';
+  const mkSel=(key,opts,cur)=>`<select style="${selStyle}" onchange="setL64Filtro('${key}',this.value)">
+    <option value="Todos"${!cur||cur==='Todos'?' selected':''}>Todos</option>
+    ${opts.map(o=>`<option value="${o}"${cur===o?' selected':''}>${o}</option>`).join('')}
+  </select>`;
+  const filtroBar=hasRaw?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd);">
+    <span style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;">Filtros:</span>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">AÑO</span>${mkSel('año',años,f.año)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">MOTIVO</span>${mkSel('motivo',motivos,f.motivo)}</div>
+    <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:9px;color:var(--tx3);font-weight:700;">UNIDAD DE NEGOCIO</span>${mkSel('un',uns,f.un)}</div>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getL64().bajas=[];_l64Filtros={año:'Todos',motivo:'Todos',un:'Todos'};_l64TrimDetail=null;saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
+      <button onclick="showFmtInfo('6.4')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
+      ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
+        📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelL64(this)"/>
+      </label>`:''}
+    </div>
+  </div>`:`<div style="padding:18px;text-align:center;border:2px dashed var(--grn);border-radius:10px;margin-bottom:12px;">
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:10px;">${activeUserId===null?'Carga el Excel de bajas para visualizar el KPI de Lealtad de Empleados':'El administrador debe cargar los datos para visualizar este KPI.'}</div>
+    ${activeUserId===null?`<div style="display:flex;gap:8px;justify-content:center;">
+      <button onclick="showFmtInfo('6.4')" style="padding:8px 14px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
+      <label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
+        📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelL64(this)"/>
+      </label>
+    </div>`:''}
+  </div>`;
+
+  const bajaF=getL64Filtered();
+  const totalBajas=bajaF.length;
+
+  // Resumen principal
+  const motivoCounts={};bajaF.forEach(r=>{const k=r.motivo||'Sin motivo';motivoCounts[k]=(motivoCounts[k]||0)+1;});
+  const topMotivo=Object.entries(motivoCounts).sort((a,b)=>b[1]-a[1])[0];
+  const mesCounts={};bajaF.forEach(r=>{const k=r.mes>=0?r.mesNom:'Sin mes';mesCounts[k]=(mesCounts[k]||0)+1;});
+  const topMes=Object.entries(mesCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  const resumenBar=bajaF.length>0?`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;background:#f3f0f7;border:1.5px solid #ce93d8;margin-bottom:14px;">
+    <div style="text-align:center;min-width:80px;">
+      <div style="font-size:11px;color:var(--tx3);">BAJAS ${f.año==='Todos'?CY:f.año}</div>
+      <div style="font-size:42px;font-weight:900;color:${pur};line-height:1.1;">${totalBajas}</div>
+    </div>
+    <div style="flex:1;min-width:160px;display:flex;flex-wrap:wrap;gap:10px;">
+      ${topMotivo?`<div style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;">Motivo más frecuente</span>
+        <span style="font-size:12px;font-weight:700;color:${l64MotivoColor(topMotivo[0])};padding:3px 8px;border-radius:6px;background:${l64MotivoBg(topMotivo[0])};">${topMotivo[0]} (${topMotivo[1]})</span>
+      </div>`:''}
+      ${topMes?`<div style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;">Mes con más bajas</span>
+        <span style="font-size:12px;font-weight:700;color:var(--tx);padding:3px 8px;border-radius:6px;background:#ede7f6;">${topMes[0]} (${topMes[1]})</span>
+      </div>`:''}
+      ${d.updatedAt?`<div style="display:flex;flex-direction:column;gap:2px;align-self:flex-end;"><span style="font-size:10px;color:var(--tx3);">Actualizado: ${d.updatedAt}</span></div>`:''}
+    </div>
+  </div>`:'';
+
+  // Gráfica barras horizontales por trimestre
+  const trimData64=L64_TRIMS.map(t=>({
+    label:t.label.replace('Trimestre','TRIM.'),
+    n:bajaF.filter(r=>t.idx.includes(r.mes)).length,
+    tot:t.idx.length,
+  }));
+  const maxN=Math.max(...trimData64.map(t=>t.n),1);
+  const hbarL64=(()=>{
+    const W=300,H=170,lw=80,rw=32,bw=W-lw-rw-12,bh=22,gap=18;
+    const rows=trimData64.map((t,i)=>{
+      const y=10+i*(bh+gap);
+      const barW=Math.round(t.n/maxN*bw);
+      const isSel=_l64TrimDetail===i;
+      const clr=isSel?pur:'#9c27b0';
+      return`<g style="cursor:${t.n>0?'pointer':'default'};" ${t.n>0?`onclick="_l64TrimDetail=${isSel?'null':i};renderMain(CT);setTimeout(()=>{const el=document.getElementById('l64-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60)"`:''}>
+        <rect x="0" y="${y-4}" width="${W}" height="${bh+8}" fill="${isSel?'rgba(0,0,0,0.03)':'none'}" rx="4"/>
+        <text x="${lw-6}" y="${y+bh/2+4}" text-anchor="end" font-size="11" fill="${isSel?clr:'#555'}" font-weight="${isSel?'700':'400'}" font-family="sans-serif">${t.label}</text>
+        <rect x="${lw}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="#f0f0f0"/>
+        <rect x="${lw}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="${clr}" opacity="${isSel?'1':'0.75'}"/>
+        <text x="${lw+barW+5}" y="${y+bh/2+4}" font-size="12" font-weight="700" fill="${clr}" font-family="sans-serif">${t.n}</text>
+      </g>`;
+    }).join('');
+    return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block;">
+      <text x="${lw}" y="7" font-size="9" fill="#bbb" font-family="sans-serif">Bajas por trimestre</text>
+      ${rows}
+    </svg>`;
+  })();
+
+  // Tarjetas trimestrales
+  const trimCards64=L64_TRIMS.map((t,ti)=>{
+    const bajasTrim=bajaF.filter(r=>t.idx.includes(r.mes));
+    const isSel=_l64TrimDetail===ti;
+    // mini motivos en el trimestre
+    const mCounts={};bajasTrim.forEach(r=>{const k=r.motivo||'Sin motivo';mCounts[k]=(mCounts[k]||0)+1;});
+    const mRows=Object.entries(mCounts).sort((a,b)=>b[1]-a[1]).map(([m,n])=>`<tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:3px 8px;font-size:11px;color:${l64MotivoColor(m)};">${m}</td>
+      <td style="padding:3px 8px;font-size:12px;font-weight:700;text-align:center;color:${l64MotivoColor(m)};">${n}</td>
+    </tr>`).join('');
+    const mesRows=t.idx.map(mi=>{
+      const n=bajasTrim.filter(r=>r.mes===mi).length;
+      return`<tr style="border-bottom:1px solid #f5f5f5;">
+        <td style="padding:3px 8px;font-size:11px;color:var(--tx2);">${L64_MESES_NOM[mi]}</td>
+        <td style="padding:3px 8px;font-size:12px;font-weight:700;text-align:center;color:${n>0?pur:'#ccc'};">${n||'—'}</td>
+      </tr>`;
+    }).join('');
+    return`<div style="flex:1;min-width:200px;border:${isSel?'2.5px solid '+pur:'1.5px solid #ce93d855'};border-radius:10px;overflow:hidden;cursor:pointer;background:#fff;" onclick="_l64TrimDetail=${isSel?'null':ti};renderMain(CT);setTimeout(()=>{const el=document.getElementById('l64-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60)">
+      <div style="background:${isSel?'#ede7f6':'#f9f6fc'};padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ede7f6;">
+        <span style="font-size:12px;font-weight:700;color:var(--tx);">${t.label.replace('Trimestre','TRIM.')}${isSel?' ✓':''}</span>
+        <span style="font-size:22px;font-weight:900;color:${pur};">${bajasTrim.length}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#fafafa;"><th style="padding:4px 8px;font-size:10px;text-align:left;color:var(--tx3);">MES</th><th style="padding:4px 8px;font-size:10px;text-align:center;color:${pur};">Bajas</th></tr></thead>
+        <tbody>${mesRows}</tbody>
+      </table>
+      ${mRows?`<div style="border-top:1px solid #ede7f6;"><table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#fafafa;"><th style="padding:4px 8px;font-size:10px;text-align:left;color:var(--tx3);">MOTIVO</th><th style="padding:4px 8px;font-size:10px;text-align:center;color:${pur};">N</th></tr></thead>
+        <tbody>${mRows}</tbody>
+      </table></div>`:''}
+    </div>`;
+  }).join('');
+
+  // Desglose por UN
+  const unCounts={};bajaF.forEach(r=>{const k=r.un||'Sin UN';unCounts[k]=(unCounts[k]||0)+1;});
+  const unBar=Object.entries(unCounts).sort((a,b)=>b[1]-a[1]).map(([un,n])=>{
+    const pct=Math.round(n/totalBajas*100);
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <span style="font-size:11px;color:var(--tx);min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${un}</span>
+      <div style="flex:1;height:14px;background:#f0f0f0;border-radius:7px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:#9c27b0;border-radius:7px;opacity:.75;"></div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:${pur};min-width:20px;text-align:right;">${n}</span>
+    </div>`;
+  }).join('');
+
+  // Desglose tabla completa
+  const desglBajas=_l64TrimDetail!==null?bajaF.filter(r=>L64_TRIMS[_l64TrimDetail].idx.includes(r.mes)):bajaF;
+  const desglLbl=_l64TrimDetail!==null?L64_TRIMS[_l64TrimDetail].label+' · '+L64_TRIMS[_l64TrimDetail].meses:'Todos los trimestres';
+  const osRowsL64=desglBajas.length?desglBajas.map((r,i)=>`<tr style="border-bottom:1px solid #f5f5f5;${i%2?'background:#fafafa':''}">
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${i+1}</td>
+    <td style="padding:5px 8px;font-size:12px;font-weight:700;color:var(--tx);">${esc(r.nombre)||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.un)||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.puesto)||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${r.fechaIngreso||'—'}</td>
+    <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${r.fechaBaja||'—'}</td>
+    <td style="padding:5px 8px;">
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:${l64MotivoBg(r.motivo)};color:${l64MotivoColor(r.motivo)};">${esc(r.motivo)||'—'}</span>
+    </td>
+  </tr>`).join(''):`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros con los filtros seleccionados</td></tr>`;
+
+  const osTableL64=`<details id="l64-desglose" style="margin-top:16px;" ${_l64TrimDetail!==null?'open':''}>
+    <summary style="cursor:pointer;padding:8px 12px;border-radius:8px;background:#f5f0fa;border:1px solid var(--brd);list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+      <span style="font-size:12px;font-weight:700;color:var(--tx);">📋 Desglose de Bajas · ${desglLbl}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:var(--tx3);">${desglBajas.length} colaboradores</span>
+        ${_l64TrimDetail!==null?`<button onclick="event.stopPropagation();_l64TrimDetail=null;renderMain(CT)" style="padding:3px 8px;background:#fff;border:1px solid var(--brd);border-radius:6px;font-size:11px;cursor:pointer;">✕ Ver todos</button>`:''}
+      </div>
+    </summary>
+    <div style="overflow-x:auto;border-radius:0 0 8px 8px;border:1px solid var(--brd);border-top:none;margin-top:-1px;">
+      <table style="width:100%;border-collapse:collapse;min-width:640px;">
+        <thead><tr style="background:#f5f0fa;">
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);">#</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Colaborador</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">UN</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);text-align:left;">Puesto</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);">F. Ingreso</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);">F. Baja</th>
+          <th style="padding:6px 8px;font-size:10px;color:var(--tx3);">Motivo</th>
+        </tr></thead>
+        <tbody>${osRowsL64}</tbody>
+      </table>
+    </div>
+  </details>`;
+
+  return`<div class="card" style="margin-top:10px;">
+    <div class="card-title">👥 Visor Lealtad de Empleados · KPI 6.4</div>
+    ${filtroBar}
+    ${resumenBar}
+    ${bajaF.length>0?`
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">
+      <div style="flex:1;min-width:240px;">${hbarL64}</div>
+      <div style="flex:2;min-width:300px;display:flex;gap:8px;flex-wrap:wrap;">${trimCards64}</div>
+    </div>
+    ${unBar?`<div style="padding:10px 12px;background:#f9f6fc;border-radius:10px;border:1px solid #ede7f6;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Bajas por Unidad de Negocio</div>
+      ${unBar}
+    </div>`:''}
+    ${osTableL64}`:''}
+  </div>`;
+}
 // ── KPI 6.2 Gestión de Reclamaciones ─────────────────────────────────────────
 let _q62ShowForm=false;
 let _q62EditId=null;
@@ -4252,6 +4555,19 @@ function showFmtInfo(kpi){
           [null,'Febrero','CDMX','Cliente AB','No','10002','','Garantía'],
           [null,'Marzo','Monterrey','Cliente Instalación SA','Sí','20001','WEB-100001','Instalación'],
           [null,'Abril','CDMX','Cliente Comisionado AB','No','20002','','Comisionado'],
+        ]
+      }]
+    },
+    '6.4':{
+      nombre:'Plantilla_KPI_6.4_Bajas_Empleados.xlsx',
+      hojas:[{
+        nombre:'BAJAS 2025',
+        filas:[
+          ['','Nombre Colaborador','EMPRESA','UN','Puesto','Fecha de ingreso','Año de Baja','Fecha de baja','MOTIVO DE BAJA'],
+          ['ENERO','GARCIA LOPEZ JUAN','SERV INDUSTRIAL','UN NORESTE','TÉCNICO','05/04/2024','2025','03/01/2025','Motivos económicos'],
+          ['','MARTINEZ HERNANDEZ PEDRO','SERV INDUSTRIAL','UN BAJÍO','TÉCNICO','23/04/2024','2025','10/01/2025','Motivos personales'],
+          ['FEBRERO','RODRIGUEZ SANCHEZ MARIA','SERV INDUSTRIAL','UN CENTRO','AUX. TÉCNICO','20/09/2024','2025','14/02/2025','Motivos organizacionales'],
+          ['','LOPEZ TORRES JOSE','SERV INDUSTRIAL','UN SURESTE','TÉCNICO','06/12/2024','2025','12/02/2025','Motivos disciplinares / operativos'],
         ]
       }]
     },
