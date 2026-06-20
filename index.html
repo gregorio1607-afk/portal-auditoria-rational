@@ -212,6 +212,7 @@ textarea.fc{resize:vertical;line-height:1.5;}
       <div class="tb-sub" id="tbS">Selecciona una sección en el panel izquierdo</div>
     </div>
     <div class="tb-right">
+      <span id="fb-status" style="font-size:10px;color:#2e7d32;padding:2px 8px;border-radius:10px;background:#f1f8f4;">☁ Guardado</span>
       <span class="tb-badge zbm" id="tbZ">Monterrey</span>
       <button class="tb-btn" onclick="exportData()">⬇ Exportar</button>
     </div>
@@ -257,17 +258,41 @@ textarea.fc{resize:vertical;line-height:1.5;}
 firebase.initializeApp({apiKey:"AIzaSyAiuFRHr0oWjbpSnQyELUygJdbE4rF3KZY",authDomain:"portal-auditoria-rational.firebaseapp.com",databaseURL:"https://portal-auditoria-rational-default-rtdb.firebaseio.com",projectId:"portal-auditoria-rational",storageBucket:"portal-auditoria-rational.firebasestorage.app",messagingSenderId:"929257938224",appId:"1:929257938224:web:1dec97c0a15705b496fcf5"});
 const _db=firebase.database();
 let _fbSyncTimer=null;
+let _fbLastOk=true;
+function _fbSyncStatus(ok,msg){
+  _fbLastOk=ok;
+  const el=document.getElementById('fb-status');
+  if(!el)return;
+  if(ok===null){el.textContent='⏳ Guardando…';el.style.color='#e65100';el.style.fontWeight='400';}
+  else if(ok){el.textContent='☁ Guardado';el.style.color='#2e7d32';el.style.fontWeight='400';}
+  else{el.textContent='⚠ '+msg;el.style.color='#c62828';el.style.fontWeight='700';}
+}
 function _fbSync(){
   clearTimeout(_fbSyncTimer);
   _fbSyncTimer=setTimeout(()=>{
-    try{
-      _db.ref('v1/yzd').set(JSON.stringify(YZD));
-      _db.ref('v1/users').set(JSON.stringify(appUsers));
-      _db.ref('v1/sd').set(JSON.stringify(SD));
-      _db.ref('v1/mad').set(JSON.stringify(madData));
-      _db.ref('v1/members').set(JSON.stringify(members));
-      _db.ref('v1/ts').set(Date.now());
-    }catch(e){console.warn('FB sync error',e);}
+    _fbSyncStatus(null,'Guardando…');
+    const yzdStr=JSON.stringify(YZD);
+    const sdStr=JSON.stringify(SD);
+    const totalMB=((yzdStr.length+sdStr.length)/1048576).toFixed(1);
+    if(yzdStr.length>9*1048576){
+      _fbSyncStatus(false,'Datos demasiado grandes ('+totalMB+' MB) — reduce el tamaño de los PDFs adjuntos');
+      toast('⚠ No se pudo guardar en la nube: '+totalMB+' MB supera el límite. Reduce los PDFs adjuntos.',5000);
+      return;
+    }
+    Promise.all([
+      _db.ref('v1/yzd').set(yzdStr),
+      _db.ref('v1/users').set(JSON.stringify(appUsers)),
+      _db.ref('v1/sd').set(sdStr),
+      _db.ref('v1/mad').set(JSON.stringify(madData)),
+      _db.ref('v1/members').set(JSON.stringify(members)),
+      _db.ref('v1/ts').set(Date.now()),
+    ]).then(()=>{
+      _fbSyncStatus(true);
+    }).catch(e=>{
+      console.warn('FB sync error',e);
+      _fbSyncStatus(false,'Error al guardar en la nube — revisa conexión');
+      toast('⚠ Error al sincronizar con Firebase: '+e.message,5000);
+    });
   },800);
 }
 async function _fbLoad(){
@@ -1812,7 +1837,7 @@ function delM12Inst(idx){if(!confirm('¿Eliminar este analizador?'))return;const
 function delCertM12(instIdx,certId){if(!confirm('¿Eliminar este certificado del historial?'))return;const m=getM12();const inst=m.instrumentos[instIdx];if(inst)inst.certs=(inst.certs||[]).filter(c=>c.id!==certId);saveData();renderMain(CT);}
 function uploadCertM12(input,idx){
   const file=input.files[0];if(!file)return;
-  if(file.size>3*1024*1024){toast('❌ Archivo muy grande — máximo 3 MB');return;}
+  if(file.size>1*1024*1024){toast('❌ Archivo muy grande — máximo 1 MB');return;}
   const nombre=file.name;
   const fecha=new Date().toISOString().slice(0,10);
   const reader=new FileReader();
@@ -1840,7 +1865,7 @@ function delM13Tec(idx){if(!confirm('¿Eliminar este técnico?'))return;const m=
 function delCertCap13(tecIdx,certId){if(!confirm('¿Eliminar este certificado?'))return;const m=getM13Cap();const t=m.tecnicos[tecIdx];if(t)t.certs=(t.certs||[]).filter(c=>c.id!==certId);saveData();renderMain(CT);}
 function uploadCertCap13(input,idx){
   const file=input.files[0];if(!file)return;
-  if(file.size>3*1024*1024){toast('❌ Archivo muy grande — máximo 3 MB');return;}
+  if(file.size>1*1024*1024){toast('❌ Archivo muy grande — máximo 1 MB');return;}
   const nombre=file.name;const fecha=new Date().toISOString().slice(0,10);
   const reader=new FileReader();
   reader.onload=e=>{
@@ -4158,7 +4183,7 @@ function d65ToggleReporte(idx){
 }
 function d65AttachPdf(idx,input){
   const file=input.files[0];if(!file)return;
-  if(file.size>3*1024*1024){toast('⚠ PDF demasiado grande (máx 3 MB)');return;}
+  if(file.size>1*1024*1024){toast('⚠ PDF demasiado grande (máx 1 MB)');return;}
   const reader=new FileReader();
   reader.onload=e=>{
     const os=getD65().os;if(!os[idx])return;
@@ -4704,7 +4729,7 @@ function q62Save(){
 }
 function q62LoadPdf(input){
   const file=input.files[0];if(!file)return;
-  if(file.size>3*1024*1024){toast('⚠ PDF demasiado grande (máx 3 MB)');return;}
+  if(file.size>1*1024*1024){toast('⚠ PDF demasiado grande (máx 1 MB)');return;}
   const reader=new FileReader();
   reader.onload=e=>{
     _q62EvidNom=file.name;_q62EvidData=e.target.result;
@@ -4804,7 +4829,7 @@ function renderVisorQ62(){
       <div><label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;margin-bottom:3px;">ESTATUS</label>
         <select id="q62-estatus" class="fc" style="font-size:13px;">${estatusOpts}</select></div>
       <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px;">
-        <label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;">EVIDENCIA (PDF, máx 3 MB)</label>
+        <label style="font-size:11px;color:var(--tx3);font-weight:700;display:block;">EVIDENCIA (PDF, máx 1 MB)</label>
         <label id="q62-evid-btn" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#e3f2fd;color:${blu};border:1px solid #90caf9;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
           ${editQ?.evidenciaNombre?'📎 '+esc(editQ.evidenciaNombre):'📎 Adjuntar PDF'}
           <input type="file" accept=".pdf" style="display:none;" onchange="q62LoadPdf(this)"/>
