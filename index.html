@@ -3998,6 +3998,18 @@ function loadExcelS13(input){
   };
   reader.readAsArrayBuffer(file);
 }
+function exportS13(){
+  const filt=getS13Filtered();if(!filt.length){toast('⚠ Sin datos para exportar');return;}
+  const d=getS13();
+  const filas=[['Artículo','Descripción','Clase','Clase Artículo','Cantidad','Valor Unitario','Valor Disponible']];
+  filt.forEach(r=>filas.push([r.articulo,r.descripcion,r.clase,r.claseArt,r.cantidad,r.valorUnit,r.valorDisp]));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(filas);
+  ws['!cols']=[{wch:16},{wch:45},{wch:14},{wch:14},{wch:10},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws,'Stock Garantías');
+  XLSX.writeFile(wb,'Stock_Garantias_RATIONAL_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('📥 Descargando Excel…');
+}
 function renderVisorStock13(){
   const d=getS13();const allItems=d.items||[];const hasData=allItems.length>0;
   const azu='#1565c0',grn='#2e7d32',pur='#6a1b9a',org='#e65100';
@@ -4024,6 +4036,7 @@ function renderVisorStock13(){
       <label for="s13-constock" style="font-size:12px;color:var(--tx);cursor:pointer;white-space:nowrap;">Solo con stock</label>
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:flex-end;">
+      <button onclick="exportS13()" style="padding:6px 12px;background:#fff;border:1px solid #1565c0;color:#1565c0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">📥 Descargar tabla</button>
       ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getS13().items=[];_s13Filtros={claseArt:'Todos',conStock:false,q:''};saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
       ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelS13(this)"/>
