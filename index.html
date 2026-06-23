@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Portal de Auditoría RATIONAL · Servindustrial</title>
 <style>
@@ -164,6 +167,7 @@ textarea.fc{resize:vertical;line-height:1.5;}
 @media(max-width:768px){.sb{width:190px;}.fr,.fr3{grid-template-columns:1fr;}.mad-grid{grid-template-columns:repeat(3,1fr);}}
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
@@ -734,7 +738,7 @@ function renderFlowChart(text){
   let i=0;
   while(i<lines.length){
     const line=lines[i];
-    const stepM=line.match(/^(\d+)\.\s+(.+)/);
+    const stepM=line.match(/^(\d+)\.\s*[-–]?\s*(.+)/);
     if(stepM){
       const num=stepM[1],txt=stepM[2];
       const isDec=txt.startsWith('¿')||txt.includes('?');
@@ -779,9 +783,45 @@ function rDoc(){const a=CAO;const d=SD[CA]&&SD[CA].doc?SD[CA].doc:a;
   <div class="fr"><div class="fg"><label class="fl">Responsable</label><input class="fc" id="fo" value="${esc(d.flow_owner)}"/></div>
   <div class="fg"><label class="fl">Frecuencia</label><select class="fc" id="ff">${['','Diaria','Semanal','Mensual','Trimestral','Por evento','Continua'].map(f=>`<option ${d.flow_freq===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
   <div id="fc-diagram">${renderFlowChart(d.flow_steps)}</div>
-  <details style="margin:8px 0;"><summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:4px 0;">✏ Editar pasos del flujo</summary>
-    <textarea class="fc" id="fst" rows="6" style="margin-top:6px;" oninput="(function(v){const el=document.getElementById('fc-diagram');if(el)el.innerHTML=renderFlowChart(v);})(this.value)">${esc(d.flow_steps)}</textarea>
-    <button class="btn btn-p" style="margin-top:6px;font-size:11px;padding:5px 12px;" onclick="(function(){const el=document.getElementById('fc-diagram');const ta=document.getElementById('fst');if(el&&ta)el.innerHTML=renderFlowChart(ta.value);})()">🔄 Actualizar diagrama de flujo</button>
+  <details style="margin:8px 0;" id="fst-details"><summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:4px 0;">✏ Editar pasos del flujo</summary>
+    <div style="margin:8px 0 10px;padding:10px 12px;background:#f0f7ff;border-radius:8px;border:1px solid #90caf9;">
+      <div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:6px;">💡 Cómo editar el diagrama</div>
+      <ul style="margin:0;padding-left:16px;font-size:11px;color:#555;line-height:1.9;">
+        <li><strong>＋ Paso</strong> — agrega el siguiente número automáticamente; edita el texto directo</li>
+        <li><strong>＋ Decisión</strong> — agrega bloque <code>¿Pregunta?</code> con ramas SÍ/NO</li>
+        <li><strong>✕ Quitar último</strong> — elimina la última línea</li>
+        <li>El diagrama se actualiza <strong>en tiempo real</strong> conforme escribes</li>
+        <li>Al terminar presiona <strong>💾 Guardar documento</strong></li>
+      </ul>
+    </div>
+    <textarea class="fc" id="fst" rows="8" style="font-size:12px;" oninput="(function(v){const el=document.getElementById('fc-diagram');if(el)el.innerHTML=renderFlowChart(v);})(this.value)">${esc(d.flow_steps)}</textarea>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+      <button class="btn" style="font-size:11px;padding:5px 12px;background:#e8f5e9;border:1px solid #a5d6a7;color:#2e7d32;font-weight:700;" onclick="(function(){
+        const ta=document.getElementById('fst');if(!ta)return;
+        const lines=ta.value.split('\\n').map(l=>l.trim()).filter(l=>l);
+        const nums=lines.map(l=>{const m=l.match(/^(\\d+)\\./);return m?Number(m[1]):0;});
+        const next=(Math.max(0,...nums)+1);
+        ta.value=(ta.value.trim()?ta.value.trimEnd()+'\\n':'')+next+'. Nuevo paso';
+        ta.dispatchEvent(new Event('input'));ta.focus();
+        const pos=ta.value.length;ta.setSelectionRange(pos-'Nuevo paso'.length,pos);
+      })()">＋ Paso</button>
+      <button class="btn" style="font-size:11px;padding:5px 12px;background:#fff3e0;border:1px solid #ffcc80;color:#e65100;font-weight:700;" onclick="(function(){
+        const ta=document.getElementById('fst');if(!ta)return;
+        const lines=ta.value.split('\\n').map(l=>l.trim()).filter(l=>l);
+        const nums=lines.map(l=>{const m=l.match(/^(\\d+)\\./);return m?Number(m[1]):0;});
+        const next=(Math.max(0,...nums)+1);
+        const blk='\\n'+next+'. ¿Pregunta de decisión?\\n   - SÍ: Acción si sí\\n   - NO: Acción si no';
+        ta.value=(ta.value.trim()?ta.value.trimEnd():'')+blk;
+        ta.dispatchEvent(new Event('input'));ta.focus();
+      })()">＋ Decisión</button>
+      <button class="btn" style="font-size:11px;padding:5px 12px;background:#fff;border:1px solid var(--brd);color:var(--tx3);" onclick="(function(){
+        const ta=document.getElementById('fst');if(!ta)return;
+        const lines=ta.value.split('\\n');
+        ta.value=lines.slice(0,-1).join('\\n');
+        ta.dispatchEvent(new Event('input'));
+      })()">✕ Quitar último</button>
+      <button class="btn btn-p" style="margin-left:auto;font-size:11px;padding:5px 12px;" onclick="(function(){const el=document.getElementById('fc-diagram');const ta=document.getElementById('fst');if(el&&ta)el.innerHTML=renderFlowChart(ta.value);})()">🔄 Actualizar</button>
+    </div>
   </details>
   <div class="fr"><div class="fg"><label class="fl">Sistemas / herramientas</label><input class="fc" id="ftl" value="${esc(d.flow_tools)}"/></div>
   <div class="fg"><label class="fl">Código diagrama</label><input class="fc" id="ff2" value="${esc(d.flow_file)}"/></div></div>
@@ -3840,6 +3880,346 @@ function renderEncuestas31(){
         ${filtered.length>100?`<div style="padding:8px 14px;font-size:11px;color:var(--tx3);">Mostrando 100 de ${filtered.length}. Usa el buscador para filtrar.</div>`:''}
       </div>
     </details>`:`<div style="padding:30px;text-align:center;border:1.5px dashed var(--brd);border-radius:8px;color:var(--tx3);font-size:12px;">Carga el Excel de Encuestas para ver los datos.</div>`}
+  </div>`+renderEncR31Section();
+}
+function getEncR31(){
+  if(!YZD[CY][CZ]['3.1'])YZD[CY][CZ]['3.1']={};
+  if(!YZD[CY][CZ]['3.1'].encR)YZD[CY][CZ]['3.1'].encR=[];
+  return YZD[CY][CZ]['3.1'].encR;
+}
+function delEncR31(id){
+  if(!confirm('¿Eliminar esta encuesta?'))return;
+  const arr=getEncR31();const idx=arr.findIndex(r=>r.id===id);
+  if(idx<0)return;arr.splice(idx,1);saveData();renderMain(CT);
+}
+function attachPdfEncR31(id,input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>1048576){toast('⚠ PDF muy grande — máx 1 MB');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rec=getEncR31().find(r=>r.id===id);if(!rec)return;
+    rec.pdf=e.target.result;rec.pdfNombre=file.name;
+    try{saveData();toast('✅ PDF adjuntado');renderMain(CT);}
+    catch(ex){rec.pdf='';rec.pdfNombre='';toast('❌ PDF demasiado grande');}
+  };
+  reader.readAsDataURL(file);
+}
+function viewPdfEncR31(id){
+  const rec=getEncR31().find(r=>r.id===id);
+  if(!rec||!rec.pdf){toast('Sin PDF adjunto');return;}
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><body style="margin:0;"><embed src="${rec.pdf}" type="application/pdf" width="100%" height="100%" style="height:100vh;"/></body></html>`);
+}
+function saveEncR31(){
+  const rad=n=>{const e=document.querySelector(`input[name="${n}"]:checked`);return e?e.value:null;};
+  const val=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+  const satisfaccion=rad('er31-sat');
+  const nps=rad('er31-nps');
+  if(!satisfaccion){toast('⚠ Selecciona la satisfacción (P2)');return;}
+  if(nps===null){toast('⚠ Selecciona el NPS (P4)');return;}
+  const rec={
+    id:Date.now(),
+    satisfaccion:Number(satisfaccion),
+    comentario:val('er31-com'),
+    nps:Number(nps),
+    ftf:rad('er31-ftf'),
+    diasResolucion:val('er31-dias')?Number(val('er31-dias')):null,
+    tiempoEsperado:rad('er31-texp'),
+    empresaServicio:val('er31-empresa'),
+    equipo:rad('er31-equipo'),
+    fechaResolucion:val('er31-fecha'),
+    garantia:rad('er31-gar'),
+    aceptaContacto:rad('er31-acp'),
+    nombre:val('er31-nombre'),
+    establecimiento:val('er31-estab'),
+    ciudad:val('er31-ciudad'),
+    contacto:val('er31-contacto'),
+    pdf:'',pdfNombre:'',
+    creadoEn:new Date().toISOString()
+  };
+  const doSave=()=>{
+    const arr=getEncR31();arr.unshift(rec);
+    try{
+      saveData();
+      const mo=document.getElementById('er31-modal');if(mo)mo.remove();
+      if(window._er31ObjUrl){URL.revokeObjectURL(window._er31ObjUrl);window._er31ObjUrl=null;}
+      window._er31PdfFile=null;
+      toast('✅ Encuesta guardada');renderMain(CT);
+    }catch(ex){arr.shift();toast('❌ Error al guardar: '+ex.message);}
+  };
+  const pdfF=window._er31PdfFile||null;
+  if(pdfF){const rd=new FileReader();rd.onload=e=>{rec.pdf=e.target.result;rec.pdfNombre=pdfF.name;doSave();};rd.readAsDataURL(pdfF);}
+  else doSave();
+}
+async function parseSurveyPdf(file){
+  if(typeof pdfjsLib==='undefined')return{};
+  try{
+    if(!pdfjsLib.GlobalWorkerOptions.workerSrc)
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const ab=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(ab)}).promise;
+    const result={};
+    // Try AcroForm fields first (interactive PDF)
+    try{
+      const fields=await pdf.getFieldObjects();
+      if(fields){
+        for(const[name,arr2] of Object.entries(fields)){
+          const f=Array.isArray(arr2)?arr2[0]:arr2;
+          const v=f&&(f.value!==undefined&&f.value!==null&&f.value!=='')?f.value:null;
+          if(v===null)continue;
+          const nm=name.toLowerCase();
+          if(nm.includes('satisf'))result.satisfaccion=isNaN(Number(v))?null:Number(v);
+          else if(nm.includes('comment')||nm.includes('q3')||nm.includes('anotacion'))result.comentario=String(v);
+          else if(nm.includes('nps')||nm.includes('probabilidad')||nm.includes('q4'))result.nps=isNaN(Number(v))?null:Number(v);
+          else if(nm.includes('primera')||nm.includes('ftf')||nm.includes('q5'))result.ftf=String(v);
+          else if(nm.includes('dias')||nm.includes('tiempo')||nm.includes('q6'))result.diasResolucion=isNaN(Number(v))?null:Number(v);
+          else if(nm.includes('esperab')||nm.includes('q7'))result.tiempoEsperado=String(v);
+          else if(nm.includes('empresa')||nm.includes('q8'))result.empresaServicio=String(v);
+          else if(nm.includes('equipo')||nm.includes('q9'))result.equipo=String(v);
+          else if(nm.includes('fecha')||nm.includes('q10'))result.fechaResolucion=String(v);
+          else if(nm.includes('garantia')||nm.includes('q11'))result.garantia=String(v);
+          else if(nm.includes('contactado')||nm.includes('q12'))result.aceptaContacto=String(v);
+          else if(nm.includes('nombre'))result.nombre=String(v);
+          else if(nm.includes('establec')||nm.includes('empresa'))result.establecimiento=String(v);
+          else if(nm.includes('ciudad'))result.ciudad=String(v);
+          else if(nm.includes('email')||nm.includes('telefono')||nm.includes('tel'))result.contacto=String(v);
+        }
+        if(Object.keys(result).length>=2)return result;
+      }
+    }catch(e){}
+    // Fallback: full text extraction
+    let txt='';
+    for(let i=1;i<=pdf.numPages;i++){
+      const pg=await pdf.getPage(i);
+      const tc=await pg.getTextContent();
+      txt+=tc.items.map(it=>it.str).join(' ')+'\n';
+    }
+    const find=(re)=>{const m=txt.match(re);return m?m[1].trim():null;};
+    const fDate=s=>{if(!s)return'';const p=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);return p?`${p[3]}-${p[2].padStart(2,'0')}-${p[1].padStart(2,'0')}`:s;};
+    const rNombre=find(/Nombre[:\s]+([A-Za-záéíóúñÁÉÍÓÚÑ][^\n]{2,50}?)(?:Empresa|Estableci|Ciudad|E-mail|$)/i);
+    if(rNombre)result.nombre=rNombre;
+    const rEstab=find(/(?:Empresa|Establecimiento)[:\s\/]+([^\n]{2,60}?)(?:Ciudad|E-mail|$)/i);
+    if(rEstab)result.establecimiento=rEstab;
+    const rCiudad=find(/Ciudad[^:]*?[:\s]+([^\n]{2,40}?)(?:E-mail|Tel|$)/i);
+    if(rCiudad)result.ciudad=rCiudad;
+    const rEmail=find(/(?:E-mail|Tel[eé]fono)[:\s\/]+([^\n]{3,60})/i);
+    if(rEmail)result.contacto=rEmail;
+    const rEmpresa=find(/empresa de servicio[^\n]{0,20}?RATIONAL[^\n]*?[:\s]+([A-Za-záéíóúñ][^\n]{2,50})/i);
+    if(rEmpresa)result.empresaServicio=rEmpresa;
+    const rFecha=find(/fecha[^\n]{0,30}?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i);
+    if(rFecha)result.fechaResolucion=fDate(rFecha);
+    return result;
+  }catch(e){console.warn('parseSurveyPdf error',e);return{};}
+}
+function showAddEncR31(){
+  if(document.getElementById('er31-modal'))return;
+  window._er31PdfFile=null;window._er31ObjUrl=null;
+  const ov=document.createElement('div');
+  ov.id='er31-modal';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;';
+  ov.innerHTML=`<div style="background:#fff;border-radius:14px;width:100%;max-width:460px;padding:36px 28px;text-align:center;position:relative;">
+    <button onclick="document.getElementById('er31-modal').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:#bbb;">✕</button>
+    <div style="font-size:36px;margin-bottom:10px;">📋</div>
+    <div style="font-size:16px;font-weight:800;color:#1565c0;margin-bottom:6px;">Registrar Encuesta RATIONAL</div>
+    <div style="font-size:12px;color:#888;margin-bottom:28px;">Sube el PDF — el portal leerá los datos automáticamente para que los valides y guardes</div>
+    <label style="display:inline-flex;align-items:center;gap:8px;padding:14px 24px;background:#1565c0;color:#fff;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">
+      📎 Subir PDF de encuesta
+      <input type="file" accept="application/pdf" style="display:none;"
+        onchange="if(!this.files[0])return;if(this.files[0].size>1048576){toast('⚠ PDF muy grande — máx 1 MB');this.value='';return;}document.getElementById('er31-modal').remove();showEncR31FromPdf(this.files[0]);"/>
+    </label>
+    <div style="margin-top:14px;">
+      <button onclick="document.getElementById('er31-modal').remove();showEncR31Form(null,{},null);" style="background:none;border:none;color:#1565c0;font-size:12px;cursor:pointer;text-decoration:underline;">Registrar sin PDF</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+async function showEncR31FromPdf(file){
+  const ld=document.createElement('div');
+  ld.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  ld.innerHTML='<div style="background:#fff;padding:24px 32px;border-radius:12px;font-size:14px;font-weight:700;color:#1565c0;display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⏳</span> Leyendo encuesta…</div>';
+  document.body.appendChild(ld);
+  const data=await parseSurveyPdf(file);
+  ld.remove();
+  const objUrl=URL.createObjectURL(file);
+  window._er31ObjUrl=objUrl;
+  showEncR31Form(objUrl,data,file);
+}
+function showEncR31Form(pdfUrl,prefill,pdfFile){
+  if(document.getElementById('er31-modal'))document.getElementById('er31-modal').remove();
+  window._er31PdfFile=pdfFile||null;
+  const p=prefill||{};
+  const SAT_CLR=['','#c62828','#e65100','#f9a825','#43a047','#2e7d32'];
+  const satLbl=['','Nada','Poco','Satisfecho','Muy','Extremad.'];
+  const mkSatBtn=v=>{const sel=p.satisfaccion===v;return`<label style="flex:1;cursor:pointer;text-align:center;"><input type="radio" name="er31-sat" value="${v}" ${sel?'checked':''} style="display:none;" onchange="document.querySelectorAll('.er31sb').forEach(d=>{d.style.borderColor='#e0e0e0';d.style.color='#888';d.style.background='#fff';});this.nextElementSibling.style.borderColor='${SAT_CLR[v]}';this.nextElementSibling.style.color='${SAT_CLR[v]}';this.nextElementSibling.style.background='#fafafa';"><div class="er31sb" style="border:2px solid ${sel?SAT_CLR[v]:'#e0e0e0'};border-radius:8px;padding:8px 2px;font-size:14px;font-weight:800;color:${sel?SAT_CLR[v]:'#888'};background:${sel?'#fafafa':'#fff'};cursor:pointer;">${v}<br><span style="font-size:9px;font-weight:400;">${satLbl[v]}</span></div></label>`;};
+  const npsClr=v=>v<=6?'#c62828':v<=8?'#e65100':'#2e7d32';
+  const npsBg=v=>v<=6?'#ffebee':v<=8?'#fff3e0':'#e8f5e9';
+  const mkNpsBtn=v=>{const sel=p.nps===v;return`<label style="cursor:pointer;text-align:center;flex:1;min-width:0;"><input type="radio" name="er31-nps" value="${v}" ${sel?'checked':''} style="display:none;" onchange="document.querySelectorAll('.er31nb').forEach(d=>{d.style.borderColor='#e0e0e0';d.style.background='#fff';});this.nextElementSibling.style.borderColor='${npsClr(v)}';this.nextElementSibling.style.background='${npsBg(v)}';"><div class="er31nb" style="border:1.5px solid ${sel?npsClr(v):'#e0e0e0'};border-radius:6px;padding:6px 1px;font-size:12px;font-weight:700;color:${npsClr(v)};background:${sel?npsBg(v):'#fff'};cursor:pointer;">${v}</div></label>`;};
+  const rp=(name,val)=>`<label style="margin-right:14px;cursor:pointer;font-size:12px;"><input type="radio" name="${name}" value="Si" ${val==='Si'?'checked':''}> Sí</label><label style="cursor:pointer;font-size:12px;"><input type="radio" name="${name}" value="No" ${val==='No'?'checked':''}> No</label>`;
+  const inp=(id,v,ph,type='text')=>`<input id="${id}" type="${type}" value="${esc(String(v!=null?v:''))}" placeholder="${ph}" style="width:100%;box-sizing:border-box;border:1px solid #e0e0e0;border-radius:8px;padding:6px 10px;font-size:12px;">`;
+  const formHtml=`
+    <div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:6px;">P2. Satisfacción con la visita <span style="color:#c62828;">*</span></div>
+    <div style="display:flex;gap:5px;margin-bottom:14px;">${[1,2,3,4,5].map(mkSatBtn).join('')}</div>
+    <div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:4px;">P3. Positivo / negativo de la visita</div>
+    <textarea id="er31-com" rows="2" style="width:100%;box-sizing:border-box;border:1px solid #e0e0e0;border-radius:8px;padding:8px;font-size:12px;resize:vertical;margin-bottom:14px;font-family:inherit;">${esc(p.comentario||'')}</textarea>
+    <div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:6px;">P4. Probabilidad de recomendar (0–10) <span style="color:#c62828;">*</span></div>
+    <div style="display:flex;gap:2px;margin-bottom:2px;">${[0,1,2,3,4,5,6,7,8,9,10].map(mkNpsBtn).join('')}</div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#bbb;margin-bottom:14px;"><span>Sin ninguna</span><span>Total probabilidad</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div><div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:5px;">P5. ¿Resuelta en primera visita?</div>${rp('er31-ftf',p.ftf)}</div>
+      <div><div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:5px;">P6. Días de resolución</div>${inp('er31-dias',p.diasResolucion,'Ej: 3','number')}</div>
+      <div><div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:5px;">P7. ¿En el tiempo esperado?</div>${rp('er31-texp',p.tiempoEsperado)}</div>
+      <div><div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:5px;">P8. Empresa de servicio</div>${inp('er31-empresa',p.empresaServicio||'','Ej: Serv Industrial')}</div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:6px;">P9. Tipo de equipo</div>
+    <div style="display:flex;gap:14px;margin-bottom:14px;">
+      <label style="cursor:pointer;font-size:12px;"><input type="radio" name="er31-equipo" value="Vaporizador Combinado" ${p.equipo==='Vaporizador Combinado'?'checked':''}> Vaporizador Combinado</label>
+      <label style="cursor:pointer;font-size:12px;"><input type="radio" name="er31-equipo" value="VarioCookingCenter®" ${p.equipo==='VarioCookingCenter®'?'checked':''}> VarioCookingCenter®</label>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div><div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:5px;">P10. Fecha resolución</div>${inp('er31-fecha',p.fechaResolucion||'','','date')}</div>
+      <div><div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:5px;">P11. ¿Garantía?</div><div style="padding-top:4px;">${rp('er31-gar',p.garantia)}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:5px;">P12. ¿Acepta contacto?</div><div style="padding-top:4px;">${rp('er31-acp',p.aceptaContacto)}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:7px;">P13. Datos de contacto</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      ${inp('er31-nombre',p.nombre||'','Nombre')} ${inp('er31-estab',p.establecimiento||'','Empresa / Establecimiento')}
+      ${inp('er31-ciudad',p.ciudad||'','Ciudad / C.P.')} ${inp('er31-contacto',p.contacto||'','E-mail / Teléfono')}
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveEncR31()" style="flex:1;padding:11px;background:#1565c0;color:#fff;border:none;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;">💾 Guardar encuesta</button>
+      <button onclick="const mo=document.getElementById('er31-modal');if(mo)mo.remove();if(window._er31ObjUrl){URL.revokeObjectURL(window._er31ObjUrl);window._er31ObjUrl=null;}window._er31PdfFile=null;" style="padding:11px 18px;background:#f0f0f0;color:#666;border:none;border-radius:9px;cursor:pointer;font-size:13px;">Cancelar</button>
+    </div>`;
+  const ov=document.createElement('div');
+  ov.id='er31-modal';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;box-sizing:border-box;';
+  if(pdfUrl){
+    ov.innerHTML=`<div style="background:#fff;border-radius:14px;width:100%;max-width:980px;padding:18px;position:relative;margin:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div><div style="font-size:14px;font-weight:800;color:#1565c0;">📋 Registrar Encuesta RATIONAL</div>
+          <div style="font-size:11px;color:#aaa;">${Object.keys(prefill||{}).filter(k=>prefill[k]!=null&&prefill[k]!=='').length} campo(s) detectados del PDF · Valida y guarda</div></div>
+        <button onclick="const mo=document.getElementById('er31-modal');if(mo)mo.remove();if(window._er31ObjUrl){URL.revokeObjectURL(window._er31ObjUrl);window._er31ObjUrl=null;}window._er31PdfFile=null;" style="background:none;border:none;font-size:22px;cursor:pointer;color:#bbb;">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+        <div><div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:6px;">PDF de la encuesta</div>
+          <embed src="${pdfUrl}" type="application/pdf" style="width:100%;height:72vh;border-radius:8px;border:1px solid #e0e0e0;display:block;"/></div>
+        <div style="max-height:72vh;overflow-y:auto;padding-right:2px;">${formHtml}</div>
+      </div>
+    </div>`;
+  } else {
+    ov.innerHTML=`<div style="background:#fff;border-radius:14px;width:100%;max-width:640px;padding:22px 20px 18px;position:relative;margin:auto;">
+      <div style="font-size:15px;font-weight:800;color:#1565c0;margin-bottom:2px;">📋 Nueva Encuesta RATIONAL</div>
+      <div style="font-size:11px;color:#aaa;margin-bottom:16px;">Customer Satisfaction Survey</div>
+      <button onclick="const mo=document.getElementById('er31-modal');if(mo)mo.remove();" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:#bbb;">✕</button>
+      ${formHtml}
+    </div>`;
+  }
+  document.body.appendChild(ov);
+}
+function renderEncR31Section(){
+  const arr=getEncR31();
+  const grn='#2e7d32',org='#e65100',red='#c62828',azu='#1565c0';
+  const SAT_CLR=['','#c62828','#e65100','#f9a825','#43a047','#2e7d32'];
+  const SAT_LBL=['','Nada satisfecho','Poco satisfecho','Satisfecho','Muy satisfecho','Extremad. satisfecho'];
+  const npsClr=v=>v>=9?grn:v>=7?org:red;
+  const npsTag=v=>v>=9?'Promotor':v>=7?'Neutro':'Detractor';
+  const n=arr.length;
+  const hdrBtn=activeUserId===null?`<button onclick="showAddEncR31()" style="padding:8px 14px;background:${azu};color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;">＋ Agregar encuesta</button>`:'';
+  if(n===0)return`<div class="card" style="margin-top:10px;border:2px dashed #90caf9;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><div class="card-title" style="color:${azu};">📋 Encuestas RATIONAL · 2026</div>
+        <div style="font-size:11px;color:#aaa;">Registra las encuestas del formato RATIONAL (CSS)</div></div>
+      ${hdrBtn}
+    </div>
+    <div style="text-align:center;padding:20px 0 6px;color:#aaa;font-size:12px;">${activeUserId===null?'Sin encuestas registradas aún.':'El administrador debe registrar las encuestas RATIONAL.'}</div>
+  </div>`;
+  const prom=arr.filter(r=>r.nps>=9).length;
+  const det=arr.filter(r=>r.nps<=6).length;
+  const neut=arr.filter(r=>r.nps>=7&&r.nps<=8).length;
+  const npsScore=Math.round((prom-det)/n*100);
+  const npsScoreClr=npsScore>=50?grn:npsScore>=0?org:red;
+  const avgSat=Math.round(arr.reduce((s,r)=>s+(r.satisfaccion||0),0)/n*10)/10;
+  const satClr=avgSat>=4?grn:avgSat>=3?org:red;
+  const ftfArr=arr.filter(r=>r.ftf);
+  const ftfSi=arr.filter(r=>r.ftf==='Si').length;
+  const pctFtf=ftfArr.length?Math.round(ftfSi/ftfArr.length*100):null;
+  const texpArr=arr.filter(r=>r.tiempoEsperado);
+  const texpSi=arr.filter(r=>r.tiempoEsperado==='Si').length;
+  const pctTexp=texpArr.length?Math.round(texpSi/texpArr.length*100):null;
+  const satDist=[1,2,3,4,5].map(v=>arr.filter(r=>r.satisfaccion===v).length);
+  const maxSat=Math.max(...satDist,1);
+  const satBars=[1,2,3,4,5].map((v,i)=>{
+    const pct=Math.round(satDist[i]/n*100);
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <span style="font-size:10px;font-weight:700;color:${SAT_CLR[v]};min-width:120px;">${SAT_LBL[v]}</span>
+      <div style="flex:1;background:#f5f5f5;border-radius:4px;height:12px;"><div style="width:${satDist[i]/maxSat*100}%;height:100%;background:${SAT_CLR[v]};border-radius:4px;"></div></div>
+      <span style="font-size:10px;color:#888;min-width:48px;text-align:right;">${satDist[i]} (${pct}%)</span>
+    </div>`;
+  }).join('');
+  const trows=arr.map(r=>{
+    const pdfCell=r.pdf
+      ?`<button onclick="viewPdfEncR31(${r.id})" style="background:#e8f5e9;border:none;cursor:pointer;border-radius:6px;padding:3px 7px;font-size:10px;color:${grn};font-weight:700;">📄 Ver</button>`
+      :`<label style="cursor:pointer;background:#f5f5f5;border-radius:6px;padding:3px 7px;font-size:10px;color:#888;font-weight:700;" title="Adjuntar PDF">📎<input type="file" accept="application/pdf" style="display:none;" onchange="attachPdfEncR31(${r.id},this)"/></label>`;
+    const delBtn=activeUserId===null?`<button onclick="delEncR31(${r.id})" style="background:none;border:none;cursor:pointer;color:#e53935;font-size:14px;padding:2px 4px;">✕</button>`:'';
+    const tag=npsTag(r.nps);
+    const tagClr=tag==='Promotor'?grn:tag==='Neutro'?org:red;
+    return`<tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:5px 8px;font-size:11px;color:${azu};">${r.fechaResolucion||r.creadoEn.slice(0,10)}</td>
+      <td style="padding:5px 8px;text-align:center;"><span style="font-size:14px;font-weight:900;color:${SAT_CLR[r.satisfaccion]||'#888'};">${r.satisfaccion}</span><span style="font-size:9px;color:#aaa;"> /5</span></td>
+      <td style="padding:5px 8px;text-align:center;"><span style="font-size:12px;font-weight:700;color:${npsClr(r.nps)};">${r.nps}</span><br><span style="font-size:9px;font-weight:700;color:${tagClr};">${tag}</span></td>
+      <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:700;color:${r.ftf==='Si'?grn:r.ftf==='No'?red:'#aaa'};">${r.ftf||'—'}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:11px;color:var(--tx3);">${r.diasResolucion!=null?r.diasResolucion:'—'}</td>
+      <td style="padding:5px 8px;font-size:10px;color:var(--tx3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.equipo||'')}">${r.equipo||'—'}</td>
+      <td style="padding:5px 8px;text-align:center;">${pdfCell}</td>
+      <td style="padding:5px 8px;text-align:center;">${delBtn}</td>
+    </tr>`;
+  }).join('');
+  return`<div class="card" style="margin-top:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <div><div class="card-title" style="color:${azu};">📋 Encuestas RATIONAL · 2026</div>
+        <div style="font-size:11px;color:#aaa;">${n} encuesta${n!==1?'s':''} registrada${n!==1?'s':''}</div></div>
+      ${hdrBtn}
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="background:#e3f2fd;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px;">
+        <div style="font-size:9px;color:${azu};font-weight:700;text-transform:uppercase;margin-bottom:2px;">NPS Score</div>
+        <div style="font-size:28px;font-weight:900;color:${npsScoreClr};line-height:1.2;">${npsScore>=0?'+':''}${npsScore}</div>
+        <div style="font-size:9px;color:#888;">${prom}P · ${neut}N · ${det}D</div>
+      </div>
+      <div style="background:#e8f5e9;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px;">
+        <div style="font-size:9px;color:${grn};font-weight:700;text-transform:uppercase;margin-bottom:2px;">Satisfacción</div>
+        <div style="font-size:28px;font-weight:900;color:${satClr};line-height:1.2;">${avgSat}</div>
+        <div style="font-size:9px;color:#888;">de 5 · ${n} resp.</div>
+      </div>
+      ${pctFtf!==null?`<div style="background:#f3e5f5;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px;">
+        <div style="font-size:9px;color:#6a1b9a;font-weight:700;text-transform:uppercase;margin-bottom:2px;">FTF</div>
+        <div style="font-size:28px;font-weight:900;color:${pctFtf>=85?grn:pctFtf>=70?org:red};line-height:1.2;">${pctFtf}%</div>
+        <div style="font-size:9px;color:#888;">${ftfSi} / ${ftfArr.length}</div>
+      </div>`:''}
+      ${pctTexp!==null?`<div style="background:#fff3e0;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px;">
+        <div style="font-size:9px;color:${org};font-weight:700;text-transform:uppercase;margin-bottom:2px;">T. Esperado</div>
+        <div style="font-size:28px;font-weight:900;color:${pctTexp>=85?grn:pctTexp>=70?org:red};line-height:1.2;">${pctTexp}%</div>
+        <div style="font-size:9px;color:#888;">${texpSi} / ${texpArr.length}</div>
+      </div>`:''}
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Distribución de Satisfacción (P2)</div>
+      ${satBars}
+    </div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--brd);">
+      <table style="width:100%;border-collapse:collapse;min-width:500px;">
+        <thead><tr style="background:#e3f2fd;">
+          <th style="padding:7px 8px;font-size:10px;color:${azu};text-align:left;">Fecha</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;">Satisf.</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;">NPS</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;">FTF</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;">Días</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:left;">Equipo</th>
+          <th style="padding:7px 8px;font-size:10px;color:var(--tx3);text-align:center;">PDF</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${trows}</tbody>
+      </table>
+    </div>
   </div>`;
 }
 function rAction(){
@@ -4065,6 +4445,7 @@ function renderVisorStock13(){
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:flex-end;">
       <button onclick="exportS13()" style="padding:6px 12px;background:#fff;border:1px solid #1565c0;color:#1565c0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">📥 Descargar tabla</button>
+      <button onclick="showFmtInfo('1.3')" style="padding:6px 10px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
       ${activeUserId===null?`<button style="padding:6px 12px;background:#fff;border:1px solid #e53935;color:#e53935;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;" onclick="getS13().items=[];_s13Filtros={claseArt:'Todos',conStock:false,q:''};saveData();renderMain(CT);toast('🗑 Datos borrados')">🔄 Limpiar</button>`:''}
       ${activeUserId===null?`<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">
         📤 Cargar Excel<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelS13(this)"/>
@@ -4075,6 +4456,7 @@ function renderVisorStock13(){
     ${activeUserId===null?`<label style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--grn);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">
       📤 Cargar Excel NetSuite<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelS13(this)"/>
     </label>`:''}
+    <button onclick="showFmtInfo('1.3')" style="margin-top:8px;padding:6px 12px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;">? Formato</button>
   </div>`;
 
   const filt=getS13Filtered();

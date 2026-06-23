@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "Portal de Auditoría RATIONAL - Servindustrial",
   "scripts": {
-    "start": "serve . -l $PORT"
+    "start": "serve . -l 3000 --no-clipboard"
   },
   "dependencies": {
-    "serve": "^14.2.6"
+    "serve": "^14.2.6",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": ">=18"
