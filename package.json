@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Portal de Auditoría RATIONAL - Servindustrial",
   "scripts": {
-    "start": "serve . -l 3000 --no-clipboard"
+    "start": "serve . -l ${PORT:-3000}"
   },
   "dependencies": {
     "serve": "^14.2.6",
