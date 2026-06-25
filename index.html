@@ -278,7 +278,7 @@ function _fbSync(){
     const yzdStr=JSON.stringify(YZD);
     const sdStr=JSON.stringify(SD);
     const totalMB=((yzdStr.length+sdStr.length)/1048576).toFixed(1);
-    if(yzdStr.length>9*1048576){
+    if(yzdStr.length>14*1048576){
       _fbSyncStatus(false,'Datos demasiado grandes ('+totalMB+' MB) — reduce el tamaño de los PDFs adjuntos');
       toast('⚠ No se pudo guardar en la nube: '+totalMB+' MB supera el límite. Reduce los PDFs adjuntos.',5000);
       return;
