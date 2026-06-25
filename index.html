@@ -2500,6 +2500,7 @@ function loadExcelEnc31(input){
   reader.onload=e=>{
     try{
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      // Preferir hoja RATIONAL, luego BASE, luego primera
       const sheetName=wb.SheetNames.find(n=>n.toUpperCase()==='RATIONAL')||wb.SheetNames.find(n=>n.toUpperCase()==='BASE')||wb.SheetNames[0];
       const ws=wb.Sheets[sheetName];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
@@ -2523,46 +2524,66 @@ function loadExcelEnc31(input){
         comentarios:hdr.findIndex(h=>h.includes('comentarios')),
         equipo:hdr.findIndex(h=>h.includes('equipo')),
         nombre:hdr.findIndex(h=>h==='nombre'),
-        nombreTec:hdr.findIndex(h=>h==='nombre'&&hdr.lastIndexOf(h)!==hdr.findIndex(h2=>h2===h)?hdr.lastIndexOf(h):hdr.findIndex(h2=>h2==='nombre')),
       };
-      const osList=[];
-      rows.slice(2).forEach(r=>{
-        const osNum=ci.os>=0?r[ci.os]:null;
-        if(!osNum)return;
-        // Fecha: columna 'mes' o col 0
-        const fechaRaw=ci.fecha>=0?r[ci.fecha]:r[0];
-        let fecha='',mes=-1,año=CY;
-        if(fechaRaw instanceof Date||typeof fechaRaw==='object'&&fechaRaw){
-          const d=new Date(fechaRaw);
-          fecha=d.toISOString().slice(0,10);mes=d.getMonth();año=d.getFullYear();
-        } else if(fechaRaw&&typeof fechaRaw==='number'&&fechaRaw>40000){
-          const d=new Date(Math.round((fechaRaw-25569)*86400*1000));
-          fecha=d.toISOString().slice(0,10);mes=d.getMonth();año=d.getFullYear();
-        }
-        const cv=(idx)=>idx>=0&&idx<r.length?r[idx]:'';
-        const recNum=ci.recomienda>=0&&cv(ci.recomienda)!==''?Number(cv(ci.recomienda)):null;
-        let npsClass=ci.nps>=0?String(cv(ci.nps)).trim():'';
-        if(!npsClass&&recNum!==null){npsClass=recNum>=9?'Promotor':recNum>=7?'Neutro':'Detractor';}
-        const satScore=ci.satScore>=0&&cv(ci.satScore)!==''?Number(cv(ci.satScore)):null;
-        const encuestado=!!(recNum!==null||cv(ci.satTexto)||satScore!==null);
-        osList.push({
-          os:String(osNum),fecha,mes,año,
-          sucursal:String(cv(ci.suc)||'').trim(),
-          cliente:String(cv(ci.cliente)||'').trim(),
-          tipo:String(cv(ci.tipo)||'').trim(),
-          garantia:String(cv(ci.garantia)||'').trim(),
-          recomienda:recNum,nps:npsClass,
-          satScore,satTexto:String(cv(ci.satTexto)||'').trim(),
-          satEscrito:String(cv(ci.satEscrito)||'').trim(),
-          opinion:String(cv(ci.opinion)||'').trim(),
-          contacto:String(cv(ci.contacto)||'').trim(),
-          comentarios:String(cv(ci.comentarios)||'').trim(),
-          equipo:String(cv(ci.equipo)||'').trim(),
-          nombreCliente:String(cv(ci.nombre)||'').trim(),
-          nombreTec:'',
-          encuestado
+      const parseRows=(dataRows,colMap)=>{
+        const out=[];
+        dataRows.forEach(r=>{
+          const osNum=colMap.os>=0?r[colMap.os]:null;
+          if(!osNum||String(osNum).toUpperCase().includes('OS'))return;
+          const fechaRaw=colMap.fecha>=0?r[colMap.fecha]:r[0];
+          let fecha='',mes=-1,año=CY;
+          if(fechaRaw instanceof Date){const d=new Date(fechaRaw);fecha=d.toISOString().slice(0,10);mes=d.getMonth();año=d.getFullYear();}
+          else if(typeof fechaRaw==='string'&&fechaRaw.trim()){
+            const MES_ES={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11};
+            const m=MES_ES[fechaRaw.trim().toLowerCase()];
+            if(m!==undefined){mes=m;año=CY;}
+          }else if(typeof fechaRaw==='number'&&fechaRaw>40000){const d=new Date(Math.round((fechaRaw-25569)*86400*1000));fecha=d.toISOString().slice(0,10);mes=d.getMonth();año=d.getFullYear();}
+          const cv=(idx)=>idx>=0&&idx<r.length?r[idx]:'';
+          const recNum=colMap.recomienda>=0&&cv(colMap.recomienda)!==''&&!isNaN(Number(cv(colMap.recomienda)))?Number(cv(colMap.recomienda)):null;
+          let npsClass=colMap.nps>=0?String(cv(colMap.nps)).trim():'';
+          if(!npsClass&&recNum!==null){npsClass=recNum>=9?'Promotor':recNum>=7?'Neutro':'Detractor';}
+          const satTxt=colMap.satTexto>=0?String(cv(colMap.satTexto)||'').trim():'';
+          const satScore=colMap.satScore>=0&&cv(colMap.satScore)!==''?Number(cv(colMap.satScore)):null;
+          const encuestado=!!(recNum!==null||satTxt||satScore!==null);
+          out.push({os:String(osNum).replace(/^0+/,''),fecha,mes,año,
+            sucursal:String(cv(colMap.suc)||'').trim(),
+            cliente:String(cv(colMap.cliente)||'').trim(),
+            tipo:String(cv(colMap.tipo)||'').trim(),
+            garantia:String(cv(colMap.garantia)||'').trim(),
+            recomienda:recNum,nps:npsClass,
+            satScore,satTexto:satTxt,
+            satEscrito:String(cv(colMap.satEscrito>=0?colMap.satEscrito:-1)||'').trim(),
+            opinion:'',contacto:'',comentarios:'',equipo:'',nombreCliente:'',nombreTec:'',encuestado});
         });
-      });
+        return out;
+      };
+      const osList=parseRows(rows.slice(2),ci);
+      // Complementar con hoja Detalle1 si existe
+      const det1Name=wb.SheetNames.find(n=>n.toLowerCase().includes('detalle'));
+      if(det1Name){
+        const wsDet=wb.Sheets[det1Name];
+        const dRows=XLSX.utils.sheet_to_json(wsDet,{header:1,defval:''});
+        // Buscar fila de headers (tiene 'OS' o 'os')
+        let hdrIdx=dRows.findIndex(r=>r.some(v=>String(v).toUpperCase()==='OS'||String(v).toUpperCase()==='# OS'));
+        if(hdrIdx>=0){
+          const dHdr=dRows[hdrIdx].map(h=>String(h||'').toLowerCase().replace(/\s|\r|\n/g,''));
+          const dci={
+            fecha:dHdr.findIndex(h=>h.includes('mes')),
+            suc:dHdr.findIndex(h=>h.includes('sucursal')||h.includes('unidad')),
+            cliente:dHdr.findIndex(h=>h.includes('cliente')),
+            tipo:dHdr.findIndex(h=>h.includes('tipo')||h.includes('contrato')),
+            os:dHdr.findIndex(h=>h==='os'||h==='#os'),
+            garantia:dHdr.findIndex(h=>h.includes('garantia')||h.includes('garant')),
+            recomienda:dHdr.findIndex(h=>h.includes('recomienda')),
+            nps:-1,satScore:-1,
+            satTexto:dHdr.findIndex(h=>h.includes('satisfecho')||h.includes('satisfac')),
+            satEscrito:-1,
+          };
+          const detList=parseRows(dRows.slice(hdrIdx+1),dci);
+          const existOS=new Set(osList.map(r=>r.os));
+          detList.forEach(r=>{if(!existOS.has(r.os)){osList.push(r);}});
+        }
+      }
       if(!osList.length){toast('⚠ No se encontraron OS');return;}
       // Filtrar solo las filas que corresponden a la zona activa
       const MTY_KW=['noreste','heb','bajio','occidente'];
