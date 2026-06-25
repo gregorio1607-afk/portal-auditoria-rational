@@ -261,6 +261,7 @@ textarea.fc{resize:vertical;line-height:1.5;}
 // ── Firebase sync ────────────────────────────────────────────────────────────
 firebase.initializeApp({apiKey:"AIzaSyAiuFRHr0oWjbpSnQyELUygJdbE4rF3KZY",authDomain:"portal-auditoria-rational.firebaseapp.com",databaseURL:"https://portal-auditoria-rational-default-rtdb.firebaseio.com",projectId:"portal-auditoria-rational",storageBucket:"portal-auditoria-rational.firebasestorage.app",messagingSenderId:"929257938224",appId:"1:929257938224:web:1dec97c0a15705b496fcf5"});
 const _db=firebase.database();
+window._osKepler={};
 let _fbSyncTimer=null;
 let _fbLastOk=true;
 function _fbSyncStatus(ok,msg){
@@ -312,6 +313,11 @@ async function _fbLoad(){
     renderAcc();if(VM==='area'&&CA)renderMain(CT);
     toast('☁ Datos sincronizados');
   }catch(e){console.warn('FB load error',e);}
+  // Cargar datos OS Kepler (independiente del resto)
+  try{
+    const snapK=await _db.ref('v1/os_kepler').get();
+    if(snapK.exists()){window._osKepler=snapK.val()||{};}
+  }catch(e){console.warn('FB os_kepler load error',e);}
 }
 // Sucursales excluidas de todos los filtros de visores
 const SUC_BLOQUEADAS_GLOBAL=['admin','kitchen lab','kl','si ks','subcontratad','corporativ','plato limpio','bongard'];
@@ -1296,7 +1302,23 @@ function renderFTFDetalleOS(){
   const clr=pct===null?'var(--tx3)':pct>=85?'#2e7d52':pct>=70?'#b8690a':'#c62828';
   const rows=os.map((r,i)=>{
     const isFtf=r.ftf==='F.T.F.';
-    return`<tr style="border-bottom:1px solid #f0f4f1;">
+    const osKey=String(r.os||'').replace(/^0+/,'');
+    const k=window._osKepler&&window._osKepler[osKey];
+    const badge=(v,lbl,bgOn,txOn)=>v==='SI'?`<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:${bgOn};color:${txOn};font-weight:700;">${lbl}</span>`:'';
+    const kLabel=k?`<tr><td colspan="8" style="padding:3px 10px 8px 28px;background:#fafcfb;border-bottom:1px solid #e8f0eb;">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;">
+        ${k.falla?`<span style="font-size:10px;color:#555;background:#f3f3f3;padding:2px 8px;border-radius:6px;max-width:340px;word-break:break-word;">🔧 ${esc(k.falla)}</span>`:''}
+        ${k.status?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:#e3f2fd;color:#1565c0;font-weight:600;">${esc(k.status)}</span>`:''}
+        ${k.fechaUltProg?`<span style="font-size:10px;color:#777;white-space:nowrap;">📅 Últ.prog: ${esc(k.fechaUltProg)}</span>`:''}
+        ${badge(k.ti,'T.I.','#fff3e0','#e65100')}
+        ${badge(k.negCliente,'Neg.Cliente','#ffebee','#c62828')}
+        ${badge(k.negInterna,'Neg.Interna','#fce4ec','#ad1457')}
+        ${badge(k.desgaste,'Desgaste Natural','#f3e5f5','#6a1b9a')}
+        ${k.tarea?`<span style="font-size:10px;color:#2e7d32;background:#e8f5e9;padding:2px 8px;border-radius:6px;">✅ ${esc(k.tarea)}</span>`:''}
+        ${k.ultReporte?`<details style="width:100%;"><summary style="font-size:10px;color:#888;cursor:pointer;">Ver último reporte</summary><div style="font-size:10px;color:#555;padding:4px 0;white-space:pre-wrap;max-width:600px;">${esc(k.ultReporte)}</div></details>`:''}
+      </div>
+    </td></tr>`:'';
+    return`<tr style="border-bottom:${k?'none':'1px solid #f0f4f1'};">
       <td style="padding:5px 6px;font-size:11px;color:var(--tx3);text-align:center;">${i+1}</td>
       <td style="padding:5px 8px;font-size:12px;font-weight:700;white-space:nowrap;">${esc(r.os)}</td>
       <td style="padding:5px 8px;font-size:11px;">${esc(r.prospecto)}</td>
@@ -1305,7 +1327,7 @@ function renderFTFDetalleOS(){
       <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${esc(r.fechaAlta)}</td>
       <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;">${r.cantRep}</td>
       <td style="padding:5px 8px;text-align:center;"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${isFtf?'#e8f5ee':'#ffebee'};color:${isFtf?'#2e7d52':'#c62828'};">${r.ftf}</span></td>
-    </tr>`;
+    </tr>${kLabel}`;
   }).join('');
   return`<div id="ftf-detalle" class="card" style="margin-top:10px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">

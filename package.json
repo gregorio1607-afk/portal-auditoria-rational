@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Portal de Auditoría RATIONAL - Servindustrial",
   "scripts": {
-    "start": "serve . -l ${PORT:-3000}"
+    "start": "node server.js"
   },
   "dependencies": {
+    "mssql": "^10.0.4",
+    "node-cron": "^3.0.3",
     "serve": "^14.2.6",
     "xlsx": "^0.18.5"
   },
