@@ -73,29 +73,22 @@ function parseNetSuiteTable(html) {
 }
 
 async function syncNetSuite() {
-  if (!NS_EMAIL || !NS_PASSWORD) {
-    console.warn('[sync_ns] NS_EMAIL o NS_PASSWORD no configurados — omitiendo sync NetSuite');
+  if (!NS_EMAIL) {
+    console.warn('[sync_ns] NS_EMAIL no configurado — omitiendo sync NetSuite');
     return;
   }
   const start = Date.now();
   console.log(`[sync_ns] Iniciando sincronización NetSuite ${new Date().toISOString()}`);
 
   try {
-    // Intentar con webquery.nl usando hash (sin password)
+    // Autenticación por hash (del archivo .iqy) — no requiere contraseña
     const webQueryUrl = `https://${NS_ACCOUNT}.app.netsuite.com/app/reporting/webquery.nl` +
       `?compid=${NS_ACCOUNT}&entity=${NS_ENTITY}&email=${encodeURIComponent(NS_EMAIL)}&role=${NS_ROLE}&cr=${NS_CR}&hash=${NS_HASH}`;
 
-    let res = await fetchUrl(webQueryUrl);
-
-    // Si falla (requiere auth), usar NLAuth
-    if (res.status !== 200 || !res.body.includes('<table')) {
-      console.log('[sync_ns] webquery sin hash fallido, intentando NLAuth...');
-      const nlAuth = `NLAuth nlauth_account=${NS_ACCOUNT}, nlauth_email=${NS_EMAIL}, nlauth_signature=${NS_PASSWORD}, nlauth_role=${NS_ROLE}`;
-      res = await fetchUrl(webQueryUrl, { Authorization: nlAuth });
-    }
+    const res = await fetchUrl(webQueryUrl);
 
     if (res.status !== 200) {
-      console.error(`[sync_ns] HTTP ${res.status} — verifica credenciales NS_EMAIL y NS_PASSWORD`);
+      console.error(`[sync_ns] HTTP ${res.status} — verifica NS_EMAIL y NS_HASH`);
       return;
     }
 
