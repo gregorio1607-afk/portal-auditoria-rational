@@ -746,8 +746,8 @@ function renderResponsables(){
   </span>`;
   const calcZone=(zoneKey)=>kpiResp.map(k=>{
     const zd=((YZD[CY]||{})[zoneKey]||{})[k.id]||{};
-    const zdKpi=(YZD[CY]||{})[zoneKey]||{};
-    const dDoc=!!(zdKpi[k.id]?.saved);
+    const s=SD[k.id]||{};
+    const dDoc=!!(s.doc&&s.doc.saved);
     const dA3=!!(zd.action&&zd.action.saved);
     let dKpi=false;
     try{
