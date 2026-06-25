@@ -2500,37 +2500,41 @@ function loadExcelEnc31(input){
         nombre:hdr.findIndex(h=>h==='nombre'),
         nombreTec:hdr.findIndex(h=>h==='nombre'&&hdr.lastIndexOf(h)!==hdr.findIndex(h2=>h2===h)?hdr.lastIndexOf(h):hdr.findIndex(h2=>h2==='nombre')),
       };
-      // Fix: col 21 = NOMBRE (técnico), col 16 = Nombre (cliente)
       const osList=[];
       rows.slice(2).forEach(r=>{
-        const osNum=r[5]||r[ci.os];
+        const osNum=ci.os>=0?r[ci.os]:null;
         if(!osNum)return;
-        const fechaRaw=r[1]||r[0];
+        // Fecha: columna 'mes' o col 0
+        const fechaRaw=ci.fecha>=0?r[ci.fecha]:r[0];
         let fecha='',mes=-1,año=CY;
-        if(fechaRaw&&typeof fechaRaw==='number'&&fechaRaw>40000){
+        if(fechaRaw instanceof Date||typeof fechaRaw==='object'&&fechaRaw){
+          const d=new Date(fechaRaw);
+          fecha=d.toISOString().slice(0,10);mes=d.getMonth();año=d.getFullYear();
+        } else if(fechaRaw&&typeof fechaRaw==='number'&&fechaRaw>40000){
           const d=new Date(Math.round((fechaRaw-25569)*86400*1000));
           fecha=d.toISOString().slice(0,10);mes=d.getMonth();año=d.getFullYear();
         }
-        const recNum=r[7]!==''?Number(r[7]):null;
-        let npsClass=r[8]?String(r[8]).trim():'';
+        const cv=(idx)=>idx>=0&&idx<r.length?r[idx]:'';
+        const recNum=ci.recomienda>=0&&cv(ci.recomienda)!==''?Number(cv(ci.recomienda)):null;
+        let npsClass=ci.nps>=0?String(cv(ci.nps)).trim():'';
         if(!npsClass&&recNum!==null){npsClass=recNum>=9?'Promotor':recNum>=7?'Neutro':'Detractor';}
-        const satScore=r[9]!==''?Number(r[9]):null;
-        const encuestado=!!(recNum!==null||r[10]||satScore!==null);
+        const satScore=ci.satScore>=0&&cv(ci.satScore)!==''?Number(cv(ci.satScore)):null;
+        const encuestado=!!(recNum!==null||cv(ci.satTexto)||satScore!==null);
         osList.push({
           os:String(osNum),fecha,mes,año,
-          sucursal:String(r[2]||'').trim(),
-          cliente:String(r[3]||'').trim(),
-          tipo:String(r[4]||'').trim(),
-          garantia:String(r[6]||'').trim(),
+          sucursal:String(cv(ci.suc)||'').trim(),
+          cliente:String(cv(ci.cliente)||'').trim(),
+          tipo:String(cv(ci.tipo)||'').trim(),
+          garantia:String(cv(ci.garantia)||'').trim(),
           recomienda:recNum,nps:npsClass,
-          satScore,satTexto:String(r[10]||'').trim(),
-          satEscrito:String(r[11]||'').trim(),
-          opinion:String(r[12]||'').trim(),
-          contacto:String(r[13]||'').trim(),
-          comentarios:String(r[14]||'').trim(),
-          equipo:String(r[15]||'').trim(),
-          nombreCliente:String(r[16]||'').trim(),
-          nombreTec:String(r[21]||'').trim(),
+          satScore,satTexto:String(cv(ci.satTexto)||'').trim(),
+          satEscrito:String(cv(ci.satEscrito)||'').trim(),
+          opinion:String(cv(ci.opinion)||'').trim(),
+          contacto:String(cv(ci.contacto)||'').trim(),
+          comentarios:String(cv(ci.comentarios)||'').trim(),
+          equipo:String(cv(ci.equipo)||'').trim(),
+          nombreCliente:String(cv(ci.nombre)||'').trim(),
+          nombreTec:'',
           encuestado
         });
       });
