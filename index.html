@@ -1301,10 +1301,14 @@ function renderFTFDetalleOS(){
   const pct=os.length>0?Math.round(ftfC/os.length*1000)/10:null;
   const clr=pct===null?'var(--tx3)':pct>=85?'#2e7d52':pct>=70?'#b8690a':'#c62828';
   const rows=os.map((r,i)=>{
-    const isFtf=r.ftf==='F.T.F.';
     const osKey=String(r.os||'').replace(/^0+/,'');
     const k=window._osKepler&&window._osKepler[osKey];
     const badge=(v,lbl,bgOn,txOn)=>v==='SI'?`<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:${bgOn};color:${txOn};font-weight:700;">${lbl}</span>`:'';
+    const ftfBadge=r.ftf==='F.T.F.'
+      ?`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;">F.T.F.</span>`
+      :r.ftf==='N/A'
+      ?`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#f5f5f5;color:#757575;">N/A</span>`
+      :`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#ffebee;color:#c62828;">NO F.T.F.</span>`;
     const kLabel=k?`<tr><td colspan="8" style="padding:3px 10px 8px 28px;background:#fafcfb;border-bottom:1px solid #e8f0eb;">
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;">
         ${k.falla?`<span style="font-size:10px;color:#555;background:#f3f3f3;padding:2px 8px;border-radius:6px;max-width:340px;word-break:break-word;">🔧 ${esc(k.falla)}</span>`:''}
@@ -1326,7 +1330,7 @@ function renderFTFDetalleOS(){
       <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${esc(r.tecnico)}</td>
       <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${esc(r.fechaAlta)}</td>
       <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700;">${r.cantRep}</td>
-      <td style="padding:5px 8px;text-align:center;"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${isFtf?'#e8f5ee':'#ffebee'};color:${isFtf?'#2e7d52':'#c62828'};">${r.ftf}</span></td>
+      <td style="padding:5px 8px;text-align:center;">${ftfBadge}</td>
     </tr>${kLabel}`;
   }).join('');
   return`<div id="ftf-detalle" class="card" style="margin-top:10px;">
@@ -1527,8 +1531,10 @@ function renderVisorFTF(){
   // Tabla desglose OS siempre visible
   const osRows=osDesglose.length?osDesglose.map((r,i)=>{
     const isFtf=r.ftf==='F.T.F.';
-    const badge=isFtf
+    const badge=r.ftf==='F.T.F.'
       ?`<span style="padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;font-size:10px;font-weight:700;">F.T.F.</span>`
+      :r.ftf==='N/A'
+      ?`<span style="padding:2px 8px;border-radius:10px;background:#f5f5f5;color:#757575;font-size:10px;font-weight:700;">N/A</span>`
       :`<span style="padding:2px 8px;border-radius:10px;background:#fdecea;color:#c62828;font-size:10px;font-weight:700;">NO F.T.F.</span>`;
     const osKey=String(r.os||'').replace(/^0+/,'');
     const k=window._osKepler&&window._osKepler[osKey];
@@ -1728,7 +1734,7 @@ function loadExcelFTF(input){
         let ftfVal;
         if(ci.ftfCol>=0&&row[ci.ftfCol]){
           const rv=String(row[ci.ftfCol]).trim();
-          ftfVal=rv==='F.T.F.'?'F.T.F.':rv==='NO F.T.F.'?'NO F.T.F.':null;
+          ftfVal=rv==='F.T.F.'?'F.T.F.':rv==='NO F.T.F.'?'NO F.T.F.':rv==='N/A'?'N/A':null;
         }
         if(!ftfVal){
           if(cant===0){skip++;continue;}
