@@ -749,12 +749,11 @@ function renderResponsables(){
     {id:'6.5',name:'Digitalización',resp:'Gestión Estratégica'},
     {id:'6.6',name:'Subcontratistas',resp:'Gerente Sucursal'},
   ];
-  const rows=kpiResp.map(k=>{
-    const star=PRIO_IDS.has(k.id);
+  const rows=kpiResp.filter(k=>PRIO_IDS.has(k.id)).map(k=>{
     return`<div style="display:grid;grid-template-columns:52px 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f4f1;">
-      <span style="font-size:11px;font-weight:700;color:var(--tx2);">${star?'⭐ ':'&nbsp;&nbsp;&nbsp;'}${k.id}</span>
+      <span style="font-size:11px;font-weight:700;color:var(--tx2);">⭐ ${k.id}</span>
       <span style="font-size:12px;color:var(--tx);">${k.name}</span>
-      <span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;background:${star?'#e8f5ee':'#f5f5f5'};color:${star?'#2e7d52':'#555'};white-space:nowrap;">${k.resp}</span>
+      <span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;background:#e8f5ee;color:#2e7d52;white-space:nowrap;">${k.resp}</span>
     </div>`;
   }).join('');
   return`<div class="card">
