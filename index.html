@@ -2295,7 +2295,7 @@ function renderVisorCapacitacion13(){
     const certList=d.certs.length>0
       ?d.certs.map(c=>{window._certMap[c.id]=c;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
           <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
-          <a href="#" onclick="event.preventDefault();abrirCertData(${c.id})" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
+          <a href="${c.data}" download="${esc(c.nombre||'certificado')}" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
           <button onclick="delCertCap13(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
         </div>`;}).join('')
       :`<div style="font-size:11px;color:var(--tx3);padding:4px 0;">Sin certificados aún.</div>`;
@@ -2456,7 +2456,7 @@ function renderVisorMedicion12(){
         ${d.certs.length>0
           ?d.certs.map(c=>{window._certMap[c.id]=c;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
               <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
-              <a href="#" onclick="event.preventDefault();abrirCertData(${c.id})" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
+              <a href="${c.data}" download="${esc(c.nombre||'certificado')}" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
               <button onclick="delCertM12(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
             </div>`;}).join('')
           :`<div style="font-size:11px;color:var(--tx3);padding:6px 0;">Sin certificados aún.</div>`}
