@@ -12,7 +12,8 @@ const NS_ENTITY   = process.env.NS_ENTITY   || '29719';
 const NS_HASH     = process.env.NS_HASH     || 'AAEJ7tMQxHAjE3NhT3uQbIM2Q_jVjZGa3QC7vKcpa3ZzqcXGDDw';
 const NS_CR       = process.env.NS_CR       || '2738';
 
-const FIREBASE_URL = 'https://portal-auditoria-rational-default-rtdb.firebaseio.com/v1/os_netsuite.json';
+const FIREBASE_URL    = 'https://portal-auditoria-rational-default-rtdb.firebaseio.com/v1/os_netsuite.json';
+const FIREBASE_KEPLER = 'https://portal-auditoria-rational-default-rtdb.firebaseio.com/v1/os_kepler.json?shallow=true';
 
 function fetchUrl(urlStr, headers = {}) {
   return new Promise((resolve, reject) => {
@@ -142,9 +143,24 @@ async function syncNetSuite() {
       osMap[k].costoTotal = Math.round(osMap[k].costoTotal * 100) / 100;
     }
 
-    osMap._syncedAt = new Date().toISOString();
-    await firebasePut(osMap);
-    console.log(`[sync_ns] ✅ Firebase actualizado · ${Object.keys(osMap).length - 1} OS con refacciones · ${((Date.now()-start)/1000).toFixed(1)}s`);
+    // Filtrar solo OS que existen en os_kepler (RATIONAL) para no exceder límite Firebase
+    let keplerKeys = null;
+    try {
+      const kr = await fetchUrl(FIREBASE_KEPLER);
+      if (kr.status === 200) keplerKeys = new Set(Object.keys(JSON.parse(kr.body)));
+    } catch(e) { console.warn('[sync_ns] No se pudo obtener os_kepler keys:', e.message); }
+
+    const filtered = {};
+    for (const k of Object.keys(osMap)) {
+      if (!keplerKeys || keplerKeys.has(k)) filtered[k] = osMap[k];
+    }
+    const count = Object.keys(filtered).length;
+    console.log(`[sync_ns] Filtrando a OS RATIONAL: ${count} de ${Object.keys(osMap).length}`);
+
+    filtered._syncedAt = new Date().toISOString();
+    const putRes = await firebasePut(filtered);
+    console.log(`[sync_ns] Firebase PUT response (primeros 100): ${String(putRes).substring(0, 100)}`);
+    console.log(`[sync_ns] ✅ Firebase actualizado · ${count} OS con refacciones · ${((Date.now()-start)/1000).toFixed(1)}s`);
 
   } catch (err) {
     console.error('[sync_ns] ❌ Error:', err.message);
