@@ -1530,7 +1530,23 @@ function renderVisorFTF(){
     const badge=isFtf
       ?`<span style="padding:2px 8px;border-radius:10px;background:#e8f5ee;color:#2e7d52;font-size:10px;font-weight:700;">F.T.F.</span>`
       :`<span style="padding:2px 8px;border-radius:10px;background:#fdecea;color:#c62828;font-size:10px;font-weight:700;">NO F.T.F.</span>`;
-    return`<tr style="border-bottom:1px solid #f5f5f5;${i%2?'background:#fafafa':''}">
+    const osKey=String(r.os||'').replace(/^0+/,'');
+    const k=window._osKepler&&window._osKepler[osKey];
+    const kbadge=(v,lbl,bg,tx)=>v==='SI'?`<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:${bg};color:${tx};font-weight:700;">${lbl}</span>`:'';
+    const kLabel=k?`<tr><td colspan="8" style="padding:2px 10px 7px 26px;background:#fafcfb;border-bottom:1px solid #e8f0eb;">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
+        ${k.falla?`<span style="font-size:10px;color:#555;background:#f3f3f3;padding:2px 8px;border-radius:6px;max-width:360px;word-break:break-word;">🔧 ${esc(k.falla)}</span>`:''}
+        ${k.status?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:#e3f2fd;color:#1565c0;font-weight:600;">${esc(k.status)}</span>`:''}
+        ${k.fechaUltProg?`<span style="font-size:10px;color:#777;white-space:nowrap;">📅 ${esc(k.fechaUltProg)}</span>`:''}
+        ${kbadge(k.ti,'T.I.','#fff3e0','#e65100')}
+        ${kbadge(k.negCliente,'Neg.Cliente','#ffebee','#c62828')}
+        ${kbadge(k.negInterna,'Neg.Interna','#fce4ec','#ad1457')}
+        ${kbadge(k.desgaste,'Desgaste Natural','#f3e5f5','#6a1b9a')}
+        ${k.tarea?`<span style="font-size:10px;color:#2e7d32;background:#e8f5e9;padding:2px 8px;border-radius:6px;">✅ ${esc(k.tarea)}</span>`:''}
+        ${k.ultReporte?`<details style="margin-top:2px;width:100%;"><summary style="font-size:10px;color:#888;cursor:pointer;">Ver último reporte</summary><div style="font-size:10px;color:#555;padding:4px 0;white-space:pre-wrap;max-width:600px;">${esc(k.ultReporte)}</div></details>`:''}
+      </div>
+    </td></tr>`:'';
+    return`<tr style="border-bottom:${k?'none':'1px solid #f5f5f5'};${k?'':i%2?'background:#fafafa':''}">
       <td style="padding:5px 8px;font-size:11px;color:var(--tx3);">${i+1}</td>
       <td style="padding:5px 8px;font-size:12px;font-weight:700;color:var(--tx);">${r.os||'—'}</td>
       <td style="padding:5px 8px;font-size:11px;color:var(--tx2);">${r.prospecto||'—'}</td>
@@ -1539,7 +1555,7 @@ function renderVisorFTF(){
       <td style="padding:5px 8px;font-size:11px;color:var(--tx2);white-space:nowrap;">${r.fechaAlta||'—'}</td>
       <td style="padding:5px 8px;font-size:11px;text-align:center;color:var(--tx);">${r.cantRep}</td>
       <td style="padding:5px 8px;text-align:center;">${badge}</td>
-    </tr>`;
+    </tr>${kLabel}`;
   }).join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px;">Sin OS con los filtros seleccionados</td></tr>`;
 
   const desFtf=osDesglose.filter(r=>r.ftf==='F.T.F.').length;
