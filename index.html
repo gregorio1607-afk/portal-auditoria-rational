@@ -2466,7 +2466,7 @@ function renderVisorMedicion12(){
       <div><label style="font-size:10px;color:var(--tx3);font-weight:700;display:block;margin-bottom:2px;">REVISÓ</label>
         <input type="text" id="m12f_reviso" placeholder="Nombre" class="fc" style="font-size:11px;"/></div>
     </div>
-    <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+    <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_filtro" style="accent-color:var(--grn);"/> Filtro</label>
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_sonda" style="accent-color:var(--grn);"/> Sonda</label>
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="checkbox" id="m12f_funda" style="accent-color:var(--grn);"/> Funda</label>
@@ -2476,25 +2476,30 @@ function renderVisorMedicion12(){
         <input type="text" id="m12f_firma" placeholder="Nombre" class="fc" style="font-size:11px;width:160px;"/>
       </div>
     </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:10px;color:var(--tx3);font-weight:700;display:block;margin-bottom:2px;">COMENTARIOS</label>
+      <textarea id="m12f_comentarios" placeholder="Observaciones o notas del préstamo..." class="fc" rows="2" style="font-size:11px;width:100%;resize:vertical;"></textarea>
+    </div>
     <button onclick="(function(){
       const f=document.getElementById('m12f_fecha').value;
       const s=document.getElementById('m12f_serie').value;
       const rev=document.getElementById('m12f_reviso').value.trim();
       const fir=document.getElementById('m12f_firma').value.trim();
-      if(!f||!s){toast('Completa fecha y analizador');return;}
-      saveM12Bit({id:Date.now(),fecha:f,serie:s,
+      const com=document.getElementById('m12f_comentarios').value.trim();
+      if(!f){toast('Completa la fecha');return;}
+      saveM12Bit({id:Date.now(),fecha:f,serie:s||'—',
         filtro:document.getElementById('m12f_filtro').checked,
         sonda:document.getElementById('m12f_sonda').checked,
         funda:document.getElementById('m12f_funda').checked,
         equipo:document.getElementById('m12f_equipo').checked,
-        reviso:rev,firma:fir});
+        reviso:rev,firma:fir,comentarios:com});
       toast('✅ Registro guardado');
     })()" style="padding:6px 18px;background:var(--grn);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Guardar registro</button>
   </div>`;
 
   // Tabla bitácora
   const bit12Rows=bit.length===0
-    ?`<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros aún.</td></tr>`
+    ?`<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--tx3);font-size:12px;">Sin registros aún.</td></tr>`
     :bit.map((e,i)=>{
       const chk=v=>`<span style="font-size:12px;">${v?'✅':'⬜'}</span>`;
       return`<tr style="border-bottom:1px solid #f0f0f0;font-size:11px;">
@@ -2506,6 +2511,7 @@ function renderVisorMedicion12(){
         <td style="padding:4px 8px;text-align:center;">${chk(e.funda)}</td>
         <td style="padding:4px 8px;text-align:center;">${chk(e.equipo)}</td>
         <td style="padding:4px 8px;">${esc(e.reviso||'')}${e.firma?' / '+esc(e.firma):''}</td>
+        <td style="padding:4px 8px;color:var(--tx3);">${esc(e.comentarios||'')}</td>
         <td style="padding:4px 6px;text-align:center;"><button onclick="if(confirm('¿Eliminar?'))delM12Bit(${e.id})" style="font-size:10px;padding:2px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;">✕</button></td>
       </tr>`;
     }).join('');
@@ -2549,6 +2555,7 @@ function renderVisorMedicion12(){
         <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Funda</th>
         <th style="padding:5px 8px;font-size:10px;color:var(--tx3);text-align:center;">Equipo</th>
         <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Revisó / Firma</th>
+        <th style="padding:5px 8px;font-size:10px;color:var(--tx3);">Comentarios</th>
         <th style="padding:5px 6px;font-size:10px;color:var(--tx3);"></th>
       </tr></thead>
       <tbody>${bit12Rows}</tbody>
