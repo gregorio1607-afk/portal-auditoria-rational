@@ -2546,10 +2546,18 @@ function loadExcelEnc31(input){
         });
       });
       if(!osList.length){toast('⚠ No se encontraron OS');return;}
-      const enc=getEnc31();
-      enc.os=osList;
-      enc.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-      saveData();toast('✅ '+osList.length+' OS cargadas');renderMain(CT);
+      // Separar automáticamente por zona según Unidad Negocio
+      const MTY_KW=['noreste','heb','bajio','occidente'];
+      const isMTY=(suc)=>MTY_KW.some(k=>suc.toLowerCase().includes(k));
+      const osMTY=osList.filter(r=>isMTY(r.sucursal));
+      const osCDMX=osList.filter(r=>!isMTY(r.sucursal));
+      const prevCZ=CZ;
+      const now=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+      let msgs=[];
+      if(osMTY.length){CZ='MTY';const e=getEnc31();e.os=osMTY;e.updatedAt=now;msgs.push('MTY: '+osMTY.length);}
+      if(osCDMX.length){CZ='CDMX';const e=getEnc31();e.os=osCDMX;e.updatedAt=now;msgs.push('CDMX: '+osCDMX.length);}
+      CZ=prevCZ;
+      saveData();toast('✅ OS cargadas — '+msgs.join(' · '));renderMain(CT);
     }catch(ex){toast('❌ Error: '+ex.message);}
   };
   reader.readAsArrayBuffer(file);
