@@ -2144,10 +2144,12 @@ function renderVisorCapacitacion13(){
       <summary style="padding:10px 14px;cursor:pointer;user-select:none;background:var(--bg2);list-style:none;outline:none;font-size:13px;font-weight:700;color:var(--tx);">📊 Días vigentes por técnico</summary>
       <div style="overflow-x:auto;padding:10px 14px;">
         <svg viewBox="0 0 ${totalW} ${svgH}" width="100%" style="max-width:${totalW}px;display:block;">${bars}</svg>
-        <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap;">
+        <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap;align-items:center;">
           <span style="font-size:10px;color:${grn};font-weight:700;">■ Vigente</span>
           <span style="font-size:10px;color:${org};font-weight:700;">■ Por vencer ≤90d</span>
           <span style="font-size:10px;color:${red};font-weight:700;">■ Vencido</span>
+          <span style="font-size:10px;background:#e8f5ee;color:#2e7d32;font-weight:700;padding:2px 9px;border-radius:10px;margin-left:8px;">📎 Con cert: ${tecData.filter(d=>d.certs&&d.certs.length>0).length}</span>
+          <span style="font-size:10px;background:#ffebee;color:#c62828;font-weight:700;padding:2px 9px;border-radius:10px;">Sin cert: ${tecData.filter(d=>!d.certs||d.certs.length===0).length}</span>
         </div>
       </div>
     </details>`;
