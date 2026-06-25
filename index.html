@@ -734,33 +734,54 @@ function renderResponsables(){
     {id:'1.3',name:'Gestión de recambios',resp:'CDS'},
     {id:'2.1',name:'Plan de formación',resp:'IFCT'},
     {id:'3.1',name:'Satisfacción del cliente',resp:'Gerente Sucursal'},
-    {id:'3.2',name:'Atención telefónica',resp:'Gerente Sucursal'},
     {id:'3.3',name:'First Time Fix',resp:'Gerente Sucursal'},
     {id:'3.4',name:'Tiempo de resolución',resp:'Gerente Sucursal'},
-    {id:'4.1',name:'Información técnica',resp:'Gerente Sucursal'},
-    {id:'4.2',name:'Apoyo a RATIONAL',resp:'Gerente Sucursal'},
     {id:'4.3',name:'Informes ServiceCall',resp:'Gerente Sucursal'},
     {id:'4.4',name:'Instalación y Comisionado',resp:'Gerente Sucursal'},
-    {id:'5.1',name:'Necesidades de servicio',resp:'Gerente Sucursal'},
-    {id:'6.1',name:'Imagen corporativa',resp:'Gerente Sucursal'},
-    {id:'6.2',name:'Gestión de reclamaciones',resp:'Gerente Sucursal'},
-    {id:'6.3',name:'Gestión medioambiental',resp:'Gerente Sucursal'},
-    {id:'6.4',name:'Lealtad de empleados',resp:'RR.HH.'},
     {id:'6.5',name:'Digitalización',resp:'Gestión Estratégica'},
-    {id:'6.6',name:'Subcontratistas',resp:'Gerente Sucursal'},
   ];
-  const rows=kpiResp.filter(k=>PRIO_IDS.has(k.id)).map(k=>{
-    return`<div style="display:grid;grid-template-columns:52px 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f4f1;">
+  const dot=(ok,lbl)=>`<span title="${lbl}: ${ok?'✓':'✗'}" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:32px;">
+    <span style="width:10px;height:10px;border-radius:50%;background:${ok?'#4caf50':'#e0e0e0'};display:inline-block;"></span>
+    <span style="font-size:9px;color:${ok?'#2e7d52':'#aaa'};font-weight:700;">${lbl}</span>
+  </span>`;
+  const rows=kpiResp.map(k=>{
+    const zd=((YZD[CY]||{})[CZ]||{})[k.id]||{};
+    const prevCA=CA;CA=k.id;
+    const dDoc=!!(((YZD[CY]||{})[CZ]||{})[k.id]?.saved);
+    const dA3=!!(zd.action&&zd.action.saved);
+    let dKpi=false;
+    try{
+      if(k.id==='1.1'){dKpi=!!(getFtv()?.aud11UpdatedAt);}
+      else if(k.id==='2.1'){dKpi=(getM13Cap().tecnicos||[]).length>0;}
+      else if(k.id==='3.1'){dKpi=(getEnc31().os||[]).length>0;}
+      else if(k.id==='3.3'){dKpi=!!(getFtv()?.updatedAt);}
+      else if(k.id==='3.4'){dKpi=(getOS34().os||[]).length>0;}
+      else if(k.id==='4.3'){dKpi=(getCI43().os||[]).some(r=>!r.tipo||r.tipo.toLowerCase().includes('garant')||(!r.tipo.toLowerCase().includes('instal')&&!r.tipo.toLowerCase().includes('comis')));}
+      else if(k.id==='4.4'){dKpi=(getCI43().os||[]).some(r=>r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis')));}
+      else if(k.id==='1.3'){dKpi=(getS13().items||[]).length>0;}
+      else if(k.id==='6.5'){dKpi=(getD65().os||[]).length>0;}
+    }catch(e){}
+    CA=prevCA;
+    const pct=Math.round(([dDoc,dKpi,dA3].filter(Boolean).length/3)*100);
+    const barClr=pct===100?'#4caf50':pct>0?'#ff9800':'#e0e0e0';
+    return`<div style="display:grid;grid-template-columns:48px 1fr 130px 110px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f4f1;">
       <span style="font-size:11px;font-weight:700;color:var(--tx2);">⭐ ${k.id}</span>
-      <span style="font-size:12px;color:var(--tx);">${k.name}</span>
-      <span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;background:#e8f5ee;color:#2e7d52;white-space:nowrap;">${k.resp}</span>
+      <div>
+        <div style="font-size:12px;color:var(--tx);font-weight:600;">${k.name}</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+          <div style="flex:1;height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${barClr};border-radius:3px;transition:width .3s;"></div></div>
+          <span style="font-size:9px;font-weight:700;color:${barClr};">${pct}%</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;justify-content:center;">${dot(dDoc,'Doc')}${dot(dKpi,'KPI')}${dot(dA3,'A3')}</div>
+      <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:#e8f5ee;color:#2e7d52;text-align:center;">${k.resp}</span>
     </div>`;
   }).join('');
   return`<div class="card">
-    <div class="card-title" style="margin-bottom:4px;">👤 Responsables por KPI</div>
-    <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">⭐ KPIs principales de auditoría</div>
-    <div style="display:grid;grid-template-columns:52px 1fr auto;gap:6px;padding:3px 0;border-bottom:1px solid var(--brd);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">
-      <span>KPI</span><span>Punto de auditoría</span><span>Responsable</span>
+    <div class="card-title" style="margin-bottom:4px;">👤 Responsables por KPI · ${CZ==='MTY'?'Monterrey':'Ciudad de México'}</div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">Avance por los 3 requerimientos: Documentación · KPI cargado · Plan A3</div>
+    <div style="display:grid;grid-template-columns:48px 1fr 130px 110px;gap:8px;padding:3px 0;border-bottom:1px solid var(--brd);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">
+      <span>KPI</span><span>Punto de auditoría</span><span style="text-align:center;">Avance</span><span style="text-align:center;">Responsable</span>
     </div>
     ${rows}
   </div>`;
