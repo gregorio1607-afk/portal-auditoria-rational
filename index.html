@@ -744,47 +744,54 @@ function renderResponsables(){
     <span style="width:10px;height:10px;border-radius:50%;background:${ok?'#4caf50':'#e0e0e0'};display:inline-block;"></span>
     <span style="font-size:9px;color:${ok?'#2e7d52':'#aaa'};font-weight:700;">${lbl}</span>
   </span>`;
-  const rows=kpiResp.map(k=>{
-    const zd=((YZD[CY]||{})[CZ]||{})[k.id]||{};
-    const prevCA=CA;CA=k.id;
-    const dDoc=!!(((YZD[CY]||{})[CZ]||{})[k.id]?.saved);
+  const calcZone=(zoneKey)=>kpiResp.map(k=>{
+    const zd=((YZD[CY]||{})[zoneKey]||{})[k.id]||{};
+    const zdKpi=(YZD[CY]||{})[zoneKey]||{};
+    const dDoc=!!(zdKpi[k.id]?.saved);
     const dA3=!!(zd.action&&zd.action.saved);
     let dKpi=false;
     try{
-      if(k.id==='1.1'){dKpi=!!(getFtv()?.aud11UpdatedAt);}
-      else if(k.id==='2.1'){dKpi=(getM13Cap().tecnicos||[]).length>0;}
-      else if(k.id==='3.1'){dKpi=(getEnc31().os||[]).length>0;}
-      else if(k.id==='3.3'){dKpi=!!(getFtv()?.updatedAt);}
-      else if(k.id==='3.4'){dKpi=(getOS34().os||[]).length>0;}
-      else if(k.id==='4.3'){dKpi=(getCI43().os||[]).some(r=>!r.tipo||r.tipo.toLowerCase().includes('garant')||(!r.tipo.toLowerCase().includes('instal')&&!r.tipo.toLowerCase().includes('comis')));}
-      else if(k.id==='4.4'){dKpi=(getCI43().os||[]).some(r=>r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis')));}
-      else if(k.id==='1.3'){dKpi=(getS13().items||[]).length>0;}
-      else if(k.id==='6.5'){dKpi=(getD65().os||[]).length>0;}
+      const g=(id)=>((YZD[CY]||{})[zoneKey]||{})[id]||{};
+      if(k.id==='1.1'){dKpi=!!(g('1.1').ftv?.aud11UpdatedAt);}
+      else if(k.id==='2.1'){dKpi=(g('2.1').m13cap?.tecnicos||[]).length>0;}
+      else if(k.id==='3.1'){dKpi=(g('3.1').enc31?.os||[]).length>0;}
+      else if(k.id==='3.3'){dKpi=!!(g('3.3').ftv?.updatedAt);}
+      else if(k.id==='3.4'){dKpi=(g('3.4').os34?.os||[]).length>0;}
+      else if(k.id==='4.3'){dKpi=(g('4.3').ci43?.os||[]).some(r=>!r.tipo||r.tipo.toLowerCase().includes('garant')||(!r.tipo.toLowerCase().includes('instal')&&!r.tipo.toLowerCase().includes('comis')));}
+      else if(k.id==='4.4'){dKpi=(g('4.3').ci43?.os||[]).some(r=>r.tipo&&(r.tipo.toLowerCase().includes('instal')||r.tipo.toLowerCase().includes('comis')));}
+      else if(k.id==='1.3'){dKpi=(g('1.3').s13?.items||[]).length>0;}
+      else if(k.id==='6.5'){dKpi=(g('6.5').d65?.os||[]).length>0;}
+      else if(k.id==='1.2'){dKpi=!!(g('1.2').ftv?.aud12UpdatedAt||g('1.2').updatedAt);}
     }catch(e){}
-    CA=prevCA;
-    const pct=Math.round(([dDoc,dKpi,dA3].filter(Boolean).length/3)*100);
-    const barClr=pct===100?'#4caf50':pct>0?'#ff9800':'#e0e0e0';
-    return`<div style="display:grid;grid-template-columns:48px 1fr 130px 110px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f4f1;">
-      <span style="font-size:11px;font-weight:700;color:var(--tx2);">⭐ ${k.id}</span>
-      <div>
-        <div style="font-size:12px;color:var(--tx);font-weight:600;">${k.name}</div>
-        <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
-          <div style="flex:1;height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${barClr};border-radius:3px;transition:width .3s;"></div></div>
-          <span style="font-size:9px;font-weight:700;color:${barClr};">${pct}%</span>
+    return{k,dDoc,dKpi,dA3};
+  });
+  const renderTable=(zoneKey,label)=>{
+    const rows=calcZone(zoneKey).map(({k,dDoc,dKpi,dA3})=>{
+      const pct=Math.round(([dDoc,dKpi,dA3].filter(Boolean).length/3)*100);
+      const barClr=pct===100?'#4caf50':pct>0?'#ff9800':'#e0e0e0';
+      return`<div style="display:grid;grid-template-columns:48px 1fr 130px 110px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f4f1;">
+        <span style="font-size:11px;font-weight:700;color:var(--tx2);">⭐ ${k.id}</span>
+        <div>
+          <div style="font-size:12px;color:var(--tx);font-weight:600;">${k.name}</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+            <div style="flex:1;height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${barClr};border-radius:3px;transition:width .3s;"></div></div>
+            <span style="font-size:9px;font-weight:700;color:${barClr};">${pct}%</span>
+          </div>
         </div>
+        <div style="display:flex;gap:6px;justify-content:center;">${dot(dDoc,'Doc')}${dot(dKpi,'KPI')}${dot(dA3,'A3')}</div>
+        <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:#e8f5ee;color:#2e7d52;text-align:center;">${k.resp}</span>
+      </div>`;
+    }).join('');
+    return`<div class="card" style="margin-bottom:12px;">
+      <div class="card-title" style="margin-bottom:4px;">👤 Responsables · ${label}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">Avance por los 3 requerimientos: Documentación · KPI cargado · Plan A3</div>
+      <div style="display:grid;grid-template-columns:48px 1fr 130px 110px;gap:8px;padding:3px 0;border-bottom:1px solid var(--brd);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">
+        <span>KPI</span><span>Punto de auditoría</span><span style="text-align:center;">Avance</span><span style="text-align:center;">Responsable</span>
       </div>
-      <div style="display:flex;gap:6px;justify-content:center;">${dot(dDoc,'Doc')}${dot(dKpi,'KPI')}${dot(dA3,'A3')}</div>
-      <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:#e8f5ee;color:#2e7d52;text-align:center;">${k.resp}</span>
+      ${rows}
     </div>`;
-  }).join('');
-  return`<div class="card">
-    <div class="card-title" style="margin-bottom:4px;">👤 Responsables por KPI · ${CZ==='MTY'?'Monterrey':'Ciudad de México'}</div>
-    <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">Avance por los 3 requerimientos: Documentación · KPI cargado · Plan A3</div>
-    <div style="display:grid;grid-template-columns:48px 1fr 130px 110px;gap:8px;padding:3px 0;border-bottom:1px solid var(--brd);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">
-      <span>KPI</span><span>Punto de auditoría</span><span style="text-align:center;">Avance</span><span style="text-align:center;">Responsable</span>
-    </div>
-    ${rows}
-  </div>`;
+  };
+  return renderTable('MTY','Monterrey (MTY)')+renderTable('CDMX','Ciudad de México (CDMX)');
 }
 function uploadPDF(event,zone,idx){const file=event.target.files[0];if(!file)return;if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]={name:file.name,url:URL.createObjectURL(file)};renderDocView('resultados');}
 function removePDF(zone,idx){if(pdfDocs[CY][zone][idx]&&pdfDocs[CY][zone][idx].url)URL.revokeObjectURL(pdfDocs[CY][zone][idx].url);pdfDocs[CY][zone][idx]=null;renderDocView('resultados');}
