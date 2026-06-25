@@ -2500,7 +2500,8 @@ function loadExcelEnc31(input){
   reader.onload=e=>{
     try{
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
-      const ws=wb.Sheets[wb.SheetNames[0]];
+      const sheetName=wb.SheetNames.find(n=>n.toUpperCase()==='RATIONAL')||wb.SheetNames.find(n=>n.toUpperCase()==='BASE')||wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       if(rows.length<3){toast('⚠ Excel sin datos');return;}
       // Fila 1 (idx 1) = headers, Fila 2+ = datos
