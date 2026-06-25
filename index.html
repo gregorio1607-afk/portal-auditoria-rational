@@ -4154,7 +4154,7 @@ function delEncR31(id){
 }
 function attachPdfEncR31(id,input){
   const file=input.files[0];if(!file)return;
-  if(file.size>1048576){toast('⚠ PDF muy grande — máx 1 MB');return;}
+  if(file.size>5*1024*1024){toast('⚠ PDF muy grande — máx 5 MB');return;}
   const reader=new FileReader();
   reader.onload=e=>{
     const rec=getEncR31().find(r=>r.id===id);if(!rec)return;
