@@ -109,11 +109,12 @@ async function syncNetSuite() {
     const headers = rows[0].map(h => h.toLowerCase());
     console.log(`[sync_ns] ${rows.length - 1} filas · columnas: ${headers.join(', ')}`);
 
-    const osCol   = headers.findIndex(h => h === 'os' || h.includes('orden') || h.includes('order') || h.includes('work order') || h === 'caso');
-    const partCol = headers.findIndex(h => h.includes('part') || h.includes('refacc') || h.includes('articulo') || h.includes('item') || h.includes('parte'));
-    const descCol = headers.findIndex(h => h.includes('desc') || h.includes('nombre') || h.includes('name'));
-    const qtyCol  = headers.findIndex(h => h.includes('qty') || h.includes('cant') || h.includes('quantity'));
-    const costCol = headers.findIndex(h => h.includes('cost') || h.includes('costo') || h.includes('amount') || h.includes('importe') || h.includes('total'));
+    // Columnas exactas del reporte NetSuite cr=2738
+    const osCol   = headers.findIndex(h => h === 'os kepler' || h === 'os (serv industrial)' || h === 'os' || h.includes('orden') || h.includes('order'));
+    const partCol = headers.findIndex(h => h === 'artículo' || h === 'articulo' || h.includes('part') || h.includes('refacc') || h.includes('item'));
+    const descCol = headers.findIndex(h => h === 'descripción' || h === 'descripcion' || (h.includes('desc') && !h.includes('estado')));
+    const qtyCol  = headers.findIndex(h => h === 'cantidad' || h.includes('qty') || h.includes('quantity'));
+    const costCol = headers.findIndex(h => h === 'importe' || h.includes('cost') || h.includes('costo') || h.includes('amount'));
 
     console.log(`[sync_ns] Columnas → os:${osCol}(${headers[osCol]}), part:${partCol}(${headers[partCol]}), desc:${descCol}, qty:${qtyCol}, cost:${costCol}`);
 
