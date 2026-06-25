@@ -972,21 +972,40 @@ function loadExcelAuditoria11(input){
         const añoMatch=name.match(/\d{4}/);
         const año=añoMatch?parseInt(añoMatch[0]):CY;
 
-        // Fila 0: ["","","ENERO","FEBRERO",...] → índices de columna por mes
-        const mesRow=rows[0].map(c=>String(c||'').toUpperCase().trim());
-        const mesCols={}; // {0:2, 1:3, ...}  mesNum → colIdx
-        mesRow.forEach((v,ci)=>{const m=MES_NUM[v];if(m!==undefined)mesCols[m]=ci;});
+        // Detectar fila de encabezados: puede ser fila 0 (formato simple) o fila 1 (formato con meses en fila 0)
+        const MES_ES={'ENERO':0,'FEBRERO':1,'MARZO':2,'ABRIL':3,'MAYO':4,'JUNIO':5,'JULIO':6,'AGOSTO':7,'SEPTIEMBRE':8,'OCTUBRE':9,'NOVIEMBRE':10,'DICIEMBRE':11};
+        function extractMesNum(v){
+          const up=v.toUpperCase().trim();
+          // Exacto: "ENERO"
+          if(MES_ES[up]!==undefined)return MES_ES[up];
+          // Con año: "Enero 2025", "ENERO 2025"
+          const m=up.match(/^(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)/);
+          if(m)return MES_ES[m[1]];
+          return undefined;
+        }
+        const mesCols={};
+        let hdrDataRow=1; // fila donde están SUCURSAL/NOMBRE
+        let dataStart=2;  // primera fila de datos
 
-        // Si no hay columnas de mes en fila 0 → no es este formato, saltar
-        if(Object.keys(mesCols).length===0)return;
+        // Intentar fila 0 para meses
+        rows[0].forEach((c,ci)=>{const m=extractMesNum(String(c||''));if(m!==undefined)mesCols[m]=ci;});
 
-        // Fila 1: encabezados → buscar col SUCURSAL y col NOMBRE
-        const hdr1=rows[1].map(c=>String(c||'').toLowerCase().trim());
+        if(Object.keys(mesCols).length>0){
+          // Formato A: meses en fila 0, headers en fila 1, datos en fila 2+
+          hdrDataRow=1; dataStart=2;
+        } else {
+          // Formato B: fila 0 es el único header (SUCURSAL, Nombre, Enero 2025...)
+          rows[0].forEach((c,ci)=>{const m=extractMesNum(String(c||''));if(m!==undefined)mesCols[m]=ci;});
+          if(Object.keys(mesCols).length===0)return; // no reconocido
+          hdrDataRow=0; dataStart=1;
+        }
+
+        const hdr1=rows[hdrDataRow].map(c=>String(c||'').toLowerCase().trim());
         const colSuc=hdr1.findIndex(h=>h.includes('sucursal')||h.includes('ubicacion'));
         const colNom=hdr1.findIndex(h=>h.includes('nombre'));
 
-        // Filas 2+: una fila por persona
-        for(let i=2;i<rows.length;i++){
+        // Filas de datos
+        for(let i=dataStart;i<rows.length;i++){
           const r=rows[i];
           const nombre=String(r[colNom>=0?colNom:1]||'').trim();
           const sucursal=String(r[colSuc>=0?colSuc:0]||'').trim();
