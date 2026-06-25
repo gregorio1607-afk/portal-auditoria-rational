@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const cron = require('node-cron');
 const { syncOsData } = require('./sync_os');
+const { syncNetSuite } = require('./sync_netsuite');
 
 const PORT = process.env.PORT || 3000;
 
@@ -37,12 +38,13 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Portal escuchando en puerto ${PORT}`);
-  // Sync al arrancar
   syncOsData();
+  syncNetSuite();
 });
 
 // Cron diario 7:00 AM hora México (13:00 UTC)
 cron.schedule('0 13 * * *', () => {
   console.log('[cron] Ejecutando sincronización diaria...');
   syncOsData();
+  syncNetSuite();
 });

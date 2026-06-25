@@ -262,6 +262,7 @@ textarea.fc{resize:vertical;line-height:1.5;}
 firebase.initializeApp({apiKey:"AIzaSyAiuFRHr0oWjbpSnQyELUygJdbE4rF3KZY",authDomain:"portal-auditoria-rational.firebaseapp.com",databaseURL:"https://portal-auditoria-rational-default-rtdb.firebaseio.com",projectId:"portal-auditoria-rational",storageBucket:"portal-auditoria-rational.firebasestorage.app",messagingSenderId:"929257938224",appId:"1:929257938224:web:1dec97c0a15705b496fcf5"});
 const _db=firebase.database();
 window._osKepler={};
+window._osNetsuite={};
 let _fbSyncTimer=null;
 let _fbLastOk=true;
 function _fbSyncStatus(ok,msg){
@@ -318,6 +319,10 @@ async function _fbLoad(){
     const snapK=await _db.ref('v1/os_kepler').get();
     if(snapK.exists()){window._osKepler=snapK.val()||{};}
   }catch(e){console.warn('FB os_kepler load error',e);}
+  try{
+    const snapN=await _db.ref('v1/os_netsuite').get();
+    if(snapN.exists()){window._osNetsuite=snapN.val()||{};}
+  }catch(e){console.warn('FB os_netsuite load error',e);}
 }
 // Sucursales excluidas de todos los filtros de visores
 const SUC_BLOQUEADAS_GLOBAL=['admin','kitchen lab','kl','si ks','subcontratad','corporativ','plato limpio','bongard'];
@@ -1322,6 +1327,7 @@ function renderFTFDetalleOS(){
         ${kbadge(k.desgaste,'Desgaste Natural','#f3e5f5','#6a1b9a')}
       </div>
       ${k.ultReporte?`<div style="margin-top:6px;border-top:1px solid #eee;padding-top:5px;"><span style="color:#888;font-size:10px;">ÚLTIMO REPORTE</span><br/><span style="color:#555;font-size:10px;white-space:pre-wrap;display:block;max-height:80px;overflow-y:auto;margin-top:2px;">${esc(k.ultReporte.substring(0,300))}</span></div>`:''}
+      ${(()=>{const ns=window._osNetsuite&&window._osNetsuite[osKey];if(!ns||!ns.refacciones||!ns.refacciones.length)return'';const rr=ns.refacciones.map(p=>`<tr><td style="padding:2px 6px;font-size:10px;color:#555;">${esc(p.part||'—')}</td><td style="padding:2px 6px;font-size:10px;color:#333;">${esc(p.desc||'—')}</td><td style="padding:2px 6px;font-size:10px;text-align:center;">${p.qty||''}</td><td style="padding:2px 6px;font-size:10px;text-align:right;color:#1565c0;">${p.cost?'$'+p.cost.toLocaleString('es-MX',{minimumFractionDigits:2}):''}</td></tr>`).join('');return`<div style="margin-top:6px;border-top:1px solid #eee;padding-top:5px;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#888;font-size:10px;">REFACCIONES (NetSuite)</span>${ns.costoTotal?`<span style="font-size:10px;font-weight:700;color:#1565c0;">Total: $${ns.costoTotal.toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`:''}</div><table style="width:100%;border-collapse:collapse;margin-top:3px;"><thead><tr style="background:#f5f5f5;"><th style="padding:2px 6px;font-size:9px;color:#888;text-align:left;">Parte</th><th style="padding:2px 6px;font-size:9px;color:#888;text-align:left;">Descripción</th><th style="padding:2px 6px;font-size:9px;color:#888;text-align:center;">Qty</th><th style="padding:2px 6px;font-size:9px;color:#888;text-align:right;">Costo</th></tr></thead><tbody>${rr}</tbody></table></div>`;})()}
     `:'';
     const osCell=k
       ?`<div style="position:relative;display:inline-block;" onmouseenter="this.querySelector('.os-tip').style.display='block'" onmouseleave="this.querySelector('.os-tip').style.display='none'">
@@ -1558,6 +1564,7 @@ function renderVisorFTF(){
         ${kbadge(k.desgaste,'Desgaste Natural','#f3e5f5','#6a1b9a')}
       </div>
       ${k.ultReporte?`<div style="margin-top:6px;border-top:1px solid #eee;padding-top:5px;"><span style="color:#888;font-size:10px;">ÚLTIMO REPORTE</span><br/><span style="color:#555;font-size:10px;white-space:pre-wrap;display:block;max-height:80px;overflow-y:auto;margin-top:2px;">${esc(k.ultReporte.substring(0,300))}</span></div>`:''}
+      ${(()=>{const ns=window._osNetsuite&&window._osNetsuite[osKey];if(!ns||!ns.refacciones||!ns.refacciones.length)return'';const rr=ns.refacciones.map(p=>`<tr><td style="padding:2px 6px;font-size:10px;color:#555;">${esc(p.part||'—')}</td><td style="padding:2px 6px;font-size:10px;color:#333;">${esc(p.desc||'—')}</td><td style="padding:2px 6px;font-size:10px;text-align:center;">${p.qty||''}</td><td style="padding:2px 6px;font-size:10px;text-align:right;color:#1565c0;">${p.cost?'$'+p.cost.toLocaleString('es-MX',{minimumFractionDigits:2}):''}</td></tr>`).join('');return`<div style="margin-top:6px;border-top:1px solid #eee;padding-top:5px;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#888;font-size:10px;">REFACCIONES (NetSuite)</span>${ns.costoTotal?`<span style="font-size:10px;font-weight:700;color:#1565c0;">Total: $${ns.costoTotal.toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`:''}</div><table style="width:100%;border-collapse:collapse;margin-top:3px;"><thead><tr style="background:#f5f5f5;"><th style="padding:2px 6px;font-size:9px;color:#888;text-align:left;">Parte</th><th style="padding:2px 6px;font-size:9px;color:#888;text-align:left;">Descripción</th><th style="padding:2px 6px;font-size:9px;color:#888;text-align:center;">Qty</th><th style="padding:2px 6px;font-size:9px;color:#888;text-align:right;">Costo</th></tr></thead><tbody>${rr}</tbody></table></div>`;})()}
     `:'';
     const osCell=k
       ?`<div style="position:relative;display:inline-block;" onmouseenter="this.querySelector('.os-tip').style.display='block'" onmouseleave="this.querySelector('.os-tip').style.display='none'">
