@@ -1582,9 +1582,9 @@ function loadExcelFTF(input){
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
       const norm=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 
-      // Buscar la hoja correcta: primero FTF, luego BD/KEP, luego la primera
-      const sheetName=wb.SheetNames.find(n=>/ftf/i.test(n))
-        ||wb.SheetNames.find(n=>/BD|KEP/i.test(n))
+      // Buscar la hoja correcta: primero BD KEP. (detalle OS), luego FTF pivot, luego la primera
+      const sheetName=wb.SheetNames.find(n=>/BD|KEP/i.test(n))
+        ||wb.SheetNames.find(n=>/ftf/i.test(n))
         ||wb.SheetNames[0];
       const ws=wb.Sheets[sheetName];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'dd/mm/yyyy'});
