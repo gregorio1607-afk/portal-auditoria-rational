@@ -2111,7 +2111,19 @@ function saveM13TecR(idx,field,val){saveM13Tec(idx,field,val);renderMain(CT);}
 function addM13Tec(){const m=getM13Cap();m.tecnicos.push({nombre:'',sucursal:'',curso:'',fechaCaducidad:'',certs:[]});saveData();renderMain(CT);}
 function delM13Tec(idx){if(!confirm('¿Eliminar este técnico?'))return;const m=getM13Cap();m.tecnicos.splice(idx,1);saveData();renderMain(CT);}
 function delCertCap13(tecIdx,certId){if(!confirm('¿Eliminar este certificado?'))return;const m=getM13Cap();const t=m.tecnicos[tecIdx];if(t)t.certs=(t.certs||[]).filter(c=>c.id!==certId);saveData();renderMain(CT);}
-function abrirCertData(dataUrl,nombre){try{const arr=dataUrl.split(',');const mime=arr[0].match(/:(.*?);/)[1];const b=atob(arr[1]);const u8=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u8[i]=b.charCodeAt(i);const blob=new Blob([u8],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=nombre||'certificado';a.target='_blank';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}catch(e){toast('❌ No se pudo abrir el archivo');}}
+window._certMap={};
+function abrirCertData(id){
+  const c=window._certMap[id];if(!c){toast('❌ Certificado no encontrado');return;}
+  try{
+    const arr=c.data.split(',');const mime=arr[0].match(/:(.*?);/)[1];
+    const b=atob(arr[1]);const u8=new Uint8Array(b.length);
+    for(let i=0;i<b.length;i++)u8[i]=b.charCodeAt(i);
+    const blob=new Blob([u8],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=c.nombre||'certificado';document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+  }catch(e){toast('❌ No se pudo abrir el archivo');}
+}
 function uploadCertCap13(input,idx){
   const file=input.files[0];if(!file)return;
   if(file.size>1*1024*1024){toast('❌ Archivo muy grande — máximo 1 MB');return;}
@@ -2281,11 +2293,11 @@ function renderVisorCapacitacion13(){
       </div>`;
     }
     const certList=d.certs.length>0
-      ?d.certs.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
+      ?d.certs.map(c=>{window._certMap[c.id]=c;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
           <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
-          <a href="#" onclick="event.preventDefault();abrirCertData(${JSON.stringify(c.data)},${JSON.stringify(c.nombre)})" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
+          <a href="#" onclick="event.preventDefault();abrirCertData(${c.id})" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
           <button onclick="delCertCap13(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
-        </div>`).join('')
+        </div>`;}).join('')
       :`<div style="font-size:11px;color:var(--tx3);padding:4px 0;">Sin certificados aún.</div>`;
 
     return`<details class="cap13-card" data-nombre="${esc(d.nombre)}" style="border:1.5px solid ${borderClr};border-radius:12px;margin-bottom:8px;overflow:hidden;background:var(--bg2);" ${_cap13Search&&d.nombre.toLowerCase().includes(_cap13Search.toLowerCase())?'open':''}>
@@ -2442,11 +2454,11 @@ function renderVisorMedicion12(){
           </label>
         </div>
         ${d.certs.length>0
-          ?d.certs.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
+          ?d.certs.map(c=>{window._certMap[c.id]=c;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:1px solid var(--brd);border-radius:7px;margin-bottom:4px;">
               <span style="font-size:10px;color:var(--tx3);white-space:nowrap;">${c.fecha}</span>
-              <a href="#" onclick="event.preventDefault();abrirCertData(${JSON.stringify(c.data)},${JSON.stringify(c.nombre)})" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
+              <a href="#" onclick="event.preventDefault();abrirCertData(${c.id})" style="font-size:11px;color:#1565c0;font-weight:700;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${esc(c.nombre)}</a>
               <button onclick="delCertM12(${i},${c.id})" style="font-size:10px;padding:1px 7px;border:1px solid #e53935;color:#e53935;background:#fff;border-radius:5px;cursor:pointer;flex-shrink:0;">✕</button>
-            </div>`).join('')
+            </div>`;}).join('')
           :`<div style="font-size:11px;color:var(--tx3);padding:6px 0;">Sin certificados aún.</div>`}
       </div>
     </div>`;
