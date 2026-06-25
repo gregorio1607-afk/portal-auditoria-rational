@@ -1590,11 +1590,12 @@ function loadExcelFTF(input){
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'dd/mm/yyyy'});
       if(rows.length<2){toast('Excel sin datos en la hoja '+sheetName);return;}
 
-      // Detectar encabezados buscando la primera fila no vacía con al menos 2 celdas
+      // Detectar encabezados: buscar primero fila con 'mes' y 'ftf', luego primera fila con ≥2 celdas
       let hdrIdx=0;
-      for(let i=0;i<Math.min(rows.length,10);i++){
-        if(rows[i]&&rows[i].filter(c=>c).length>=2){hdrIdx=i;break;}
-      }
+      const hasMesFtf=r=>r&&r.some(c=>norm(String(c||'')).replace(/\s/g,'').includes('mesalta'))&&r.some(c=>norm(String(c||'')).replace(/\s/g,'').includes('ftf'));
+      const ftfHdrIdx=rows.findIndex(hasMesFtf);
+      if(ftfHdrIdx>=0){hdrIdx=ftfHdrIdx;}
+      else{for(let i=0;i<Math.min(rows.length,10);i++){if(rows[i]&&rows[i].filter(c=>c).length>=2){hdrIdx=i;break;}}}
       const hdr=rows[hdrIdx].map(norm);
 
       // ── MODO A: Tabla dinámica de Kepler (MES ALTA / F.T.F. / NO F.T.F.) ──
