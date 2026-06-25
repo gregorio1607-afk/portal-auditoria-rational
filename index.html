@@ -1326,7 +1326,7 @@ function renderFTFDetalleOS(){
     const osCell=k
       ?`<div style="position:relative;display:inline-block;" onmouseenter="this.querySelector('.os-tip').style.display='block'" onmouseleave="this.querySelector('.os-tip').style.display='none'">
           <span style="font-size:12px;font-weight:700;color:var(--tx);cursor:default;border-bottom:2px dotted #90caf9;">${esc(r.os)}</span>
-          <div class="os-tip" style="display:none;position:absolute;z-index:999;left:0;top:24px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 12px;min-width:240px;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,0.15);text-align:left;">${tooltipContent}</div>
+          <div class="os-tip" style="display:none;position:absolute;z-index:999;left:0;top:24px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 12px;min-width:340px;max-width:480px;box-shadow:0 4px 24px rgba(0,0,0,0.18);text-align:left;font-size:12px;">${tooltipContent}</div>
         </div>`
       :`<span style="font-size:12px;font-weight:700;white-space:nowrap;">${esc(r.os)}</span>`;
     return`<tr style="border-bottom:1px solid #f0f4f1;">
@@ -1562,7 +1562,7 @@ function renderVisorFTF(){
     const osCell=k
       ?`<div style="position:relative;display:inline-block;" onmouseenter="this.querySelector('.os-tip').style.display='block'" onmouseleave="this.querySelector('.os-tip').style.display='none'">
           <span style="font-size:12px;font-weight:700;color:var(--tx);cursor:default;border-bottom:2px dotted #90caf9;">${r.os||'—'}</span>
-          <div class="os-tip" style="display:none;position:absolute;z-index:999;left:0;top:24px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 12px;min-width:240px;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,0.15);text-align:left;">${tooltipContent}</div>
+          <div class="os-tip" style="display:none;position:absolute;z-index:999;left:0;top:24px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 12px;min-width:340px;max-width:480px;box-shadow:0 4px 24px rgba(0,0,0,0.18);text-align:left;font-size:12px;">${tooltipContent}</div>
         </div>`
       :`<span style="font-size:12px;font-weight:700;color:var(--tx);">${r.os||'—'}</span>`;
     return`<tr style="border-bottom:1px solid #f5f5f5;${i%2?'background:#fafafa':''}">
