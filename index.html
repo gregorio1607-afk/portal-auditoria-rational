@@ -4285,7 +4285,7 @@ function showAddEncR31(){
     <label style="display:inline-flex;align-items:center;gap:8px;padding:14px 24px;background:#1565c0;color:#fff;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">
       📎 Subir PDF de encuesta
       <input type="file" accept="application/pdf" style="display:none;"
-        onchange="if(!this.files[0])return;if(this.files[0].size>1048576){toast('⚠ PDF muy grande — máx 1 MB');this.value='';return;}document.getElementById('er31-modal').remove();showEncR31FromPdf(this.files[0]);"/>
+        onchange="if(!this.files[0])return;if(this.files[0].size>5*1024*1024){toast('⚠ PDF muy grande — máx 5 MB');this.value='';return;}document.getElementById('er31-modal').remove();showEncR31FromPdf(this.files[0]);"/>
     </label>
     <div style="margin-top:14px;">
       <button onclick="document.getElementById('er31-modal').remove();showEncR31Form(null,{},null);" style="background:none;border:none;color:#1565c0;font-size:12px;cursor:pointer;text-decoration:underline;">Registrar sin PDF</button>
