@@ -1715,10 +1715,14 @@ function loadExcelFTF(input){
       }
 
       const ftv=getFtv();
-      setFtfOS(osData);
-      const años=[...new Set(osData.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a);
-      const marcasU=[...new Set(osData.map(r=>r.marca))].filter(Boolean);
-      const tiposU=[...new Set(osData.map(r=>r.tipoServicio))].filter(Boolean);
+      // Filtrar por zona (igual que KPI 3.1)
+      const MTY_KW33=['noreste','heb','bajio','occidente'];
+      const isMTY33=(suc)=>MTY_KW33.some(k=>suc.toLowerCase().includes(k));
+      const filtered33=CZ==='MTY'?osData.filter(r=>!r.sucursal||isMTY33(r.sucursal)):osData.filter(r=>r.sucursal&&!isMTY33(r.sucursal));
+      setFtfOS(filtered33);
+      const años=[...new Set(filtered33.map(r=>r.año))].filter(Boolean).sort((a,b)=>b-a);
+      const marcasU=[...new Set(filtered33.map(r=>r.marca))].filter(Boolean);
+      const tiposU=[...new Set(filtered33.map(r=>r.tipoServicio))].filter(Boolean);
       const marcaRat=marcasU.find(m=>/rational/i.test(m))||marcasU[0]||'Todos';
       const tipoGar=tiposU.find(t=>/garant/i.test(t))||'Todos';
       // Año: si hay solo un año en el Excel usar ese, sino Todos para ver todo
@@ -1726,9 +1730,9 @@ function loadExcelFTF(input){
       ftv.filtros={año:añoDef,marca:marcaRat,tipoServicio:tipoGar,sucursales:[]};
       ftv.updatedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
       saveData();
-      const ftfCount=osData.filter(r=>r.tipoServicio===tipoGar&&r.ftf==='F.T.F.').length;
-      const garCount=osData.filter(r=>r.tipoServicio===tipoGar).length;
-      toast('✅ '+proc+' OS cargadas · '+tipoGar+': '+garCount+' ('+ftfCount+' FTF)'+(skip?' · '+skip+' omitidas':''));
+      const ftfCount=filtered33.filter(r=>r.tipoServicio===tipoGar&&r.ftf==='F.T.F.').length;
+      const garCount=filtered33.filter(r=>r.tipoServicio===tipoGar).length;
+      toast('✅ '+garCount+' OS cargadas (zona '+CZ+') · '+ftfCount+' FTF · '+Math.round(ftfCount/garCount*100||0)+'%'+(skip?' · '+skip+' omitidas':''));
       ftfTrimDetail=null;
       renderMain('kpi');
     }catch(err){
