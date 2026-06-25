@@ -354,7 +354,7 @@ const madData=Object.assign({2025:{},2026:{}},JSON.parse(localStorage.getItem('a
 const members=JSON.parse(localStorage.getItem('appMembers')||'[]');
 const resultados={2025:{MTY:{},CDMX:{}},2026:{MTY:{},CDMX:{}}};
 const pdfDocs={2025:{MTY:[null,null,null,null],CDMX:[null,null,null,null]},2026:{MTY:[null,null,null,null],CDMX:[null,null,null,null]}};
-function saveData(){localStorage.setItem('appSD',JSON.stringify(SD));localStorage.setItem('appYZD',JSON.stringify(YZD));localStorage.setItem('appMad',JSON.stringify(madData));localStorage.setItem('appMembers',JSON.stringify(members));_fbSync();}
+function saveData(){try{localStorage.setItem('appSD',JSON.stringify(SD));}catch(e){}try{localStorage.setItem('appYZD',JSON.stringify(YZD));}catch(e){}try{localStorage.setItem('appMad',JSON.stringify(madData));}catch(e){}try{localStorage.setItem('appMembers',JSON.stringify(members));}catch(e){}_fbSync();}
 let CY=2025,CZ='MTY',CA='',CAO=null,CT='kpi',VM='welcome',docSub='madurez',editingMember=null;
 const appUsers=JSON.parse(localStorage.getItem('appUsers')||'[]');let activeUserId=null,usuarioFiltro='',editingUserId=null;
 function saveUsersLS(){localStorage.setItem('appUsers',JSON.stringify(appUsers));_fbSync();}
