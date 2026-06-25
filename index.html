@@ -3912,7 +3912,7 @@ function renderEncuestas31(){
       const hT=Math.round(q.total/maxV*(svgH-labelH-14));
       const yT=svgH-labelH-hT;
       const npsClrQ=q.nps===null?'#888':q.nps>=50?grn:q.nps>=0?org:red;
-      const clrBg=isSel?'#90caf9':q.nps===null?'#b0bec5':q.nps>=50?'#a5d6a7':q.nps>=0?'#ffcc80':'#ef9a9a';
+      const clrBg=isSel?'#90caf9':'#78909c';
       return`<g style="cursor:${q.total>0?'pointer':'default'};" ${q.total>0?`onclick="_enc31SelQ=(_enc31SelQ===${i}?null:${i});renderMain(CT);setTimeout(()=>{const el=document.getElementById('enc31-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);"`:''}">
         <rect x="${x}" y="${yT}" width="${bw}" height="${hT}" rx="4" fill="${clrBg}" opacity="${isSel?'1':'0.85'}"/>
         <text x="${x+bw/2}" y="${svgH-labelH+14}" text-anchor="middle" font-size="12" font-weight="700" fill="${isSel?'#1565c0':'var(--tx)'}" font-family="sans-serif">${q.label}</text>
