@@ -3906,21 +3906,23 @@ function renderEncuestas31(){
   let svgChart='';
   if(qData.some(q=>q.total>0)){
     const maxV=Math.max(...qData.map(q=>q.total),1);
-    const bw=56,gap=14,pad=20,svgH=130,labelH=36;
+    const bw=56,gap=14,pad=20,svgH=160,labelH=36,topPad=30;
     const chartW=pad*2+4*(bw+gap)-gap;
     const bars=qData.map((q,i)=>{
       const x=pad+i*(bw+gap);
       const isSel=selQ===i;
-      const hT=Math.round(q.total/maxV*(svgH-labelH-14));
+      const hT=Math.round(q.total/maxV*(svgH-labelH-topPad));
       const yT=svgH-labelH-hT;
       const npsClrQ=q.nps===null?'#888':q.nps>=50?grn:q.nps>=0?org:red;
       const clrBg=isSel?'#90caf9':'#78909c';
+      const yCount=yT-5;
+      const yNps=yT-19;
       return`<g style="cursor:${q.total>0?'pointer':'default'};" ${q.total>0?`onclick="_enc31SelQ=(_enc31SelQ===${i}?null:${i});renderMain(CT);setTimeout(()=>{const el=document.getElementById('enc31-desglose');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);"`:''}">
         <rect x="${x}" y="${yT}" width="${bw}" height="${hT}" rx="4" fill="${clrBg}" opacity="${isSel?'1':'0.85'}"/>
         <text x="${x+bw/2}" y="${svgH-labelH+14}" text-anchor="middle" font-size="12" font-weight="700" fill="${isSel?'#1565c0':'var(--tx)'}" font-family="sans-serif">${q.label}</text>
         <text x="${x+bw/2}" y="${svgH-labelH+26}" text-anchor="middle" font-size="9" fill="var(--tx3)" font-family="sans-serif">${q.sub}</text>
-        ${q.total>0?`<text x="${x+bw/2}" y="${yT-4}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--tx)" font-family="sans-serif">${q.total}</text>`:''}
-        ${q.nps!==null?`<text x="${x+bw/2}" y="${Math.max(yT-18,8)}" text-anchor="middle" font-size="9" font-weight="700" fill="${npsClrQ}" font-family="sans-serif">NPS${q.nps>0?'+':''}${q.nps}</text>`:''}
+        ${q.total>0?`<text x="${x+bw/2}" y="${yCount}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--tx)" font-family="sans-serif">${q.total}</text>`:''}
+        ${q.nps!==null?`<text x="${x+bw/2}" y="${yNps}" text-anchor="middle" font-size="9" font-weight="700" fill="${npsClrQ}" font-family="sans-serif">NPS${q.nps>0?'+':''}${q.nps}</text>`:''}
       </g>`;
     }).join('');
     svgChart=`<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">
